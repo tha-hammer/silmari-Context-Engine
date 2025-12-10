@@ -58,7 +58,7 @@ def get_feature_complexity(feature: dict) -> str:
         signals += 1
     
     # Medium complexity signals
-    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema']
+    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema', 'patch', 'system', 'service', 'handler', 'execute', 'command']
     for keyword in medium_keywords:
         if keyword in description or keyword in category:
             signals += 1
@@ -103,20 +103,22 @@ Wait for review. Address any issues.
 ### Feature Verifier
 ```
 @feature-verifier Verify feature {feature_id}: {description}
-```"""
+```
+
+After all subagents pass, proceed to STEP 8."""
 
     elif complexity == 'medium':
         return f"""## STEP 7: Verify Tests (Medium Complexity)
 ```
 @test-runner Run the test suite and analyze results
-```"""
+```
+
+After tests pass, proceed to STEP 8."""
 
     else:  # low
-        return f"""## STEP 7: Run Tests (Low Complexity)
-```bash
-{test_cmd}
-```
-No subagent review needed for simple changes."""
+        return f"""## STEP 7: Verify Tests (Low Complexity)
+Tests should already pass from STEP 6. If they do, proceed directly to STEP 8.
+No subagent review needed for simple changes - just mark complete."""
 
 # ============================================================================
 # Utilities

@@ -66,8 +66,8 @@ def get_feature_complexity(feature: Dict[str, Any]) -> str:
     if len(feature.get('tests', [])) > 5:
         signals += 1
     
-    # Medium complexity signals (architecture, API, database)
-    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema']
+    # Medium complexity signals (architecture, API, database, system operations)
+    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema', 'patch', 'system', 'service', 'handler', 'execute', 'command']
     for keyword in medium_keywords:
         if keyword in description or keyword in category:
             signals += 1
@@ -115,7 +115,9 @@ Ensure all tests pass.
 ```
 @feature-verifier Verify feature {feature_id}: {description}
 ```
-Confirm feature works end-to-end."""
+Confirm feature works end-to-end.
+
+After all subagents pass, proceed to STEP 8."""
 
     elif complexity == 'medium':
         return f"""## STEP 7: Verify Tests (Medium Complexity Feature)
@@ -124,15 +126,12 @@ Invoke the test runner to verify:
 ```
 @test-runner Run the test suite and analyze results
 ```
-Ensure all tests pass before committing."""
+Ensure all tests pass, then proceed to STEP 8."""
 
     else:  # low
         return """## STEP 7: Verify Tests (Low Complexity Feature)
-Run tests directly:
-```bash
-cargo test  # or: pytest / npm test
-```
-If tests pass, proceed to commit. No subagent review needed for simple changes."""
+Tests should already pass from STEP 6. If they do, proceed directly to STEP 8.
+No subagent review needed for simple changes - just mark complete."""
 
 # ============================================================================
 # Color Output
