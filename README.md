@@ -234,6 +234,18 @@ The harness includes specialized subagents that Claude Code invokes during imple
 | `@feature-verifier` | End-to-end feature verification |
 | `@debugger` | Analyzes errors and suggests fixes |
 
+### Smart Complexity Detection
+
+The harness now automatically detects feature complexity and adjusts subagent usage:
+
+**HIGH complexity** (security, crypto, auth, ssh, credentials, permissions): Uses all 3 subagents (code-reviewer, test-runner, feature-verifier)
+
+**MEDIUM complexity** (api, endpoint, database, repository, patch, service, handler): Uses just test-runner subagent
+
+**LOW complexity** (refactor, rename, cleanup, docs, simple changes): Just runs tests directly, no subagents
+
+This speeds up simple features from ~10 min to ~4-5 min while keeping thorough review for security-sensitive code. The complexity is shown in the output like: `🔧 Implementing: patch-002 [MEDIUM] - description...`
+
 ## MCP Integration
 
 MCPs give Claude access to documentation, databases, and tools during sessions.
