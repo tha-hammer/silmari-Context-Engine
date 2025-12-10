@@ -26,10 +26,113 @@ from typing import Optional, Dict, Any, List
 
 HARNESS_PATH = Path.home() / "tools" / "agent-harness"
 DEFAULT_MODEL = "sonnet"  # or "opus" for complex projects
-MAX_SESSIONS = 50  # Safety limit
+MAX_SESSIONS = 100  # Safety limit
 SESSION_TIMEOUT = 3600  # 1 hour max per session
 RETRY_DELAY = 5  # Seconds between retries on failure
 DEBUG = False  # Set via --debug flag
+
+# ============================================================================
+# Feature Complexity Detection
+# ============================================================================
+
+def get_feature_complexity(feature: Dict[str, Any]) -> str:
+    """
+    Estimate feature complexity to determine subagent requirements.
+    Returns: 'high', 'medium', or 'low'
+    
+    High complexity = full subagent ceremony (code-reviewer, test-runner, feature-verifier)
+    Medium complexity = just test-runner
+    Low complexity = just run tests, no subagents
+    """
+    signals = 0
+    
+    category = feature.get('category', '').lower()
+    description = feature.get('description', '').lower()
+    name = feature.get('name', '').lower()
+    
+    # High complexity signals
+    high_complexity_keywords = [
+        'security', 'crypto', 'encrypt', 'auth', 'credential', 'password',
+        'ssh', 'certificate', 'token', 'session', 'permission', 'rbac',
+        'injection', 'sanitize', 'validate', 'vulnerability'
+    ]
+    for keyword in high_complexity_keywords:
+        if keyword in description or keyword in category or keyword in name:
+            signals += 2
+            break  # Only count once
+    
+    if len(feature.get('dependencies', [])) > 3:
+        signals += 1
+    if len(feature.get('tests', [])) > 5:
+        signals += 1
+    
+    # Medium complexity signals (architecture, API, database)
+    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema']
+    for keyword in medium_keywords:
+        if keyword in description or keyword in category:
+            signals += 1
+            break
+    
+    # Low complexity signals
+    low_keywords = ['refactor', 'rename', 'cleanup', 'format', 'typo', 'comment', 'docs']
+    for keyword in low_keywords:
+        if keyword in description or keyword in category or keyword in name:
+            signals -= 2
+            break
+    
+    if 'simple' in name or 'minor' in name:
+        signals -= 1
+    if len(description) < 40:
+        signals -= 1
+    
+    # Determine complexity level
+    if signals >= 3:
+        return 'high'
+    elif signals <= 0:
+        return 'low'
+    return 'medium'
+
+def get_subagent_instructions(complexity: str, feature_id: str, description: str) -> str:
+    """Generate subagent instructions based on complexity level."""
+    
+    if complexity == 'high':
+        return f"""## STEP 7: Invoke Subagents (MANDATORY - High Complexity Feature)
+You MUST invoke these subagents in order:
+
+### Code Review
+```
+@code-reviewer Review the changes for feature {feature_id}
+```
+Wait for review. Address any issues.
+
+### Test Runner
+```
+@test-runner Run the test suite and analyze results
+```
+Ensure all tests pass.
+
+### Feature Verifier
+```
+@feature-verifier Verify feature {feature_id}: {description}
+```
+Confirm feature works end-to-end."""
+
+    elif complexity == 'medium':
+        return f"""## STEP 7: Verify Tests (Medium Complexity Feature)
+Invoke the test runner to verify:
+
+```
+@test-runner Run the test suite and analyze results
+```
+Ensure all tests pass before committing."""
+
+    else:  # low
+        return """## STEP 7: Verify Tests (Low Complexity Feature)
+Run tests directly:
+```bash
+cargo test  # or: pytest / npm test
+```
+If tests pass, proceed to commit. No subagent review needed for simple changes."""
 
 # ============================================================================
 # Color Output
@@ -381,7 +484,32 @@ Be thorough in breaking down features - each should be independently verifiable.
 def build_implement_prompt(feature: Dict[str, Any], session_num: int) -> str:
     """Build the implementation prompt for a feature."""
     feature_id = feature.get('id', 'unknown')
-    return f"""Session {session_num}: Implement feature
+    description = feature.get('description', '')
+    
+    # Detect complexity and get appropriate subagent instructions
+    complexity = get_feature_complexity(feature)
+    subagent_instructions = get_subagent_instructions(complexity, feature_id, description)
+    
+    # Adjust critical rules based on complexity
+    if complexity == 'high':
+        critical_rules = """## CRITICAL RULES
+- DO use Ref MCP to look up docs before coding
+- DO run cargo test before marking complete
+- DO invoke all three subagents (@code-reviewer, @test-runner, @feature-verifier)
+- DO NOT skip any steps
+- DO NOT mark passes: true unless tests pass AND subagents verify"""
+    elif complexity == 'medium':
+        critical_rules = """## CRITICAL RULES
+- DO use Ref MCP to look up docs before coding
+- DO run cargo test before marking complete
+- DO invoke @test-runner to verify tests
+- DO NOT mark passes: true unless tests pass"""
+    else:
+        critical_rules = """## CRITICAL RULES
+- DO run cargo test before marking complete
+- DO NOT mark passes: true unless tests pass"""
+    
+    return f"""Session {session_num}: Implement feature [{complexity.upper()} complexity]
 
 ## STEP 1: Compile Fresh Context
 ```bash
@@ -397,18 +525,15 @@ cat .agent/working-context/current.md
 ## STEP 3: Feature to Implement
 {json.dumps(feature, indent=2)}
 
-## STEP 4: Look Up Documentation (USE MCP - MANDATORY)
-Before writing ANY code, use the Ref MCP tool to look up documentation.
+## STEP 4: Look Up Documentation (USE MCP - RECOMMENDED)
+Before writing code for unfamiliar APIs, use Ref MCP to look up documentation.
 
 Examples:
 - "Use Ref to look up axum Router documentation"
 - "Use Ref to look up sqlx query examples"
-- "Use Ref to look up russh SSH connection"
-
-**DO NOT guess at APIs. Query Ref first.**
 
 ## STEP 5: Implement the Feature
-Write the code using the documentation you looked up.
+Write the code.
 
 ## STEP 6: Run Tests (MANDATORY)
 ```bash
@@ -416,26 +541,7 @@ cargo test
 ```
 If tests fail, fix them before proceeding.
 
-## STEP 7: Invoke Subagents (MANDATORY)
-You MUST invoke these subagents in order:
-
-### Code Review
-```
-@code-reviewer Review the changes for feature {feature_id}
-```
-Wait for review. Address any issues.
-
-### Test Runner
-```
-@test-runner Run the test suite and analyze results
-```
-Ensure all tests pass.
-
-### Feature Verifier
-```
-@feature-verifier Verify feature {feature_id}: {feature.get('description', '')}
-```
-Confirm feature works end-to-end.
+{subagent_instructions}
 
 ## STEP 8: Complete (ONLY if all checks pass)
 ```bash
@@ -445,12 +551,7 @@ git add -A
 git commit -m "session: completed {feature_id}"
 ```
 
-## CRITICAL RULES
-- DO use Ref MCP to look up docs before coding
-- DO run cargo test before marking complete
-- DO invoke all three subagents (@code-reviewer, @test-runner, @feature-verifier)
-- DO NOT skip any steps
-- DO NOT mark passes: true unless tests pass AND subagents verify
+{critical_rules}
 
 If stuck after 3 attempts, mark as blocked and explain why."""
 
@@ -640,7 +741,7 @@ def log_session(project_path: Path, session_num: int, result: Dict[str, Any], fe
 # Main Orchestration Loop
 # ============================================================================
 
-def orchestrate_new_project(info: Dict[str, Any]):
+def orchestrate_new_project(info: Dict[str, Any], max_sessions: int = MAX_SESSIONS):
     """Orchestrate building a new project from scratch."""
     
     print_header("Starting Project Orchestration")
@@ -676,16 +777,16 @@ def orchestrate_new_project(info: Dict[str, Any]):
         log_session(project_path, 1, result)
     
     # Main implementation loop
-    orchestrate_implementation(project_path, info.get('model', DEFAULT_MODEL), start_session=2)
+    orchestrate_implementation(project_path, info.get('model', DEFAULT_MODEL), start_session=2, max_sessions=max_sessions)
 
-def orchestrate_implementation(project_path: Path, model: str = DEFAULT_MODEL, start_session: int = 1):
+def orchestrate_implementation(project_path: Path, model: str = DEFAULT_MODEL, start_session: int = 1, max_sessions: int = MAX_SESSIONS):
     """Main loop to implement all features."""
     
     session_num = start_session
     consecutive_failures = 0
     max_consecutive_failures = 3
     
-    while session_num <= MAX_SESSIONS:
+    while session_num <= max_sessions:
         # Sync feature_list.json with git history (fixes missed updates)
         sync_features_with_git(project_path)
         
@@ -754,7 +855,7 @@ def orchestrate_implementation(project_path: Path, model: str = DEFAULT_MODEL, s
     print_status(f"Project location: {project_path}", "info")
     print_status(f"Total sessions: {session_num - 1}", "info")
 
-def orchestrate_continue(project_path: Path, model: str = DEFAULT_MODEL):
+def orchestrate_continue(project_path: Path, model: str = DEFAULT_MODEL, max_sessions: int = MAX_SESSIONS):
     """Continue orchestration on existing project."""
     
     if not (project_path / "feature_list.json").exists():
@@ -780,7 +881,7 @@ def orchestrate_continue(project_path: Path, model: str = DEFAULT_MODEL):
         start_session = 1
     
     print_status(f"Continuing from session {start_session}", "info")
-    orchestrate_implementation(project_path, model, start_session)
+    orchestrate_implementation(project_path, model, start_session, max_sessions)
 
 # ============================================================================
 # CLI Interface
@@ -800,8 +901,9 @@ Examples:
     )
     
     parser.add_argument("--project", "-p", type=Path, help="Project path to continue")
-    parser.add_argument("--new", "-n", type=Path, help="Create new project at path")
+    parser.add_argument("--new", type=Path, help="Create new project at path")
     parser.add_argument("--model", "-m", default=DEFAULT_MODEL, help="Model to use (sonnet/opus)")
+    parser.add_argument("--max-sessions", type=int, default=MAX_SESSIONS, help="Max sessions (default: 100)")
     parser.add_argument("--continue", "-c", dest="cont", action="store_true", help="Continue existing project")
     parser.add_argument("--status", "-s", action="store_true", help="Show project status and exit")
     parser.add_argument("--mcp-preset", choices=["web", "fullstack", "data", "devops", "minimal", "rust", "python", "node", "docs"], help="Use MCP preset")
@@ -835,7 +937,7 @@ Examples:
         if not project_path.exists():
             print_status(f"Project not found: {project_path}", "error")
             sys.exit(1)
-        orchestrate_continue(project_path, args.model)
+        orchestrate_continue(project_path, args.model, args.max_sessions)
         return
     
     # New project at specific path (skip menu!)
@@ -843,7 +945,7 @@ Examples:
         print_status(f"Creating new project at: {args.new}", "info")
         info = get_project_info_interactive(preset_path=args.new, preset_model=args.model)
         info['mcp_preset'] = args.mcp_preset
-        orchestrate_new_project(info)
+        orchestrate_new_project(info, args.max_sessions)
         return
     
     # Interactive mode - show menu
@@ -856,14 +958,14 @@ Examples:
     if choice == "1":
         info = get_project_info_interactive(preset_model=args.model)
         info['mcp_preset'] = args.mcp_preset
-        orchestrate_new_project(info)
+        orchestrate_new_project(info, args.max_sessions)
     elif choice == "2":
         path_input = input(f"{Colors.CYAN}Project path:{Colors.END} ").strip()
         project_path = Path(path_input).expanduser()
         if not project_path.exists():
             print_status(f"Project not found: {project_path}", "error")
             sys.exit(1)
-        orchestrate_continue(project_path, args.model)
+        orchestrate_continue(project_path, args.model, args.max_sessions)
     else:
         print_status("Invalid choice", "error")
         sys.exit(1)

@@ -23,8 +23,100 @@ from datetime import datetime
 # ============================================================================
 
 DEFAULT_MODEL = "sonnet"
-MAX_SESSIONS = 50
+MAX_SESSIONS = 100
 PAUSE_BETWEEN_SESSIONS = 3  # seconds
+
+# ============================================================================
+# Feature Complexity Detection
+# ============================================================================
+
+def get_feature_complexity(feature: dict) -> str:
+    """
+    Estimate feature complexity to determine subagent requirements.
+    Returns: 'high', 'medium', or 'low'
+    """
+    signals = 0
+    
+    category = feature.get('category', '').lower()
+    description = feature.get('description', '').lower()
+    name = feature.get('name', '').lower()
+    
+    # High complexity signals
+    high_keywords = [
+        'security', 'crypto', 'encrypt', 'auth', 'credential', 'password',
+        'ssh', 'certificate', 'token', 'session', 'permission', 'rbac',
+        'injection', 'sanitize', 'validate', 'vulnerability'
+    ]
+    for keyword in high_keywords:
+        if keyword in description or keyword in category or keyword in name:
+            signals += 2
+            break
+    
+    if len(feature.get('dependencies', [])) > 3:
+        signals += 1
+    if len(feature.get('tests', [])) > 5:
+        signals += 1
+    
+    # Medium complexity signals
+    medium_keywords = ['api', 'endpoint', 'database', 'repository', 'migration', 'schema']
+    for keyword in medium_keywords:
+        if keyword in description or keyword in category:
+            signals += 1
+            break
+    
+    # Low complexity signals
+    low_keywords = ['refactor', 'rename', 'cleanup', 'format', 'typo', 'comment', 'docs']
+    for keyword in low_keywords:
+        if keyword in description or keyword in category or keyword in name:
+            signals -= 2
+            break
+    
+    if 'simple' in name or 'minor' in name:
+        signals -= 1
+    if len(description) < 40:
+        signals -= 1
+    
+    if signals >= 3:
+        return 'high'
+    elif signals <= 0:
+        return 'low'
+    return 'medium'
+
+def get_subagent_instructions(complexity: str, feature_id: str, description: str, test_cmd: str) -> str:
+    """Generate subagent instructions based on complexity level."""
+    
+    if complexity == 'high':
+        return f"""## STEP 7: Invoke Subagents (MANDATORY - High Complexity)
+You MUST invoke these subagents:
+
+### Code Review
+```
+@code-reviewer Review the changes for feature {feature_id}
+```
+Wait for review. Address any issues.
+
+### Test Runner
+```
+@test-runner Run the test suite and analyze results
+```
+
+### Feature Verifier
+```
+@feature-verifier Verify feature {feature_id}: {description}
+```"""
+
+    elif complexity == 'medium':
+        return f"""## STEP 7: Verify Tests (Medium Complexity)
+```
+@test-runner Run the test suite and analyze results
+```"""
+
+    else:  # low
+        return f"""## STEP 7: Run Tests (Low Complexity)
+```bash
+{test_cmd}
+```
+No subagent review needed for simple changes."""
 
 # ============================================================================
 # Utilities
@@ -219,12 +311,37 @@ def run_session(project_path: Path, session_num: int, model: str) -> bool:
         return False
     
     feature_id = feature.get("id", "unknown")
-    feature_desc = feature.get("description", "")[:50]
+    feature_desc = feature.get("description", "")
+    feature_desc_short = feature_desc[:50]
     
-    print(f"🔧 Implementing: {cyan(feature_id)} - {feature_desc}...")
+    # Detect complexity for smart subagent usage
+    complexity = get_feature_complexity(feature)
+    test_cmd = detect_test_command(project_path)
+    subagent_instructions = get_subagent_instructions(complexity, feature_id, feature_desc, test_cmd)
     
-    # Build the prompt with explicit test requirements, MCP usage, and subagent invocation
-    prompt = f"""Session {session_num}: Implement feature
+    print(f"🔧 Implementing: {cyan(feature_id)} [{complexity.upper()}] - {feature_desc_short}...")
+    
+    # Adjust critical rules based on complexity
+    if complexity == 'high':
+        critical_rules = """## CRITICAL RULES
+- DO use MCP tools (especially Ref) to look up documentation
+- DO NOT guess at APIs - look them up first
+- DO NOT mark passes: true unless tests actually pass
+- DO NOT skip the subagents (@code-reviewer, @test-runner, @feature-verifier)
+- If tests fail after 3 attempts, mark feature as blocked"""
+    elif complexity == 'medium':
+        critical_rules = """## CRITICAL RULES
+- DO use MCP tools for unfamiliar APIs
+- DO NOT mark passes: true unless tests pass
+- DO invoke @test-runner to verify
+- If tests fail after 3 attempts, mark feature as blocked"""
+    else:
+        critical_rules = """## CRITICAL RULES
+- DO NOT mark passes: true unless tests pass
+- If tests fail after 3 attempts, mark feature as blocked"""
+    
+    # Build the prompt with complexity-aware subagent requirements
+    prompt = f"""Session {session_num}: Implement feature [{complexity.upper()} complexity]
 
 ## STEP 1: Compile Fresh Context
 ```bash
@@ -241,75 +358,27 @@ cat .agent/working-context/current.md
 {json.dumps(feature, indent=2)}
 
 ## STEP 4: Look Up Documentation (USE MCP)
-Before writing code, use the Ref MCP tool to look up documentation for any libraries you'll use.
-
-Example queries:
-- "Look up the axum Router documentation"
-- "Look up sqlx query macro examples"
-- "Look up how to use russh for SSH connections"
-
-DO NOT guess at APIs. Look them up first using the mcp__ref tool.
+For unfamiliar APIs, use Ref MCP to look up documentation.
 
 ## STEP 5: Implement the Feature
-Write the code for this feature using the documentation you looked up.
+Write the code for this feature.
 
 ## STEP 6: RUN TESTS (MANDATORY)
-You MUST run tests before marking complete:
 ```bash
-# For Rust:
-cargo test
-
-# For Python:
-pytest
-
-# For Node:
-npm test
-
-# For Go:
-go test ./...
+{test_cmd}
 ```
+If tests fail, fix them before proceeding.
 
-If tests fail, fix them before proceeding. Do NOT mark the feature as complete if tests fail.
+{subagent_instructions}
 
-## STEP 7: Use Code Review Subagent (MANDATORY)
-You MUST invoke the code-reviewer subagent:
-```
-@code-reviewer Review the changes for feature {feature_id}
-```
-Wait for the review and address any issues.
-
-## STEP 8: Use Test Runner Subagent (MANDATORY)
-You MUST invoke the test-runner subagent:
-```
-@test-runner Run the test suite and analyze results
-```
-Ensure all tests pass.
-
-## STEP 9: Use Feature Verifier Subagent (MANDATORY)
-You MUST invoke the feature-verifier subagent:
-```
-@feature-verifier Verify feature {feature_id}: {feature.get('description', '')}
-```
-Confirm the feature works end-to-end.
-
-## STEP 10: Update Status (ONLY IF ALL CHECKS PASS)
+## STEP 8: Update Status (ONLY IF ALL CHECKS PASS)
 ```bash
-# Update feature_list.json - set passes: true
-# Capture what worked:
 .agent/commands.sh success "{feature_id}" "description of what worked"
-
-# Commit:
 git add -A
 git commit -m "session: completed {feature_id}"
 ```
 
-## CRITICAL RULES
-- DO use MCP tools (especially Ref) to look up documentation
-- DO NOT guess at APIs - look them up first
-- DO NOT mark passes: true unless tests actually pass
-- DO NOT skip running tests
-- DO NOT skip the subagents (@code-reviewer, @test-runner, @feature-verifier)
-- If tests fail after 3 attempts, mark feature as blocked with reason"""
+{critical_rules}"""
 
     # Build command - Claude Code uses MCPs from ~/.claude.json (added via 'claude mcp add')
     cmd = [
