@@ -460,6 +460,37 @@ def get_next_feature(project_path: Path) -> Optional[Dict[str, Any]]:
 
 def build_init_prompt(info: Dict[str, Any]) -> str:
     """Build the initialization prompt."""
+    
+    qa_section = ""
+    if info.get('include_qa', False):
+        qa_section = """
+
+## QA Features (IMPORTANT)
+Also generate E2E QA features using Playwright for every user-facing feature:
+- qa-setup: Test environment verification
+- qa-login-*: Authentication flows (success, failure, session, logout)
+- qa-{area}-*: CRUD operations for each entity (list, create, edit, delete, validation)
+- qa-error-*: Error handling (404, API errors, form validation)
+- qa-perf-*: Page load performance
+- qa-responsive-*: Mobile viewport testing
+
+QA features should:
+- Have priority 100+ (run after implementation features)
+- Category: "qa"
+- Description: Start with "Use Playwright MCP to..."
+- Cover happy paths AND edge cases
+
+Example QA feature:
+{
+  "id": "qa-host-001",
+  "name": "E2E: Host List",
+  "description": "Use Playwright MCP to navigate to hosts page, verify list loads with columns, test pagination, test search/filter",
+  "priority": 120,
+  "category": "qa",
+  "passes": false
+}
+"""
+
     return f"""Read .agent/AGENT_RULES.md to understand the four-layer memory architecture.
 
 Then read .agent/workflows/init.md and initialize this project:
@@ -477,7 +508,7 @@ After initialization:
 4. Record initial constraints in .agent/memory/constraints/
 5. Compile initial context with .agent/hooks/compile-context.sh
 6. Commit the initial scaffold
-
+{qa_section}
 Be thorough in breaking down features - each should be independently verifiable."""
 
 def build_implement_prompt(feature: Dict[str, Any], session_num: int) -> str:
@@ -917,6 +948,7 @@ Examples:
     parser.add_argument("--continue", "-c", dest="cont", action="store_true", help="Continue existing project")
     parser.add_argument("--status", "-s", action="store_true", help="Show project status and exit")
     parser.add_argument("--mcp-preset", choices=["web", "fullstack", "data", "devops", "minimal", "rust", "python", "node", "docs"], help="Use MCP preset")
+    parser.add_argument("--with-qa", action="store_true", help="Generate E2E QA features using Playwright")
     parser.add_argument("--interactive", "-i", action="store_true", help="Run sessions interactively (default)")
     parser.add_argument("--debug", "-d", action="store_true", help="Show debug output")
     
@@ -955,6 +987,7 @@ Examples:
         print_status(f"Creating new project at: {args.new}", "info")
         info = get_project_info_interactive(preset_path=args.new, preset_model=args.model)
         info['mcp_preset'] = args.mcp_preset
+        info['include_qa'] = args.with_qa
         orchestrate_new_project(info, args.max_sessions)
         return
     
@@ -968,6 +1001,7 @@ Examples:
     if choice == "1":
         info = get_project_info_interactive(preset_model=args.model)
         info['mcp_preset'] = args.mcp_preset
+        info['include_qa'] = args.with_qa
         orchestrate_new_project(info, args.max_sessions)
     elif choice == "2":
         path_input = input(f"{Colors.CYAN}Project path:{Colors.END} ").strip()

@@ -301,6 +301,111 @@ def print_status_bar(status: dict, session: int):
 # Main Loop
 # ============================================================================
 
+def build_qa_prompt(feature: dict, session_num: int, project_path: Path) -> str:
+    """Build special prompt for QA features that can generate fix features."""
+    feature_id = feature.get("id", "unknown")
+    feature_desc = feature.get("description", "")
+    
+    return f"""Session {session_num}: QA Testing with Playwright
+
+## Feature to Test
+{json.dumps(feature, indent=2)}
+
+## STEP 1: Start the Application
+Ensure backend and frontend are running:
+```bash
+# Check if services are running, start if needed
+# Backend: typically cargo run or npm run dev
+# Frontend: typically npm run dev in frontend/
+```
+
+## STEP 2: Use Playwright MCP to Test
+{feature_desc}
+
+Take screenshots of any failures or unexpected behavior.
+
+## STEP 3: Evaluate Results
+
+### If ALL tests PASS:
+Mark the feature complete:
+```bash
+.agent/commands.sh success "{feature_id}" "All tests passed - [brief summary]"
+git add -A
+git commit -m "session: completed {feature_id}"
+```
+
+### If ANY test FAILS:
+DO NOT mark the QA feature complete. Instead:
+
+1. Document the failure in .agent/memory/failures/:
+```bash
+.agent/commands.sh failure "{feature_id}" "What failed and why"
+```
+
+2. Create fix features in a NEW file `fix-features-{feature_id}.json`:
+```json
+{{
+  "generated_from": "{feature_id}",
+  "generated_at": "[timestamp]",
+  "features": [
+    {{
+      "id": "fix-{feature_id}-001",
+      "name": "Fix: [specific issue]",
+      "description": "Detailed description of what needs to be fixed based on QA failure",
+      "priority": 50,
+      "category": "bugfix",
+      "passes": false,
+      "qa_origin": "{feature_id}"
+    }}
+  ]
+}}
+```
+
+3. Merge fix features into feature_list.json:
+```bash
+python3 -c "
+import json
+from datetime import datetime
+
+# Load existing features
+with open('feature_list.json') as f:
+    main = json.load(f)
+
+# Load fix features
+with open('fix-features-{feature_id}.json') as f:
+    fixes = json.load(f)
+
+# Add fix features before QA features (priority 50 < 100)
+main['features'].extend(fixes['features'])
+
+# Save
+with open('feature_list.json', 'w') as f:
+    json.dump(main, f, indent=2)
+
+print(f'Added {{len(fixes[\"features\"])}} fix features')
+"
+```
+
+4. Commit the fix features:
+```bash
+git add -A
+git commit -m "session: {feature_id} found issues - generated fix features"
+```
+
+5. The QA feature stays incomplete - it will be retried after fixes are implemented.
+
+## CRITICAL RULES
+- Use Playwright MCP for ALL browser interactions
+- Take screenshots of failures
+- Be SPECIFIC in fix feature descriptions - include exact error messages, element selectors, expected vs actual behavior
+- Fix features should be atomic and testable
+- DO NOT mark QA complete if tests fail - generate fixes instead
+- Each fix feature should address ONE specific issue
+
+## FINAL REMINDER
+QA either PASSES (mark complete) or GENERATES FIX FEATURES (don't mark complete).
+Never just fail silently - always create actionable fix features."""
+
 def run_session(project_path: Path, session_num: int, model: str) -> bool:
     """Run a single Claude Code session.
     
@@ -315,17 +420,25 @@ def run_session(project_path: Path, session_num: int, model: str) -> bool:
     feature_id = feature.get("id", "unknown")
     feature_desc = feature.get("description", "")
     feature_desc_short = feature_desc[:50]
+    feature_category = feature.get("category", "").lower()
     
-    # Detect complexity for smart subagent usage
-    complexity = get_feature_complexity(feature)
-    test_cmd = detect_test_command(project_path)
-    subagent_instructions = get_subagent_instructions(complexity, feature_id, feature_desc, test_cmd)
+    # Check if this is a QA feature
+    is_qa_feature = feature_category == "qa" or feature_id.startswith("qa-")
     
-    print(f"🔧 Implementing: {cyan(feature_id)} [{complexity.upper()}] - {feature_desc_short}...")
-    
-    # Adjust critical rules based on complexity
-    if complexity == 'high':
-        critical_rules = """## CRITICAL RULES
+    if is_qa_feature:
+        print(f"🎭 QA Testing: {cyan(feature_id)} - {feature_desc_short}...")
+        prompt = build_qa_prompt(feature, session_num, project_path)
+    else:
+        # Detect complexity for smart subagent usage
+        complexity = get_feature_complexity(feature)
+        test_cmd = detect_test_command(project_path)
+        subagent_instructions = get_subagent_instructions(complexity, feature_id, feature_desc, test_cmd)
+        
+        print(f"🔧 Implementing: {cyan(feature_id)} [{complexity.upper()}] - {feature_desc_short}...")
+        
+        # Adjust critical rules based on complexity
+        if complexity == 'high':
+            critical_rules = """## CRITICAL RULES
 - DO use MCP tools (especially Ref) to look up documentation
 - DO NOT guess at APIs - look them up first
 - DO NOT mark passes: true unless tests actually pass
@@ -333,23 +446,23 @@ def run_session(project_path: Path, session_num: int, model: str) -> bool:
 - DO NOT let any file exceed 500 lines - split into modules if needed
 - If you find existing files over 500 lines, refactor them into smaller modules
 - If tests fail after 3 attempts, mark feature as blocked"""
-    elif complexity == 'medium':
-        critical_rules = """## CRITICAL RULES
+        elif complexity == 'medium':
+            critical_rules = """## CRITICAL RULES
 - DO use MCP tools for unfamiliar APIs
 - DO NOT mark passes: true unless tests pass
 - DO invoke @test-runner to verify
 - DO NOT let any file exceed 500 lines - split into modules if needed
 - If you find existing files over 500 lines, refactor them into smaller modules
 - If tests fail after 3 attempts, mark feature as blocked"""
-    else:
-        critical_rules = """## CRITICAL RULES
+        else:
+            critical_rules = """## CRITICAL RULES
 - DO NOT mark passes: true unless tests pass
 - DO NOT let any file exceed 500 lines - split into modules if needed
 - If you find existing files over 500 lines, refactor them into smaller modules
 - If tests fail after 3 attempts, mark feature as blocked"""
-    
-    # Build the prompt with complexity-aware subagent requirements
-    prompt = f"""Session {session_num}: Implement feature [{complexity.upper()} complexity]
+        
+        # Build the prompt with complexity-aware subagent requirements
+        prompt = f"""Session {session_num}: Implement feature [{complexity.upper()} complexity]
 
 ## STEP 1: Compile Fresh Context
 ```bash
@@ -512,6 +625,9 @@ CRITICAL:
         # Check progress
         new_status = get_feature_status(project_path)
         
+        # Check if QA generated fix features (count new features added)
+        features_added = new_status["total"] - status["total"]
+        
         # Run independent test verification
         print(f"\n  📋 Post-session verification...")
         verification = verify_session_result(project_path)
@@ -522,40 +638,51 @@ CRITICAL:
             else:
                 print(yellow(f"⚠️ Feature marked complete but tests failing!"))
             consecutive_failures = 0
+        elif features_added > 0:
+            # QA generated fix features - this is progress!
+            print(yellow(f"🔧 QA generated {features_added} fix feature(s) - will implement before retrying QA"))
+            consecutive_failures = 0  # Reset - this is productive work
         else:
             # Tests passed but feature not marked - auto-complete it
             if verification["tests_passed"]:
                 current_feature = get_next_feature(project_path)
                 if current_feature:
                     feature_id = current_feature.get("id", "unknown")
-                    print(yellow(f"⚠️  Tests passed but feature not marked - auto-completing {feature_id}"))
+                    feature_category = current_feature.get("category", "").lower()
                     
-                    # Mark feature as passed
-                    try:
-                        feature_file = project_path / "feature_list.json"
-                        with open(feature_file) as f:
-                            data = json.load(f)
-                        for feat in data.get("features", []):
-                            if feat.get("id") == feature_id:
-                                feat["passes"] = True
-                                break
-                        with open(feature_file, "w") as f:
-                            json.dump(data, f, indent=2)
-                        
-                        # Commit
-                        subprocess.run(["git", "add", "-A"], cwd=project_path, capture_output=True)
-                        subprocess.run(
-                            ["git", "commit", "-m", f"session: completed {feature_id} (auto-completed by harness)"],
-                            cwd=project_path, capture_output=True
-                        )
-                        print(green(f"✅ Auto-completed {feature_id}"))
-                        consecutive_failures = 0
-                        
-                        # Update status
-                        new_status = get_feature_status(project_path)
-                    except Exception as e:
-                        print(red(f"❌ Auto-complete failed: {e}"))
+                    # Don't auto-complete QA features - they need explicit pass
+                    if feature_category == "qa" or feature_id.startswith("qa-"):
+                        print(yellow(f"⚠️  QA feature {feature_id} - waiting for explicit completion"))
                         consecutive_failures += 1
+                    else:
+                        print(yellow(f"⚠️  Tests passed but feature not marked - auto-completing {feature_id}"))
+                        
+                        # Mark feature as passed
+                        try:
+                            feature_file = project_path / "feature_list.json"
+                            with open(feature_file) as f:
+                                data = json.load(f)
+                            for feat in data.get("features", []):
+                                if feat.get("id") == feature_id:
+                                    feat["passes"] = True
+                                    break
+                            with open(feature_file, "w") as f:
+                                json.dump(data, f, indent=2)
+                            
+                            # Commit
+                            subprocess.run(["git", "add", "-A"], cwd=project_path, capture_output=True)
+                            subprocess.run(
+                                ["git", "commit", "-m", f"session: completed {feature_id} (auto-completed by harness)"],
+                                cwd=project_path, capture_output=True
+                            )
+                            print(green(f"✅ Auto-completed {feature_id}"))
+                            consecutive_failures = 0
+                            
+                            # Update status
+                            new_status = get_feature_status(project_path)
+                        except Exception as e:
+                            print(red(f"❌ Auto-complete failed: {e}"))
+                            consecutive_failures += 1
                 else:
                     print(yellow("⚠️  No progress this session"))
                     consecutive_failures += 1
