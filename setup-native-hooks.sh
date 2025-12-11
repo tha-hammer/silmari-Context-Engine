@@ -145,8 +145,51 @@ fi
 
 # Create .claude/hooks directory
 mkdir -p .claude/hooks
+mkdir -p .claude/commands
 
 echo "📝 Creating hook scripts..."
+
+# Create /failure slash command for easy failure recording
+cat > .claude/commands/failure.md << 'MARKDOWN'
+---
+description: Record a failure to memory
+arguments:
+  - name: feature_id
+    description: Feature ID (e.g., feat-001)
+    required: true
+  - name: message
+    description: What went wrong
+    required: true
+---
+
+Record this failure to `.agent/memory/failures/` so we don't repeat it:
+
+Feature: $ARGUMENTS.feature_id
+Issue: $ARGUMENTS.message
+
+Run: `.agent/commands.sh failure "$ARGUMENTS.feature_id" "$ARGUMENTS.message"`
+MARKDOWN
+
+# Create /success slash command
+cat > .claude/commands/success.md << 'MARKDOWN'
+---
+description: Mark a feature as complete
+arguments:
+  - name: feature_id
+    description: Feature ID (e.g., feat-001)
+    required: true
+  - name: message
+    description: What worked / summary
+    required: true
+---
+
+Mark feature complete and record what worked:
+
+Feature: $ARGUMENTS.feature_id
+Summary: $ARGUMENTS.message
+
+Run: `.agent/commands.sh success "$ARGUMENTS.feature_id" "$ARGUMENTS.message"`
+MARKDOWN
 
 # ============================================================================
 # SessionStart Hook - Injects compiled context
@@ -189,8 +232,8 @@ SECTION_PRIORITIES = {
     "current_task": 90,   # Critical - what to work on
     "constraints": 80,    # Important - project rules
     "failures": 70,       # Important - don't repeat mistakes
+    "commands": 65,       # Important - failure recording instructions
     "strategies": 60,     # Helpful but expendable
-    "commands": 50,       # Reference - can be abbreviated
 }
 
 # Maximum items to include from each memory category
@@ -351,11 +394,15 @@ Description: {feat.get('description', '')[:300]}"""
             if len(strategy_parts) > 1:
                 sections.append(build_section("strategies", "\n".join(strategy_parts)))
     
-    # Quick reference (lowest priority - abbreviate if needed)
+    # Quick reference with prominent failure recording
     commands_content = """## Commands
-- `.agent/commands.sh recall failures` - See what NOT to do
+**If something fails, record it:**
+`.agent/commands.sh failure <id> "what went wrong"`
+Example: `.agent/commands.sh failure feat-01 "API returns 401 - auth token not refreshed"`
+
+Other commands:
 - `.agent/commands.sh success <id> <msg>` - Mark feature complete
-- `.agent/commands.sh failure <id> <msg>` - Record failure"""
+- `.agent/commands.sh recall failures` - See what NOT to do"""
     sections.append(build_section("commands", commands_content))
     
     # Apply priority-based truncation

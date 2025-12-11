@@ -110,7 +110,18 @@ export CONTEXT_ENGINE_WRITE_MODE=1
 - Logs file changes to `.agent/sessions/activity.jsonl`
 - Read-only (no linting by default)
 
-## Commands
+## Slash Commands
+
+Native hooks mode adds slash commands to Claude Code:
+
+```
+/failure feat-001 "API returns 401 when token expires"
+/success feat-001 "Implemented login with JWT refresh"
+```
+
+These are shortcuts that tell Claude to run the underlying `.agent/commands.sh` commands.
+
+## Shell Commands
 
 Helper script for common operations:
 
@@ -271,3 +282,12 @@ If you had existing hooks that got overwritten:
 - No network requests from hooks
 - Hooks run with your user permissions
 - Review hooks with `/hooks` before approving
+
+## Limitations
+
+**Failure recording is manual.** In native hooks mode, Claude must call `.agent/commands.sh failure` to record failures. The injected context prompts this, but it's not automatic.
+
+The autonomous loop (`loop-runner.py`) has automatic failure detection via test exit codes.
+
+**Future improvement:** When Claude Code adds `OnToolError` / `PostToolUseFailure` hooks ([requested here](https://github.com/anthropics/claude-code/issues/4831)), automatic failure capture will be possible. The harness is designed to upgrade cleanly when that lands.
+
