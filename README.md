@@ -88,6 +88,15 @@ python3 ~/tools/context-engine/orchestrator.py --new ~/projects/my-app --model o
 - Git
 - Python 3.9+ for autonomous loop (`orchestrator.py`, `loop-runner.py`)
 - Python 3.8+ is sufficient for native hooks mode
+
+### Compatibility
+
+| Component | Minimum | Tested | Notes |
+|-----------|---------|--------|-------|
+| Claude Code | 1.0.17 | 2.0.65 | Native hooks need `SessionStart`/`PreCompact` |
+| Python | 3.9 | 3.12 | Loop runner uses 3.9+ typing; native hooks OK on 3.8+ |
+| OS | macOS/Linux | macOS/Linux | Windows supported via WSL |
+
 ## Usage
 
 ### New Project Setup
@@ -158,6 +167,8 @@ claude
 - Saves snapshots before `/compact`
 - Restores context after `/clear` or `/compact`
 - Tracks progress in `.agent/metrics/`
+
+**Note:** In native hooks mode, `PostToolUse` logs only file-write tools (Write/Edit/MultiEdit) by default. To also log `Bash` commands, expand the `PostToolUse` matcher in `.claude/settings.json`.
 
 **Requirements:**
 - Claude Code 1.0.17+ (tested on 2.0.65)

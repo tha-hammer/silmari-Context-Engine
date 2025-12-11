@@ -212,270 +212,127 @@ PRESETS = {
 # ============================================================================
 
 class MCPConfigurator:
+    """Helper for configuring MCP servers via `claude mcp add`."""
+
     def __init__(self, project_path: Path = None):
         self.project_path = Path(project_path or Path.cwd()).expanduser().resolve()
-        self.added_mcps = []  # Track what we've added
-    
+        self.added_mcps: List[str] = []
+
     def add_known_mcp(self, mcp_id: str, **kwargs) -> bool:
-        """Add a known MCP server using claude mcp add."""
+        """Add a known MCP server using `claude mcp add`."""
         if mcp_id not in KNOWN_MCPS:
             print_status(f"Unknown MCP: {mcp_id}", "error")
             return False
-        
+
         mcp = KNOWN_MCPS[mcp_id]
         transport = mcp.get("transport", "stdio")
-        
-        # Build the claude mcp add command
+
         cmd = ["claude", "mcp", "add", "--transport", transport]
-        
+
         if transport == "http":
-            # HTTP transport: claude mcp add --transport http <name> <url>
             url = mcp.get("url", "")
-            
-            # Add headers if provided
-            if "header" in kwargs:
+            if "header" in kwargs and kwargs["header"]:
                 cmd.extend(["--header", kwargs["header"]])
-            
             cmd.append(mcp_id)
             cmd.append(url)
-            
-        elif transport == "stdio":
-            # Stdio transport: claude mcp add --transport stdio <name> --env KEY=VAL -- <command>
-            
-            # Add env vars
+
+        else:  # stdio
             env_vars = mcp.get("env_vars", [])
             for var in env_vars:
                 value = kwargs.get(var) or os.environ.get(var)
                 if value:
                     cmd.extend(["--env", f"{var}={value}"])
-            
+
             cmd.append(mcp_id)
             cmd.append("--")
-            
-            # Add the command
             command_parts = mcp.get("command", "").split()
             cmd.extend(command_parts)
-            
-            # Add path if required
             if mcp.get("requires_path"):
-                path = kwargs.get("path", ".")
-                cmd.append(path)
-        
-        # Run the command
+                cmd.append(kwargs.get("path", "."))
+
         print_status(f"Adding {mcp['name']}...", "working")
         print_status(f"Running: {' '.join(cmd)}", "info")
-        
+
         try:
-            result = subprocess.run(
-                cmd,
-                cwd=str(self.project_path),
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0:
-                print_status(f"Added {mcp['name']} MCP", "success")
-                self.added_mcps.append(mcp_id)
-                return True
-            else:
-                print_status(f"Failed to add {mcp['name']}: {result.stderr}", "error")
-                return False
+            result = subprocess.run(cmd, cwd=str(self.project_path), capture_output=True, text=True)
         except Exception as e:
             print_status(f"Error adding {mcp['name']}: {e}", "error")
             return False
-    
+
+        if result.returncode == 0:
+            print_status(f"Added {mcp['name']} MCP", "success")
+            self.added_mcps.append(mcp_id)
+            if result.stdout.strip():
+                print(result.stdout)
+            return True
+
+        print_status(f"Failed to add {mcp['name']}: {result.stderr}", "error")
+        return False
+
     def add_from_command(self, command: str) -> bool:
-        """Run a raw claude mcp add command."""
-        # Parse and run the command
+        """Run a raw `claude mcp add` command."""
         import shlex
-        
-        # If it starts with "claude", run as-is
         if command.strip().startswith("claude"):
             parts = shlex.split(command)
         else:
-            # Assume it's just the args to "claude mcp add"
             parts = ["claude", "mcp", "add"] + shlex.split(command)
-        
+
         print_status(f"Running: {' '.join(parts)}", "info")
-        
         try:
-            result = subprocess.run(
-                parts,
-                cwd=str(self.project_path),
-                capture_output=True,
-                text=True
-            )
-            
-            if result.returncode == 0:
-                print_status(f"MCP added successfully", "success")
-                if result.stdout:
-                    print(result.stdout)
-                return True
-            else:
-                print_status(f"Failed: {result.stderr}", "error")
-                return False
+            result = subprocess.run(parts, cwd=str(self.project_path), capture_output=True, text=True)
         except Exception as e:
             print_status(f"Error: {e}", "error")
             return False
-    
-    def list_mcps(self):
+
+        if result.returncode == 0:
+            print_status("MCP added successfully", "success")
+            if result.stdout.strip():
+                print(result.stdout)
+            return True
+
+        print_status(f"Failed: {result.stderr}", "error")
+        return False
+
+    def list_mcps(self) -> str:
         """List currently configured MCPs."""
-        result = subprocess.run(
-            ["claude", "mcp", "list"],
-            cwd=str(self.project_path),
-            capture_output=True,
-            text=True
-        )
+        result = subprocess.run(["claude", "mcp", "list"], cwd=str(self.project_path), capture_output=True, text=True)
         print(result.stdout)
         return result.stdout
-    
-    def add_known_mcp(self, mcp_id: str, **kwargs) -> bool:
-        """Add a known MCP server."""
-        if mcp_id not in KNOWN_MCPS:
-            print_status(f"Unknown MCP: {mcp_id}", "error")
-            return False
-        
-        mcp = KNOWN_MCPS[mcp_id]
-        server_config = {
-            "command": mcp["command"],
-            "args": mcp["args"].copy()
-        }
-        
-        # Handle path requirements
-        if mcp.get("requires_path"):
-            path = kwargs.get("path", ".")
-            server_config["args"].append(path)
-        
-        # Handle environment variables
-        if mcp.get("env_vars"):
-            env = {}
-            for var in mcp["env_vars"]:
-                value = kwargs.get(var) or os.environ.get(var)
-                if value:
-                    env[var] = value
-                else:
-                    # Placeholder
-                    env[var] = f"${{{var}}}"
-            if env:
-                server_config["env"] = env
-        
-        self.config["mcpServers"][mcp_id] = server_config
-        print_status(f"Added {mcp['name']} MCP", "success")
-        return True
-    
+
     def add_from_github(self, repo_url: str) -> bool:
-        """Add MCP from GitHub repo URL."""
-        # Extract repo info
-        match = re.search(r'github\.com[/:]([^/]+)/([^/\s]+)', repo_url)
+        """Best-effort add of an MCP from a GitHub URL by inferring an npm package."""
+        match = re.search(r"github\.com[/:]([^/]+)/([^/\s]+)", repo_url)
         if not match:
             print_status(f"Could not parse GitHub URL: {repo_url}", "error")
             return False
-        
-        org, repo = match.groups()
-        repo = repo.replace('.git', '')
-        
-        # Try to determine package name
-        package_name = f"@{org}/{repo}" if org != repo else repo
-        
-        # Check if it's an npm package
-        server_config = {
-            "command": "npx",
-            "args": ["-y", package_name]
-        }
-        
-        mcp_id = repo.replace("mcp-server-", "").replace("-mcp", "")
-        self.config["mcpServers"][mcp_id] = server_config
-        
-        print_status(f"Added {repo} from GitHub", "success")
-        print_status(f"Note: You may need to configure env vars manually", "warning")
-        return True
-    
-    def add_from_claude_command(self, command: str) -> bool:
-        """Parse and add MCP from 'claude mcp add' command."""
-        # Parse command like: claude mcp add --transport http Ref https://api.ref.tools/mcp --header "x-ref-api-key: xxx"
-        
-        parts = command.split()
-        
-        # Find the MCP name and URL
-        mcp_name = None
-        url = None
-        transport = "stdio"
-        headers = {}
-        env_vars = {}
-        
-        i = 0
-        while i < len(parts):
-            part = parts[i]
-            
-            if part == "--transport" and i + 1 < len(parts):
-                transport = parts[i + 1]
-                i += 2
-                continue
-            elif part == "--header" and i + 1 < len(parts):
-                header = parts[i + 1].strip('"\'')
-                if ':' in header:
-                    key, value = header.split(':', 1)
-                    headers[key.strip()] = value.strip()
-                i += 2
-                continue
-            elif part == "--env" and i + 1 < len(parts):
-                env = parts[i + 1].strip('"\'')
-                if '=' in env:
-                    key, value = env.split('=', 1)
-                    env_vars[key.strip()] = value.strip()
-                i += 2
-                continue
-            elif part.startswith("http://") or part.startswith("https://"):
-                url = part
-                i += 1
-                continue
-            elif part not in ["claude", "mcp", "add", "-y", "--scope", "project", "user"]:
-                if not mcp_name:
-                    mcp_name = part
-            
-            i += 1
-        
-        if not mcp_name:
-            mcp_name = "custom-mcp"
-        
-        mcp_name = mcp_name.lower().replace(" ", "-")
-        
-        # Build config based on transport
-        if transport == "http" and url:
-            server_config = {
-                "command": "npx",
-                "args": ["-y", "mcp-remote", url]
-            }
-            if headers:
-                # Pass headers as args
-                for key, value in headers.items():
-                    server_config["args"].extend(["--header", f"{key}: {value}"])
-        else:
-            # Assume stdio with npx
-            server_config = {
-                "command": "npx",
-                "args": ["-y", mcp_name]
-            }
-        
-        if env_vars:
-            server_config["env"] = env_vars
-        
-        self.config["mcpServers"][mcp_name] = server_config
-        print_status(f"Added {mcp_name} from command", "success")
-        return True
-    
-    def add_custom(self, name: str, command: str, args: List[str], env: Dict[str, str] = None):
-        """Add a custom MCP configuration."""
-        server_config = {
-            "command": command,
-            "args": args
-        }
-        if env:
-            server_config["env"] = env
-        
-        self.config["mcpServers"][name] = server_config
-        print_status(f"Added custom MCP: {name}", "success")
 
+        org, repo = match.groups()
+        repo = repo.replace(".git", "")
+        package_name = f"@{org}/{repo}" if org != repo else repo
+        mcp_id = repo.replace("mcp-server-", "").replace("-mcp", "")
+
+        cmd = f'claude mcp add --transport stdio {mcp_id} -- npx -y {package_name}'
+        ok = self.add_from_command(cmd)
+        if ok:
+            self.added_mcps.append(mcp_id)
+        else:
+            print_status("You may need to install/configure this MCP manually.", "warning")
+        return ok
+
+    def add_from_claude_command(self, command: str) -> bool:
+        """Parse and execute a pasted `claude mcp add ...` command."""
+        return self.add_from_command(command)
+
+    def add_custom(self, name: str, command: str, args: List[str], env: Dict[str, str] = None) -> bool:
+        """Add a custom stdio MCP by constructing a `claude mcp add` command."""
+        cmd = ["claude", "mcp", "add", "--transport", "stdio", name]
+        if env:
+            for k,v in env.items():
+                cmd.extend(["--env", f"{k}={v}"])
+        cmd.append("--")
+        cmd.append(command)
+        cmd.extend(args)
+        return self.add_from_command(' '.join(cmd))
 # ============================================================================
 # Interactive Setup
 # ============================================================================

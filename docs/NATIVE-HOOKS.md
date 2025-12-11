@@ -110,6 +110,8 @@ export CONTEXT_ENGINE_WRITE_MODE=1
 - Logs file changes to `.agent/sessions/activity.jsonl`
 - Read-only (no linting by default)
 
+
+**Default scope:** This hook only fires for Write/Edit/MultiEdit tools (file changes). If you want to log test runs or other shell activity, add `Bash` to the `PostToolUse` matcher in `.claude/settings.json`.
 ## Slash Commands
 
 Native hooks mode adds slash commands to Claude Code:

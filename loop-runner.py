@@ -18,6 +18,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from collections import deque
+from typing import Optional
 
 # ============================================================================
 # Configuration
@@ -582,7 +583,7 @@ def get_feature_status(project_path: Path) -> dict:
     except:
         return {"total": 0, "completed": 0, "remaining": 0, "blocked": 0}
 
-def get_next_feature(project_path: Path, skip_needs_review: bool = False) -> dict | None:
+def get_next_feature(project_path: Path, skip_needs_review: bool = False) -> Optional[dict]:
     """
     Get next feature to implement, respecting dependencies.
     

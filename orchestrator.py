@@ -261,7 +261,7 @@ def setup_harness(project_path: Path) -> bool:
     
     if not setup_script.exists():
         print_status(f"Harness not found at {setup_script}", "error")
-        print_status("Download from: https://github.com/your-repo/agent-harness", "info")
+        print_status("Download from: https://github.com/zeddy89/context-engine", "info")
         return False
     
     print_status("Setting up context-engineered harness...", "working")
