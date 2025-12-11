@@ -33,10 +33,12 @@ cp orchestrator.py "$INSTALL_DIR/"
 cp loop-runner.py "$INSTALL_DIR/"
 cp mcp-setup.py "$INSTALL_DIR/"
 cp setup-context-engineered.sh "$INSTALL_DIR/"
+cp setup-native-hooks.sh "$INSTALL_DIR/"
 
 # Copy supporting files
 cp -r agents "$INSTALL_DIR/" 2>/dev/null || true
 cp -r commands "$INSTALL_DIR/" 2>/dev/null || true
+cp -r docs "$INSTALL_DIR/" 2>/dev/null || true
 cp *.md "$INSTALL_DIR/" 2>/dev/null || true
 cp mcp-config.example.json "$INSTALL_DIR/" 2>/dev/null || true
 

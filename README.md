@@ -84,10 +84,10 @@ python3 ~/tools/context-engine/orchestrator.py --new ~/projects/my-app --model o
 
 ## Requirements
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) CLI installed
-- Python 3.10+
+- Claude Code CLI installed
 - Git
-
+- Python 3.9+ for autonomous loop (`orchestrator.py`, `loop-runner.py`)
+- Python 3.8+ is sufficient for native hooks mode
 ## Usage
 
 ### New Project Setup
@@ -161,7 +161,6 @@ claude
 
 **Requirements:**
 - Claude Code 1.0.17+ (tested on 2.0.65)
-- Python 3.8+
 - Linux/macOS (Windows: use WSL)
 
 **Environment Variables:**
