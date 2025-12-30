@@ -233,15 +233,54 @@ def setup_mcps_interactive(project_path: Path, preset: str = None):
     
     if choice != 'n':
         print()
-        print(f"{Colors.BOLD}Opening a shell in your project. Run your 'claude mcp add' commands.{Colors.END}")
-        print(f"{Colors.BOLD}Type 'exit' when done.{Colors.END}")
+        print(f"{Colors.BOLD}You need to run 'claude mcp add' commands in your project directory.{Colors.END}")
+        print()
+        print(f"{Colors.YELLOW}Option 1: Run commands manually{Colors.END}")
+        print(f"  cd {project_path}")
+        print(f"  claude mcp add --transport http Ref https://api.ref.tools/mcp --header \"x-ref-api-key: YOUR_KEY\"")
+        print(f"  claude mcp add context7")
+        print()
+        print(f"{Colors.YELLOW}Option 2: Open interactive shell (may not work in IDE terminals){Colors.END}")
         print()
         
-        # Open subshell in project directory
-        subprocess.run(
-            [os.environ.get("SHELL", "/bin/bash")],
-            cwd=str(project_path)
-        )
+        shell_choice = input(f"{Colors.CYAN}Open interactive shell? [y/N]:{Colors.END} ").strip().lower()
+        
+        if shell_choice == 'y':
+            print()
+            print(f"{Colors.BOLD}Opening a shell in your project. Run your 'claude mcp add' commands.{Colors.END}")
+            print(f"{Colors.BOLD}Type 'exit' when done.{Colors.END}")
+            print()
+            
+            # Open interactive shell with proper flags for bash
+            shell = os.environ.get("SHELL", "/bin/bash")
+            shell_name = os.path.basename(shell)
+            
+            # Use interactive flags based on shell type
+            if "bash" in shell_name:
+                cmd = [shell, "-i", "-l"]  # Interactive login shell
+            elif "zsh" in shell_name:
+                cmd = [shell, "-i", "-l"]  # Interactive login shell
+            else:
+                cmd = [shell, "-i"]  # Just interactive for other shells
+            
+            # Run with stdin connected to terminal
+            try:
+                subprocess.run(
+                    cmd,
+                    cwd=str(project_path),
+                    check=False  # Don't fail if shell exits
+                )
+            except Exception as e:
+                print_status(f"Shell exited: {e}", "warning")
+                print_status("Please run the commands manually in your terminal", "info")
+        else:
+            print()
+            print_status("Skipping interactive shell. Please run the commands manually.", "info")
+            print_status(f"Project directory: {project_path}", "info")
+        
+        # Wait for user confirmation that MCPs are configured
+        print()
+        input(f"{Colors.CYAN}Press Enter when you've finished adding MCPs...{Colors.END} ")
         
         # Show final MCPs
         print()
@@ -944,23 +983,72 @@ def run_claude_code_interactive(
     # Claude Code uses MCPs from ~/.claude.json (added via 'claude mcp add')
     cmd = ["claude", "--model", model, "--permission-mode", "bypassPermissions"]
     
-    # Use -p flag for prompt (safer than positional)
-    cmd.append("-p")
-    cmd.append(f"Read and execute the instructions in {prompt_file}")
+    # Use prompt file directly (Claude Code accepts file paths or prompts)
+    # Try using the file path directly first, fallback to -p if needed
+    if prompt_file.exists():
+        # Pass the prompt file path - Claude Code can read markdown files
+        cmd.append(str(prompt_file))
+    else:
+        # Fallback: use -p with prompt text
+        cmd.append("-p")
+        cmd.append(f"Read and execute the instructions in {prompt_file}")
+    
+    # Verify claude command exists before trying to run
+    claude_check = subprocess.run(
+        ["which", "claude"],
+        capture_output=True,
+        text=True
+    )
+    if claude_check.returncode != 0:
+        error_msg = "Claude command not found. Is 'claude' installed and in PATH?"
+        print_status(error_msg, "error")
+        return {
+            "success": False,
+            "output": "",
+            "error": error_msg,
+            "elapsed": 0,
+            "returncode": -1
+        }
     
     print_status(f"Starting Claude Code session ({model})...", "working")
     print_status("Press Ctrl+C when the session is complete", "info")
+    print()
+    print_status(f"Prompt file: {prompt_file}", "info")
+    print_status(f"Working directory: {project_path}", "info")
+    print()
     
     if DEBUG:
         print_status(f"DEBUG cmd: {cmd}", "info")
+        print_status(f"DEBUG cwd: {project_path}", "info")
     
     start_time = time.time()
     
     try:
-        # Run as list (subprocess handles escaping)
+        # Run interactively with proper terminal connection
+        # Don't capture output - let it go to terminal
+        # Ensure stdin is connected (None = inherit from parent)
+        print_status("Executing Claude command...", "info")
+        if DEBUG:
+            print_status(f"Full command: {' '.join(cmd)}", "info")
+            print_status("Note: Command will run interactively. Output will appear below.", "info")
+            print()
+        
+        # For IDE terminals, we need to ensure proper terminal connection
+        # Check if we're in a TTY
+        is_tty = sys.stdin.isatty() and sys.stdout.isatty()
+        if not is_tty and not DEBUG:
+            print_status("Warning: Not running in a TTY. Interactive mode may not work properly.", "warning")
+            print_status("Consider running this script from a regular terminal.", "info")
+            print()
+        
         result = subprocess.run(
             cmd,
-            cwd=str(project_path)
+            cwd=str(project_path),
+            stdin=None,  # Inherit stdin (allows interactive input)
+            stdout=None,  # Don't capture - send to terminal
+            stderr=None,  # Don't capture - send to terminal
+            text=True,
+            bufsize=1  # Line buffered for better interactivity
         )
         
         elapsed = time.time() - start_time
@@ -974,12 +1062,34 @@ def run_claude_code_interactive(
         }
     
     except KeyboardInterrupt:
+        print()
+        print_status("Session interrupted by user", "warning")
         return {
             "success": True,
             "output": "Session ended by user",
             "error": "",
             "elapsed": time.time() - start_time,
             "returncode": 0
+        }
+    except FileNotFoundError:
+        error_msg = f"Claude command not found. Is 'claude' installed and in PATH?"
+        print_status(error_msg, "error")
+        return {
+            "success": False,
+            "output": "",
+            "error": error_msg,
+            "elapsed": time.time() - start_time,
+            "returncode": -1
+        }
+    except Exception as e:
+        error_msg = f"Failed to start Claude session: {e}"
+        print_status(error_msg, "error")
+        return {
+            "success": False,
+            "output": "",
+            "error": error_msg,
+            "elapsed": time.time() - start_time,
+            "returncode": -1
         }
 
 # ============================================================================

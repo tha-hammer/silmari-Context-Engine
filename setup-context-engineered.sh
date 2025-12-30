@@ -1269,30 +1269,31 @@ echo "🔗 Creating agent integrations..."
 
 # Get version from environment or default
 HARNESS_VERSION="${CONTEXT_ENGINE_VERSION:-3.1.0}"
+GENERATED_AT="$(date -Iseconds)"
 
-cat > CLAUDE.md << EOF
+cat > CLAUDE.md << 'EOF'
 # Claude Code Instructions
-<!-- harness_version: $HARNESS_VERSION -->
-<!-- generated: $(date -Iseconds) -->
+<!-- harness_version: {{HARNESS_VERSION}} -->
+<!-- generated: {{GENERATED_AT}} -->
 
 ## Context Engineering
-This project uses a four-layer memory architecture. Read \`.agent/AGENT_RULES.md\`.
+This project uses a four-layer memory architecture. Read `.agent/AGENT_RULES.md`.
 
 ## Before Each Step
-\`\`\`bash
+```bash
 .agent/hooks/compile-context.sh
 cat .agent/working-context/current.md
 .agent/commands.sh recall failures  # Don't repeat mistakes!
-\`\`\`
+```
 
 ## ⚠️ MANDATORY: Use MCP Tools for Documentation
 If this project has MCP configured (check mcp-config.json), you MUST use MCP tools:
 
 ### Ref Documentation (if available)
 Before implementing anything with external libraries, query Ref for current docs:
-\`\`\`
+```
 Use the Ref MCP tool to look up documentation for [library/crate/package]
-\`\`\`
+```
 
 Examples:
 - "Use Ref to look up axum router documentation"
@@ -1318,7 +1319,7 @@ You MUST run tests before marking any feature as complete:
 # Rust
 cargo test
 
-# Python  
+# Python
 pytest
 
 # Node.js
@@ -1378,6 +1379,9 @@ If something fails:
 ## Search Guidelines
 Do NOT include years in documentation searches.
 EOF
+
+sed -i "s/{{HARNESS_VERSION}}/${HARNESS_VERSION}/" CLAUDE.md
+sed -i "s/{{GENERATED_AT}}/${GENERATED_AT}/" CLAUDE.md
 
 cat > .cursorrules << 'EOF'
 This project uses context-engineered architecture.
