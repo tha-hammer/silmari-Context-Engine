@@ -40,7 +40,7 @@ After creating the document, output the path.
 
     result = run_claude_sync(
         prompt=prompt,
-        timeout=300
+        timeout=1200  # 20 minutes for research phase
     )
 
     if not result["success"]:
