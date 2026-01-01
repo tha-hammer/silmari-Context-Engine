@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from .beads_controller import BeadsController
-from .steps import step_research, step_planning, step_phase_decomposition, step_beads_integration
+from .steps import step_research, step_planning, step_phase_decomposition, step_beads_integration, step_memory_sync
 from .checkpoints import interactive_checkpoint_research, interactive_checkpoint_plan
 
 
@@ -99,6 +99,26 @@ class PlanningPipeline:
                 results["success"] = False
                 results["stopped_at"] = "research"
                 return results
+
+        # Memory sync between research and planning
+        print("\n" + "="*60)
+        print("MEMORY SYNC: Recording research & clearing context")
+        print("="*60)
+
+        session_id = f"research-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+        memory_result = step_memory_sync(
+            self.project_path,
+            research["research_path"],
+            session_id
+        )
+        results["steps"]["memory_sync"] = memory_result
+
+        if memory_result.get("episode_recorded"):
+            print("  ✓ Episodic memory recorded")
+        if memory_result.get("context_compiled"):
+            print("  ✓ Working context compiled")
+        if memory_result.get("context_cleared"):
+            print("  ✓ Claude context cleared")
 
         # Step 2: Planning (may loop on feedback)
         while True:

@@ -25,15 +25,48 @@ def step_research(project_path: Path, research_prompt: str) -> dict[str, Any]:
     """
     date_str = datetime.now().strftime('%Y-%m-%d')
 
-    prompt = f"""# Research Task
+    # Load research instructions from markdown file
+    research_instructions_path = project_path / ".claude" / "commands" / "research_codebase.md"
+    with open(research_instructions_path, "r", encoding="utf-8") as f:
+        research_instructions = f.read()
 
-{research_prompt}
+    # Process the instructions: remove "Initial Setup" section and insert research question
+    lines = research_instructions.split("\n")
+    
+    # Find where to insert the research question (after "# Research Codebase")
+    insert_idx = 1
+    for i, line in enumerate(lines):
+        if line.strip() == "# Research Codebase":
+            insert_idx = i + 1
+            break
+    
+    # Insert research question section
+    lines.insert(insert_idx, "")
+    lines.insert(insert_idx + 1, "## Research Question")
+    lines.insert(insert_idx + 2, research_prompt)
+    lines.insert(insert_idx + 3, "")
+    
+    # Remove the "Initial Setup" section (for interactive use only)
+    start_removal = None
+    end_removal = None
+    for i, line in enumerate(lines):
+        if "## Initial Setup:" in line:
+            start_removal = i
+        if start_removal is not None and "Then wait for the user's research query." in line:
+            end_removal = i + 1
+            break
+    
+    if start_removal is not None and end_removal is not None:
+        lines = lines[:start_removal] + lines[end_removal:]
+    
+    # Rejoin and replace date placeholder in filename section
+    research_instructions = "\n".join(lines)
+    research_instructions = research_instructions.replace(
+        "Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`",
+        f"Filename: `thoughts/shared/research/{date_str}-pipeline-research.md` (or `{date_str}-ENG-XXXX-description.md` if ticket exists)"
+    )
 
-## Instructions
-1. Research the codebase to answer the question
-2. Create a research document at: thoughts/shared/research/{date_str}-pipeline-research.md
-3. Include file:line references for findings
-4. List any open questions at the end under "## Open Questions"
+    prompt = f"""{research_instructions}
 
 After creating the document, output the path.
 """
@@ -77,23 +110,60 @@ def step_planning(
     """
     date_str = datetime.now().strftime('%Y-%m-%d')
 
-    prompt = f"""# Create Implementation Plan
+    # Load planning instructions from markdown file
+    planning_instructions_path = project_path / ".claude" / "commands" / "create_tdd_plan.md"
+    with open(planning_instructions_path, "r", encoding="utf-8") as f:
+        planning_instructions = f.read()
 
-## Research Document
-Read the research at: {research_path}
+    # Process the instructions: remove "Initial Response" section and insert context
+    lines = planning_instructions.split("\n")
+    
+    # Find where to insert the research document and context (after "# TDD Implementation Plan")
+    insert_idx = 1
+    for i, line in enumerate(lines):
+        if line.strip() == "# TDD Implementation Plan":
+            insert_idx = i + 1
+            break
+    
+    # Insert research document and additional context sections
+    lines.insert(insert_idx, "")
+    lines.insert(insert_idx + 1, "## Research Document")
+    lines.insert(insert_idx + 2, f"Read the research at: {research_path}")
+    lines.insert(insert_idx + 3, "")
+    
+    if additional_context:
+        lines.insert(insert_idx + 4, "## Additional Context")
+        lines.insert(insert_idx + 5, additional_context)
+        lines.insert(insert_idx + 6, "")
+        insert_offset = 6
+    else:
+        insert_offset = 3
+    
+    # Remove the "Initial Response" section (for interactive use only)
+    start_removal = None
+    end_removal = None
+    for i, line in enumerate(lines):
+        if "## Initial Response" in line:
+            start_removal = i
+        if start_removal is not None and "## Process Steps" in line:
+            end_removal = i
+            break
+    
+    if start_removal is not None and end_removal is not None:
+        lines = lines[:start_removal] + lines[end_removal:]
+    
+    # Rejoin and replace date placeholder in filename section
+    planning_instructions = "\n".join(lines)
+    planning_instructions = planning_instructions.replace(
+        "`thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-tdd-description.md`",
+        f"`thoughts/shared/plans/{date_str}-plan.md`"
+    )
+    planning_instructions = planning_instructions.replace(
+        "- Format: `YYYY-MM-DD-ENG-XXXX-tdd-description.md`",
+        f"- Format: `{date_str}-plan.md` (or `{date_str}-ENG-XXXX-tdd-description.md` if ticket exists)"
+    )
 
-{f'## Additional Context{chr(10)}{additional_context}' if additional_context else ''}
-
-## Instructions
-1. Review the research findings
-2. Identify implementation phases
-3. Create a plan file at: thoughts/shared/plans/{date_str}-plan.md
-
-## Plan Structure
-Each phase must have:
-- Overview of what it accomplishes
-- Changes Required with file:line references
-- Success Criteria (automated + manual)
+    prompt = f"""{planning_instructions}
 
 Output the plan file path when complete.
 """
@@ -232,3 +302,100 @@ def step_beads_integration(
         "epic_id": epic_id,
         "phase_issues": phase_issues
     }
+
+
+def step_memory_sync(
+    project_path: Path,
+    research_path: str,
+    session_id: str
+) -> dict[str, Any]:
+    """Sync 4-layer memory and clear Claude context between phases.
+
+    Runs between research and planning to:
+    1. Record research as episodic memory
+    2. Compile working context from all memory layers
+    3. Clear Claude's context with /clear
+
+    Args:
+        project_path: Root path of the project
+        research_path: Path to the research document
+        session_id: Unique session identifier
+
+    Returns:
+        Dictionary with keys:
+        - success: bool
+        - episode_recorded: bool
+        - context_compiled: bool
+        - context_cleared: bool
+    """
+    import subprocess
+
+    results = {
+        "episode_recorded": False,
+        "context_compiled": False,
+        "context_cleared": False
+    }
+
+    # Read research summary for episodic memory
+    try:
+        research_file = project_path / research_path if not Path(research_path).is_absolute() else Path(research_path)
+        if research_file.exists():
+            content = research_file.read_text()
+            # Extract first paragraph as summary (after title)
+            lines = content.split('\n')
+            summary_lines = []
+            in_content = False
+            for line in lines:
+                if line.startswith('# '):
+                    in_content = True
+                    continue
+                if in_content and line.strip():
+                    summary_lines.append(line.strip())
+                    if len(summary_lines) >= 3:
+                        break
+            summary = ' '.join(summary_lines)[:500] if summary_lines else f"Research session {session_id}"
+        else:
+            summary = f"Research session {session_id}"
+    except Exception:
+        summary = f"Research session {session_id}"
+
+    # 1. Record episodic memory
+    try:
+        result = subprocess.run(
+            ["silmari-oracle", "memory", "episode", session_id, summary],
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(project_path)
+        )
+        results["episode_recorded"] = result.returncode == 0
+    except Exception:
+        results["episode_recorded"] = False
+
+    # 2. Compile working context
+    try:
+        result = subprocess.run(
+            ["silmari-oracle", "memory", "compile"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            cwd=str(project_path)
+        )
+        results["context_compiled"] = result.returncode == 0
+    except Exception:
+        results["context_compiled"] = False
+
+    # 3. Clear Claude context
+    try:
+        result = subprocess.run(
+            ["claude", "--print", "-p", "/clear"],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+        results["context_cleared"] = result.returncode == 0
+    except Exception:
+        results["context_cleared"] = False
+
+    results["success"] = True  # Memory sync is best-effort, don't fail pipeline
+    return results
