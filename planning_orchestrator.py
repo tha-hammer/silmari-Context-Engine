@@ -65,17 +65,20 @@ Examples:
         "--resume-step", "--resume_step",
         dest="resume_step",
         choices=["planning", "decomposition", "beads"],
-        help="Step to resume from (default: auto-detect)"
+        metavar="STEP",
+        help="Step to resume from: planning, decomposition, or beads (not a file path! use --research-path for files)"
     )
     parser.add_argument(
         "--research-path", "--research_path",
         dest="research_path",
-        help="Path to existing research document (for resume)"
+        metavar="FILE",
+        help="Path to existing research .md file (use with --resume)"
     )
     parser.add_argument(
         "--plan-path", "--plan_path",
         dest="plan_path",
-        help="Path to existing plan document (for resume)"
+        metavar="FILE",
+        help="Path to existing plan .md file (use with --resume)"
     )
 
     return parser.parse_args(args)

@@ -170,7 +170,7 @@ Output the plan file path when complete.
 
     result = run_claude_sync(
         prompt=prompt,
-        timeout=300
+        timeout=1200  # 20 minutes for planning phase
     )
 
     if not result["success"]:
@@ -229,7 +229,7 @@ After creating all files, list the created file paths.
 
     result = run_claude_sync(
         prompt=prompt,
-        timeout=300
+        timeout=1200  # 20 minutes for phase decomposition
     )
 
     if not result["success"]:
