@@ -198,6 +198,9 @@ def step_phase_decomposition(project_path: Path, plan_path: str) -> dict[str, An
         - phase_files: list of created phase file paths
         - output: raw Claude output
     """
+    if not plan_path:
+        return {"success": False, "error": "plan_path is required but was None"}
+
     plan_dir = str(Path(plan_path).parent)
 
     prompt = f"""# Phase Decomposition Task

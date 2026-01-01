@@ -152,6 +152,14 @@ class PlanningPipeline:
         print("STEP 3/5: PHASE DECOMPOSITION")
         print("="*60)
 
+        if not planning.get("plan_path"):
+            print("ERROR: Planning completed but no plan file path was extracted.")
+            print("Check Claude output for the expected plan file location.")
+            results["success"] = False
+            results["failed_at"] = "phase_decomposition"
+            results["error"] = "No plan_path extracted from planning step"
+            return results
+
         decomposition = step_phase_decomposition(
             self.project_path,
             planning["plan_path"]
