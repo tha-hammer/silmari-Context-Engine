@@ -1,11 +1,11 @@
 ---
-date: 2026-01-01T17:10:17-05:00
+date: 2026-01-01T17:32:38-05:00
 researcher: Claude Opus 4.5
-git_commit: 1593fb24780193e59665ef7ac57b1b79634bac68
+git_commit: 13313f8c47ffdb3e249df96edc42458a06b79a18
 branch: main
 repository: silmari-Context-Engine
 topic: "How to Use Command Line Commands"
-tags: [documentation, cli, how-to, orchestrator, planning-pipeline]
+tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator]
 status: complete
 last_updated: 2026-01-01
 last_updated_by: Claude Opus 4.5
@@ -54,6 +54,81 @@ Use `orchestrator.py` to initialize and run an AI-powered development session on
    ```bash
    python orchestrator.py --project ~/path/to/project --with-qa
    ```
+
+---
+
+## How to Use the Integrated Orchestrator
+
+Use `IntegratedOrchestrator` from `planning_pipeline/integrated_orchestrator.py` to manage project state through beads and coordinate LLM-powered planning workflows programmatically.
+
+**Steps:**
+
+1. **Initialize the orchestrator:**
+   ```python
+   from pathlib import Path
+   from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
+
+   orchestrator = IntegratedOrchestrator(Path("~/myproject"))
+   ```
+
+2. **Detect project information:**
+   ```python
+   info = orchestrator.get_project_info()
+   print(f"Project: {info['name']}")
+   print(f"Stack: {info['stack']}")
+   print(f"Description: {info['description']}")
+   ```
+   This uses Claude to analyze overview files or README and extract project metadata.
+
+3. **Get feature status from beads:**
+   ```python
+   status = orchestrator.get_feature_status()
+   print(f"Total: {status['total']}")
+   print(f"Completed: {status['completed']}")
+   print(f"Remaining: {status['remaining']}")
+   print(f"Blocked: {status['blocked']}")
+   ```
+
+4. **Get the next ready feature:**
+   ```python
+   feature = orchestrator.get_next_feature()
+   if feature:
+       print(f"Next: {feature['title']} ({feature['id']})")
+   else:
+       print("No features ready")
+   ```
+   Returns the next issue with no blockers and all dependencies met.
+
+5. **Create phase issues from plan files:**
+   ```python
+   phase_files = [
+       "thoughts/plans/01-setup.md",
+       "thoughts/plans/02-implementation.md",
+       "thoughts/plans/03-testing.md"
+   ]
+   result = orchestrator.create_phase_issues(phase_files, "Feature Implementation")
+   print(f"Epic ID: {result['epic_id']}")
+   for phase in result['phase_issues']:
+       print(f"  Phase {phase['phase']}: {phase['issue_id']}")
+   ```
+   Creates an epic and linked phase tasks with sequential dependencies.
+
+6. **Sync features with git remote:**
+   ```python
+   exit_code = orchestrator.sync_features_with_git()
+   if exit_code == 0:
+       print("Synced successfully")
+   ```
+
+7. **Log session activity:**
+   ```python
+   orchestrator.log_session(
+       session_id="abc123",
+       action="get_next_feature",
+       result={"feature_id": "beads-001", "title": "Setup auth"}
+   )
+   ```
+   Logs are written to `.agent/sessions/<session_id>.json`.
 
 ---
 
@@ -292,3 +367,4 @@ For detailed API documentation and parameter references, consult the source file
 - `loop-runner.py` - Feature loop with argparse help
 - `mcp-setup.py` - MCP configuration with argparse help
 - `planning_pipeline/beads_controller.py` - BeadsController class methods
+- `planning_pipeline/integrated_orchestrator.py` - IntegratedOrchestrator class methods
