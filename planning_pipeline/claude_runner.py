@@ -86,50 +86,86 @@ def _run_capture_only(cmd: list[str], timeout: int, start_time: float) -> dict[s
 
 
 def _run_with_streaming(cmd: list[str], timeout: int, start_time: float) -> dict[str, Any]:
-    """Run command with real-time output streaming."""
+    """Run command with real-time output streaming.
+
+    Uses character-by-character reading to ensure output appears immediately,
+    not waiting for newlines (which Claude may not produce until completion).
+    """
+    import select
+    import os
+
     process = subprocess.Popen(
         cmd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
-        text=True,
-        bufsize=1  # Line buffered
+        text=False,  # Use binary mode for non-blocking reads
+        bufsize=0    # Unbuffered
     )
 
-    output_lines = []
-    error_lines = []
+    output_chunks = []
+    error_chunks = []
 
     try:
-        # Read stdout in real-time
+        # Make stdout non-blocking on Unix
+        import fcntl
+        flags = fcntl.fcntl(process.stdout.fileno(), fcntl.F_GETFL)
+        fcntl.fcntl(process.stdout.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
+        flags = fcntl.fcntl(process.stderr.fileno(), fcntl.F_GETFL)
+        fcntl.fcntl(process.stderr.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
+
         while True:
             # Check timeout
             if time.time() - start_time > timeout:
                 process.kill()
                 raise subprocess.TimeoutExpired(cmd, timeout)
 
-            line = process.stdout.readline()
-            if line:
-                sys.stdout.write(line)
-                sys.stdout.flush()
-                output_lines.append(line)
-            elif process.poll() is not None:
-                # Process finished
-                break
+            # Use select to wait for data with short timeout
+            readable, _, _ = select.select(
+                [process.stdout, process.stderr], [], [], 0.1
+            )
 
-        # Capture any remaining output
-        remaining_out, remaining_err = process.communicate(timeout=5)
-        if remaining_out:
-            sys.stdout.write(remaining_out)
-            sys.stdout.flush()
-            output_lines.append(remaining_out)
-        if remaining_err:
-            error_lines.append(remaining_err)
+            for stream in readable:
+                try:
+                    chunk = stream.read(4096)  # Read available bytes
+                    if chunk:
+                        if stream == process.stdout:
+                            # Decode and output immediately
+                            text = chunk.decode('utf-8', errors='replace')
+                            sys.stdout.write(text)
+                            sys.stdout.flush()
+                            output_chunks.append(text)
+                        else:
+                            error_chunks.append(chunk.decode('utf-8', errors='replace'))
+                except (IOError, BlockingIOError):
+                    pass  # No data available, continue
+
+            # Check if process finished
+            if process.poll() is not None:
+                # Drain remaining output
+                try:
+                    remaining_out = process.stdout.read()
+                    if remaining_out:
+                        text = remaining_out.decode('utf-8', errors='replace')
+                        sys.stdout.write(text)
+                        sys.stdout.flush()
+                        output_chunks.append(text)
+                except:
+                    pass
+                try:
+                    remaining_err = process.stderr.read()
+                    if remaining_err:
+                        error_chunks.append(remaining_err.decode('utf-8', errors='replace'))
+                except:
+                    pass
+                break
 
         elapsed = time.time() - start_time
 
         return {
             "success": process.returncode == 0,
-            "output": "".join(output_lines),
-            "error": "".join(error_lines),
+            "output": "".join(output_chunks),
+            "error": "".join(error_chunks),
             "elapsed": elapsed
         }
 
