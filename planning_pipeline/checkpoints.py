@@ -57,26 +57,38 @@ def interactive_checkpoint_research(research_result: dict[str, Any]) -> dict[str
     print(f"{'='*60}")
     print(f"\nResearch document: {research_result.get('research_path', 'N/A')}")
 
-    answers = []
+    # If there are open questions, collect answers and auto-revise
     if research_result.get("open_questions"):
         print("\nOpen Questions:")
         for i, q in enumerate(research_result["open_questions"], 1):
             print(f"  {i}. {q}")
 
-        print("\nProvide answers (empty line to finish):")
+        print("\nProvide answers to refine research (empty line to skip):")
+        answers = []
         while True:
             line = input("> ").strip()
             if not line:
                 break
             answers.append(line)
 
-    # Prompt for action
+        if answers:
+            # Auto-revise with the answers
+            print("\nRevising research with your answers...")
+            return {
+                "action": "revise",
+                "continue": False,
+                "answers": answers,
+                "revision_context": "\n".join(answers),
+                "research_path": research_result.get("research_path")
+            }
+
+    # No open questions or no answers provided - show action menu
     action = _prompt_research_action()
 
     result = {
         "action": action,
         "continue": action == "continue",
-        "answers": answers,
+        "answers": [],
         "revision_context": "",
         "research_path": research_result.get("research_path")
     }

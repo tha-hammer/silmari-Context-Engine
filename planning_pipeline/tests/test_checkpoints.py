@@ -38,20 +38,38 @@ class TestResearchCheckpoint:
         assert result["action"] == "continue"
         assert result["continue"] is True
 
-    def test_collects_answers_for_questions(self):
-        """Given research result with questions, collects answers then prompts."""
+    def test_answers_to_questions_trigger_auto_revise(self):
+        """Given answers to open questions, auto-triggers revision."""
         research_result = {
             "research_path": "thoughts/shared/research/test.md",
             "open_questions": ["Q1?", "Q2?"]
         }
 
-        # Simulate: "Answer1", "Answer2", "" (empty to finish), then "c" to continue
-        inputs = iter(["Answer1", "Answer2", "", "c"])
+        # Simulate: "Answer1", "Answer2", "" (empty to finish)
+        inputs = iter(["Answer1", "Answer2", ""])
+        with patch('builtins.input', lambda _: next(inputs)):
+            result = interactive_checkpoint_research(research_result)
+
+        assert result["action"] == "revise"
+        assert result["continue"] is False
+        assert result["answers"] == ["Answer1", "Answer2"]
+        assert "Answer1" in result["revision_context"]
+        assert "Answer2" in result["revision_context"]
+
+    def test_skipping_questions_shows_action_menu(self):
+        """Given open questions but no answers, shows action menu."""
+        research_result = {
+            "research_path": "thoughts/shared/research/test.md",
+            "open_questions": ["Q1?", "Q2?"]
+        }
+
+        # Simulate: "" (skip questions), then "c" to continue
+        inputs = iter(["", "c"])
         with patch('builtins.input', lambda _: next(inputs)):
             result = interactive_checkpoint_research(research_result)
 
         assert result["action"] == "continue"
-        assert result["answers"] == ["Answer1", "Answer2"]
+        assert result["continue"] is True
 
     def test_revise_collects_revision_context(self):
         """Given 'r' input, collects revision context."""
