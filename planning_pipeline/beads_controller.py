@@ -89,3 +89,15 @@ class BeadsController:
         """Sync beads with git remote."""
         # sync may not support --json
         return self._run_bd('sync', use_json=False)
+
+    def get_ready_issue(self, limit: int = 1) -> dict[str, Any]:
+        """Get next ready issue (no blockers, dependencies met)."""
+        return self._run_bd('ready', f'--limit={limit}')
+
+    def update_status(self, issue_id: str, status: str) -> dict[str, Any]:
+        """Update issue status."""
+        return self._run_bd('update', issue_id, f'--status={status}')
+
+    def show_issue(self, issue_id: str) -> dict[str, Any]:
+        """Get full issue details."""
+        return self._run_bd('show', issue_id)
