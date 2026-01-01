@@ -108,7 +108,8 @@ def _run_with_streaming(cmd: list[str], timeout: int, start_time: float) -> dict
 
             line = process.stdout.readline()
             if line:
-                print(line, end='', flush=True)
+                sys.stdout.write(line)
+                sys.stdout.flush()
                 output_lines.append(line)
             elif process.poll() is not None:
                 # Process finished
@@ -117,7 +118,8 @@ def _run_with_streaming(cmd: list[str], timeout: int, start_time: float) -> dict
         # Capture any remaining output
         remaining_out, remaining_err = process.communicate(timeout=5)
         if remaining_out:
-            print(remaining_out, end='', flush=True)
+            sys.stdout.write(remaining_out)
+            sys.stdout.flush()
             output_lines.append(remaining_out)
         if remaining_err:
             error_lines.append(remaining_err)

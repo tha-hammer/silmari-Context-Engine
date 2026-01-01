@@ -168,19 +168,70 @@ def step_planning(
 Output the plan file path when complete.
 """
 
-    result = run_claude_sync(
-        prompt=prompt,
-        timeout=1200  # 20 minutes for planning phase
-    )
+    # Loop to handle cases where Claude asks for clarification
+    max_retries = 3
+    for attempt in range(max_retries):
+        result = run_claude_sync(
+            prompt=prompt,
+            timeout=1200  # 20 minutes for planning phase
+        )
 
-    if not result["success"]:
-        return {"success": False, "error": result.get("error", "Planning failed")}
+        if not result["success"]:
+            return {"success": False, "error": result.get("error", "Planning failed")}
 
-    plan_path = extract_file_path(result["output"], "plan")
+        plan_path = extract_file_path(result["output"], "plan")
+
+        if plan_path:
+            return {
+                "success": True,
+                "plan_path": plan_path,
+                "output": result["output"]
+            }
+
+        # No plan path found - Claude may have asked for clarification
+        # Check if output contains question indicators
+        output_lower = result["output"].lower()
+        is_question = any(q in output_lower for q in [
+            "could you", "can you", "would you", "what is", "which",
+            "clarify", "specify", "more information", "more details",
+            "please provide", "i need to understand", "?"
+        ])
+
+        if is_question and attempt < max_retries - 1:
+            print(f"\n{'='*60}")
+            print("CLAUDE NEEDS CLARIFICATION")
+            print(f"{'='*60}")
+            print("\nClaude's response did not produce a plan file.")
+            print("Please provide additional context or answers:\n")
+
+            # Collect user input
+            user_response = []
+            print("(Enter your response, blank line to finish)")
+            while True:
+                line = input("> ").strip()
+                if not line:
+                    break
+                user_response.append(line)
+
+            if user_response:
+                # Append user response to prompt and retry
+                additional_input = "\n".join(user_response)
+                prompt = f"""{prompt}
+
+## User Clarification (Attempt {attempt + 2})
+{additional_input}
+
+Now create the plan file. Output the plan file path when complete.
+"""
+                print(f"\nRetrying with additional context...")
+                continue
+
+        # No plan path and not a question, or max retries reached
+        break
 
     return {
         "success": True,
-        "plan_path": plan_path,
+        "plan_path": None,  # Let caller handle missing plan_path
         "output": result["output"]
     }
 
