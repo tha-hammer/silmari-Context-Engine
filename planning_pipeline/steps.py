@@ -300,11 +300,17 @@ def step_beads_integration(
     phase_files: list[str],
     epic_title: str
 ) -> dict[str, Any]:
-    """Create beads issues for plan phases with dependencies.
+    """Create beads issues for plan phases and annotate files with bd commands.
+
+    This step:
+    1. Creates an epic issue for the overall plan
+    2. Creates task issues for each phase with dependencies
+    3. Uses Claude SDK to add bd commands to overview and phase files
+    4. Returns the created issue IDs
 
     Args:
         project_path: Root path of the project
-        phase_files: List of phase file paths
+        phase_files: List of phase file paths from decomposition
         epic_title: Title for the epic issue
 
     Returns:
@@ -312,6 +318,7 @@ def step_beads_integration(
         - success: bool
         - epic_id: ID of created epic
         - phase_issues: list of phase issue details
+        - files_annotated: list of files that were annotated with bd commands
     """
     bd = BeadsController(project_path)
 
@@ -322,9 +329,18 @@ def step_beads_integration(
 
     epic_id = epic_result["data"].get("id") if isinstance(epic_result["data"], dict) else None
 
+    # Separate overview file from phase files
+    overview_file = None
+    actual_phase_files = []
+    for f in phase_files:
+        if "overview" in f.lower() or f.endswith("00-overview.md"):
+            overview_file = f
+        else:
+            actual_phase_files.append(f)
+
     # Create issues for each phase
     phase_issues = []
-    for i, phase_file in enumerate(phase_files):
+    for i, phase_file in enumerate(actual_phase_files):
         # Extract phase name from filename like "01-phase-1-setup.md"
         phase_name = Path(phase_file).stem.split('-', 2)[-1].replace('-', ' ').title()
 
@@ -351,11 +367,179 @@ def step_beads_integration(
 
     bd.sync()
 
+    # Now use Claude SDK to annotate files with bd commands
+    files_annotated = []
+
+    # Build issue mapping for Claude
+    issue_mapping = {
+        "epic": {"id": epic_id, "title": epic_title},
+        "phases": phase_issues
+    }
+
+    # Annotate overview file if it exists
+    if overview_file:
+        overview_path = Path(overview_file)
+        if not overview_path.is_absolute():
+            overview_path = project_path / overview_file
+
+        if overview_path.exists():
+            overview_content = overview_path.read_text()
+            annotated = _annotate_overview_with_claude(
+                project_path, overview_file, overview_content, issue_mapping
+            )
+            if annotated:
+                files_annotated.append(overview_file)
+
+    # Annotate each phase file
+    for phase_info in phase_issues:
+        phase_file = phase_info["file"]
+        phase_path = Path(phase_file)
+        if not phase_path.is_absolute():
+            phase_path = project_path / phase_file
+
+        if phase_path.exists():
+            phase_content = phase_path.read_text()
+            overview_content = ""
+            if overview_file:
+                ov_path = project_path / overview_file if not Path(overview_file).is_absolute() else Path(overview_file)
+                if ov_path.exists():
+                    overview_content = ov_path.read_text()
+
+            annotated = _annotate_phase_with_claude(
+                project_path, phase_file, phase_content, overview_content, phase_info
+            )
+            if annotated:
+                files_annotated.append(phase_file)
+
     return {
         "success": True,
         "epic_id": epic_id,
-        "phase_issues": phase_issues
+        "phase_issues": phase_issues,
+        "files_annotated": files_annotated
     }
+
+
+def _annotate_overview_with_claude(
+    project_path: Path,
+    overview_file: str,
+    overview_content: str,
+    issue_mapping: dict
+) -> bool:
+    """Use Claude SDK to add bd commands to overview file.
+
+    Args:
+        project_path: Root path of the project
+        overview_file: Path to the overview file
+        overview_content: Current content of the overview file
+        issue_mapping: Dict with epic and phase issue information
+
+    Returns:
+        True if annotation was successful
+    """
+    epic_id = issue_mapping["epic"]["id"]
+    phases = issue_mapping["phases"]
+
+    # Build phase list for prompt
+    phase_list = "\n".join([
+        f"- Phase {p['phase']}: {p['file']} -> Issue ID: {p['issue_id']}"
+        for p in phases
+    ])
+
+    prompt = f"""# Task: Add Beads Issue References to Overview File
+
+You need to add `bd` command references to a plan overview file.
+
+## File to Edit
+Path: {overview_file}
+
+## Current Content
+```markdown
+{overview_content}
+```
+
+## Issue Information
+- Epic ID: {epic_id}
+- Phase Issues:
+{phase_list}
+
+## Instructions
+
+1. Add a "Beads Tracking" section at the top of the file (after the title) with:
+   - Epic reference: `bd show {epic_id}`
+   - List of phase issues with their IDs
+
+2. In the phase list/links section, add the issue ID next to each phase reference.
+
+3. Add helpful bd commands in a "Workflow Commands" subsection:
+   - `bd ready` - see available work
+   - `bd update <id> --status=in_progress` - start a phase
+   - `bd close <id>` - complete a phase
+
+Edit the file at {overview_file} with these additions.
+Only add the beads information, do not change the existing plan content.
+"""
+
+    result = run_claude_sync(prompt=prompt, timeout=120)
+    return result["success"]
+
+
+def _annotate_phase_with_claude(
+    project_path: Path,
+    phase_file: str,
+    phase_content: str,
+    overview_content: str,
+    phase_info: dict
+) -> bool:
+    """Use Claude SDK to add bd commands to a phase file.
+
+    Args:
+        project_path: Root path of the project
+        phase_file: Path to the phase file
+        phase_content: Current content of the phase file
+        overview_content: Content of overview file for context
+        phase_info: Dict with phase number, file, and issue_id
+
+    Returns:
+        True if annotation was successful
+    """
+    issue_id = phase_info["issue_id"]
+    phase_num = phase_info["phase"]
+
+    prompt = f"""# Task: Add Beads Issue Reference to Phase File
+
+You need to add a `bd` command reference to a plan phase file.
+
+## Overview Context
+```markdown
+{overview_content[:2000]}
+```
+
+## File to Edit
+Path: {phase_file}
+
+## Current Content
+```markdown
+{phase_content}
+```
+
+## Issue Information
+- Phase {phase_num} Issue ID: {issue_id}
+
+## Instructions
+
+1. Add a small "Tracking" section at the top of the file (after the title) with:
+   - Issue reference: `{issue_id}`
+   - Start command: `bd update {issue_id} --status=in_progress`
+   - Complete command: `bd close {issue_id}`
+
+2. Keep it minimal - just 3-4 lines showing how to track this phase.
+
+Edit the file at {phase_file} with these additions.
+Only add the tracking information, do not change the existing phase content.
+"""
+
+    result = run_claude_sync(prompt=prompt, timeout=120)
+    return result["success"]
 
 
 def step_memory_sync(
