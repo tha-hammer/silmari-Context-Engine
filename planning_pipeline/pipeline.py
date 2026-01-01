@@ -63,6 +63,13 @@ class PlanningPipeline:
             results["steps"]["research"] = research
 
             if not research["success"]:
+                from .checkpoint_manager import write_checkpoint
+                write_checkpoint(
+                    self.project_path,
+                    "research-failed",
+                    [],
+                    [research.get("error", "Unknown error")]
+                )
                 results["success"] = False
                 results["failed_at"] = "research"
                 return results
@@ -134,6 +141,13 @@ class PlanningPipeline:
             results["steps"]["planning"] = planning
 
             if not planning["success"]:
+                from .checkpoint_manager import write_checkpoint
+                write_checkpoint(
+                    self.project_path,
+                    "planning-failed",
+                    [str(Path(research["research_path"]).resolve())],
+                    [planning.get("error", "Unknown error")]
+                )
                 results["success"] = False
                 results["failed_at"] = "planning"
                 return results
@@ -167,6 +181,16 @@ class PlanningPipeline:
         results["steps"]["decomposition"] = decomposition
 
         if not decomposition["success"]:
+            from .checkpoint_manager import write_checkpoint
+            write_checkpoint(
+                self.project_path,
+                "decomposition-failed",
+                [
+                    str(Path(research["research_path"]).resolve()),
+                    str(Path(planning["plan_path"]).resolve())
+                ],
+                [decomposition.get("error", "Unknown error")]
+            )
             results["success"] = False
             results["failed_at"] = "decomposition"
             return results
@@ -197,7 +221,12 @@ class PlanningPipeline:
         print("Memory capture: using existing hooks")
         results["steps"]["memory"] = {"success": True}
 
-        # Complete
+        # Complete - clean up any checkpoint for this run
+        from .checkpoint_manager import detect_resumable_checkpoint, delete_checkpoint
+        checkpoint = detect_resumable_checkpoint(self.project_path)
+        if checkpoint:
+            delete_checkpoint(checkpoint.get("file_path", ""))
+
         results["success"] = True
         results["completed"] = datetime.now().isoformat()
         results["plan_dir"] = str(Path(decomposition["phase_files"][0]).parent) if decomposition["phase_files"] else None

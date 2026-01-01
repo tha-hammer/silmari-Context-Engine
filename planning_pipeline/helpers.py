@@ -1,6 +1,8 @@
 """Helper functions for planning pipeline."""
 
 import re
+from pathlib import Path
+from datetime import datetime, timedelta
 from typing import Optional
 
 
@@ -66,3 +68,50 @@ def extract_phase_files(output: str) -> list[str]:
         return []
     pattern = r'(thoughts/[^\s]+/\d{2}-[^\s]+\.md)'
     return re.findall(pattern, output)
+
+
+def discover_thoughts_files(
+    project_path: Path,
+    file_type: str,
+    days_back: int = 0
+) -> list[Path]:
+    """Discover research or plan files from thoughts directory.
+
+    Args:
+        project_path: Root project directory
+        file_type: "research" or "plans"
+        days_back: How many days back to search (0 = today only)
+
+    Returns:
+        List of matching file paths sorted alphabetically by filename
+    """
+    thoughts_dir = Path(project_path) / "thoughts"
+
+    # Try both direct and searchable paths
+    search_dirs = [
+        thoughts_dir / "shared" / file_type,
+        thoughts_dir / "searchable" / "shared" / file_type,
+    ]
+
+    search_dir = None
+    for d in search_dirs:
+        if d.exists():
+            search_dir = d
+            break
+
+    if search_dir is None:
+        return []
+
+    cutoff_date = datetime.now() - timedelta(days=days_back)
+    cutoff_str = cutoff_date.strftime('%Y-%m-%d')
+
+    files = []
+    for f in search_dir.glob("*.md"):
+        # Files are named YYYY-MM-DD-description.md
+        if len(f.stem) >= 10:
+            date_part = f.stem[:10]
+            if date_part >= cutoff_str:
+                files.append(f)
+
+    # Sort alphabetically by filename
+    return sorted(files, key=lambda f: f.name)

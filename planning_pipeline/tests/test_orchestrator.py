@@ -367,3 +367,114 @@ class TestOrchestratorE2E:
         for phase in phase_issues:
             if phase.get("issue_id"):
                 cleanup_issues.append(phase["issue_id"])
+
+
+class TestResumeArgumentParsing:
+    """Tests for resume-related CLI arguments."""
+
+    def test_parses_resume_flag(self):
+        """Given --resume flag, sets resume to True."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume"])
+        assert args.resume is True
+
+    def test_parses_resume_short_flag(self):
+        """Given -r flag, sets resume to True."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["-r"])
+        assert args.resume is True
+
+    def test_defaults_resume_to_false(self):
+        """Given no --resume, defaults to False."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args([])
+        assert args.resume is False
+
+    def test_parses_resume_step_planning(self):
+        """Given --resume-step planning, parses correctly."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume-step", "planning"])
+        assert args.resume_step == "planning"
+
+    def test_parses_resume_step_decomposition(self):
+        """Given --resume-step decomposition, parses correctly."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume-step", "decomposition"])
+        assert args.resume_step == "decomposition"
+
+    def test_parses_resume_step_beads(self):
+        """Given --resume-step beads, parses correctly."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume-step", "beads"])
+        assert args.resume_step == "beads"
+
+    def test_parses_research_path(self):
+        """Given --research-path, parses the path."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--research-path", "/path/to/research.md"])
+        assert args.research_path == "/path/to/research.md"
+
+    def test_parses_research_path_underscore(self):
+        """Given --research_path (underscore), parses the path."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--research_path", "/path/to/research.md"])
+        assert args.research_path == "/path/to/research.md"
+
+    def test_parses_plan_path(self):
+        """Given --plan-path, parses the path."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--plan-path", "/path/to/plan.md"])
+        assert args.plan_path == "/path/to/plan.md"
+
+    def test_parses_combined_resume_args(self):
+        """Given all resume args, parses correctly."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args([
+            "--resume",
+            "--resume-step", "planning",
+            "--research-path", "/path/research.md",
+            "--plan-path", "/path/plan.md"
+        ])
+        assert args.resume is True
+        assert args.resume_step == "planning"
+        assert args.research_path == "/path/research.md"
+        assert args.plan_path == "/path/plan.md"
+
+
+class TestExecuteFromStep:
+    """Tests for execute_from_step function."""
+
+    @pytest.fixture
+    def project_path(self):
+        return Path(__file__).parent.parent.parent
+
+    def test_returns_result_dict(self, project_path, tmp_path):
+        """Execute returns a result dictionary."""
+        from planning_orchestrator import execute_from_step
+
+        # Create a fake research file
+        research_file = tmp_path / "research.md"
+        research_file.write_text("# Research\nSome content")
+
+        # This will fail since research file doesn't have proper content
+        # but we can verify the function returns properly
+        result = execute_from_step(
+            project_path=project_path,
+            resume_step="planning",
+            research_path=str(research_file)
+        )
+
+        assert isinstance(result, dict)
+        assert "started" in result
+        assert "resumed_from" in result
+        assert result["resumed_from"] == "planning"

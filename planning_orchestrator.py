@@ -55,6 +55,29 @@ Examples:
         help="Research prompt (non-interactive mode)"
     )
 
+    # Resume arguments
+    parser.add_argument(
+        "--resume", "-r",
+        action="store_true",
+        help="Resume from a previous step (auto-detects from checkpoints)"
+    )
+    parser.add_argument(
+        "--resume-step", "--resume_step",
+        dest="resume_step",
+        choices=["planning", "decomposition", "beads"],
+        help="Step to resume from (default: auto-detect)"
+    )
+    parser.add_argument(
+        "--research-path", "--research_path",
+        dest="research_path",
+        help="Path to existing research document (for resume)"
+    )
+    parser.add_argument(
+        "--plan-path", "--plan_path",
+        dest="plan_path",
+        help="Path to existing plan document (for resume)"
+    )
+
     return parser.parse_args(args)
 
 
@@ -189,14 +212,21 @@ def get_exit_code(result: dict) -> int:
 
 
 def main() -> int:
-    """Main entry point."""
+    """Main entry point with resume support."""
     import sys
+    from datetime import datetime, timedelta
+    from planning_pipeline import (
+        detect_resumable_checkpoint,
+        check_checkpoint_cleanup_needed,
+        cleanup_checkpoints_by_age,
+        cleanup_all_checkpoints,
+        prompt_checkpoint_cleanup,
+    )
 
     print(f"\n{Colors.BOLD}{'=' * 60}{Colors.END}")
     print(f"{Colors.BOLD}{'Planning Pipeline Orchestrator':^60}{Colors.END}")
     print(f"{Colors.BOLD}{'=' * 60}{Colors.END}")
 
-    # Parse arguments
     args = parse_args()
     project_path = args.project.expanduser().resolve()
 
@@ -210,7 +240,29 @@ def main() -> int:
         print(f"\n{Colors.RED}Error: {prereq['error']}{Colors.END}")
         return 1
 
-    # Get prompt
+    # Check for old checkpoints and offer cleanup
+    should_warn, checkpoints = check_checkpoint_cleanup_needed(project_path)
+    if should_warn:
+        oldest = min(c.get("timestamp", "")[:10] for c in checkpoints)
+        action, days = prompt_checkpoint_cleanup(len(checkpoints), oldest)
+
+        if action == "oldest":
+            deleted, failed = cleanup_checkpoints_by_age(checkpoints, days)
+            print(f"  Deleted {deleted} checkpoint(s)")
+        elif action == "last_n":
+            cutoff = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+            old_cps = [c for c in checkpoints if c.get("timestamp", "")[:10] <= cutoff]
+            deleted, failed = cleanup_checkpoints_by_age(old_cps, 0)
+            print(f"  Deleted {deleted} checkpoint(s)")
+        elif action == "all":
+            deleted, failed = cleanup_all_checkpoints(project_path)
+            print(f"  Deleted {deleted} checkpoint(s)")
+
+    # Resume flow
+    if args.resume:
+        return handle_resume_flow(args, project_path)
+
+    # Normal flow
     if args.prompt_text is not None:
         prompt = args.prompt_text
     else:
@@ -222,7 +274,6 @@ def main() -> int:
 
     print(f"\n{Colors.CYAN}Starting pipeline...{Colors.END}")
 
-    # Run pipeline
     result = run_pipeline(
         project_path=project_path,
         prompt=prompt,
@@ -230,10 +281,255 @@ def main() -> int:
         auto_approve=args.auto_approve
     )
 
-    # Display result
     display_result(result)
-
     return get_exit_code(result)
+
+
+def handle_resume_flow(args, project_path: Path) -> int:
+    """Handle the --resume flow.
+
+    Args:
+        args: Parsed arguments
+        project_path: Resolved project path
+
+    Returns:
+        Exit code (0 for success)
+    """
+    from planning_pipeline import (
+        detect_resumable_checkpoint,
+        discover_thoughts_files,
+        prompt_file_selection,
+        prompt_search_days,
+        prompt_custom_path,
+        delete_checkpoint,
+    )
+
+    # Try to auto-detect from checkpoint
+    checkpoint = None
+    if not args.research_path and not args.plan_path:
+        checkpoint = detect_resumable_checkpoint(project_path)
+
+    if checkpoint:
+        print(f"\n{Colors.CYAN}Found checkpoint from {checkpoint.get('timestamp', 'unknown')[:19]}{Colors.END}")
+        print(f"  Phase: {checkpoint.get('phase', 'unknown')}")
+        artifacts = checkpoint.get("state_snapshot", {}).get("artifacts", [])
+        if artifacts:
+            print(f"  Artifacts: {', '.join(artifacts)}")
+
+        use_checkpoint = input(f"\nUse this checkpoint? [Y/n]: ").strip().lower()
+        if use_checkpoint != 'n':
+            # Extract paths from checkpoint
+            for artifact in artifacts:
+                artifact_path = Path(artifact).resolve()
+                if "research" in artifact.lower() and not args.research_path:
+                    args.research_path = str(artifact_path)
+                elif "plan" in artifact.lower() and not args.plan_path:
+                    args.plan_path = str(artifact_path)
+
+            # Determine resume step from checkpoint phase
+            if not args.resume_step:
+                phase = checkpoint.get("phase", "").lower()
+                if "planning" in phase:
+                    args.resume_step = "planning"
+                elif "decomposition" in phase:
+                    args.resume_step = "decomposition"
+                elif "beads" in phase:
+                    args.resume_step = "beads"
+
+    # Determine what step we're resuming from
+    resume_step = args.resume_step
+
+    # If no step specified, determine from available paths
+    if not resume_step:
+        if args.plan_path:
+            resume_step = "decomposition"
+        elif args.research_path:
+            resume_step = "planning"
+        else:
+            # Need to select a research file
+            resume_step = "planning"
+
+    # Get research path if needed for planning step
+    if resume_step == "planning" and not args.research_path:
+        args.research_path = interactive_file_selection(project_path, "research")
+        if not args.research_path:
+            return 1
+
+    # Get plan path if needed for decomposition/beads steps
+    if resume_step in ("decomposition", "beads") and not args.plan_path:
+        args.plan_path = interactive_file_selection(project_path, "plans")
+        if not args.plan_path:
+            return 1
+
+    print(f"\n{Colors.CYAN}Resuming from {resume_step} step...{Colors.END}")
+
+    # Execute remaining steps
+    result = execute_from_step(
+        project_path=project_path,
+        resume_step=resume_step,
+        research_path=args.research_path,
+        plan_path=args.plan_path,
+        ticket_id=args.ticket,
+        auto_approve=args.auto_approve
+    )
+
+    # Delete checkpoint on success
+    if result.get("success") and checkpoint:
+        delete_checkpoint(checkpoint.get("file_path", ""))
+        print(f"\n{Colors.GREEN}Checkpoint cleaned up{Colors.END}")
+
+    display_result(result)
+    return get_exit_code(result)
+
+
+def interactive_file_selection(project_path: Path, file_type: str) -> str | None:
+    """Interactive loop to select a file.
+
+    Args:
+        project_path: Root project path
+        file_type: "research" or "plans"
+
+    Returns:
+        Absolute path string or None if cancelled
+    """
+    from planning_pipeline import (
+        discover_thoughts_files,
+        prompt_file_selection,
+        prompt_search_days,
+        prompt_custom_path,
+    )
+
+    days_back = 0
+
+    while True:
+        files = discover_thoughts_files(project_path, file_type, days_back)
+        action, path = prompt_file_selection(files, file_type)
+
+        if action == "selected":
+            return str(path.resolve())
+        elif action == "search":
+            days_back = prompt_search_days()
+        elif action == "other":
+            custom_path = prompt_custom_path(file_type)
+            if custom_path:
+                return str(custom_path)
+        elif action == "exit":
+            return None
+
+
+def execute_from_step(
+    project_path: Path,
+    resume_step: str,
+    research_path: str = None,
+    plan_path: str = None,
+    ticket_id: str = None,
+    auto_approve: bool = False
+) -> dict:
+    """Execute pipeline from a specific step.
+
+    Args:
+        project_path: Root project path
+        resume_step: Step to start from
+        research_path: Path to research document
+        plan_path: Path to plan document
+        ticket_id: Optional ticket ID
+        auto_approve: Skip interactive checkpoints
+
+    Returns:
+        Pipeline result dictionary
+    """
+    from datetime import datetime
+    from planning_pipeline import (
+        step_planning,
+        step_phase_decomposition,
+        step_beads_integration,
+        write_checkpoint,
+    )
+
+    results = {
+        "started": datetime.now().isoformat(),
+        "resumed_from": resume_step,
+        "steps": {}
+    }
+
+    try:
+        if resume_step == "planning":
+            # Step 2: Planning
+            print(f"\n{'='*60}")
+            print("STEP 2/5: PLANNING PHASE")
+            print("="*60)
+
+            planning = step_planning(project_path, research_path, "")
+            results["steps"]["planning"] = planning
+
+            if not planning["success"]:
+                write_checkpoint(project_path, "planning-failed", [research_path])
+                results["success"] = False
+                results["failed_at"] = "planning"
+                return results
+
+            plan_path = planning.get("plan_path")
+            if not plan_path:
+                results["success"] = False
+                results["error"] = "No plan_path extracted"
+                return results
+
+        if resume_step in ("planning", "decomposition"):
+            # Step 3: Decomposition
+            print(f"\n{'='*60}")
+            print("STEP 3/5: PHASE DECOMPOSITION")
+            print("="*60)
+
+            decomposition = step_phase_decomposition(project_path, plan_path)
+            results["steps"]["decomposition"] = decomposition
+
+            if not decomposition["success"]:
+                artifacts = [research_path] if research_path else []
+                if plan_path:
+                    artifacts.append(plan_path)
+                write_checkpoint(project_path, "decomposition-failed", artifacts)
+                results["success"] = False
+                results["failed_at"] = "decomposition"
+                return results
+
+            phase_files = decomposition.get("phase_files", [])
+            print(f"\nCreated {len(phase_files)} phase files")
+
+        if resume_step in ("planning", "decomposition", "beads"):
+            # Step 4: Beads
+            print(f"\n{'='*60}")
+            print("STEP 4/5: BEADS INTEGRATION")
+            print("="*60)
+
+            # Get phase_files from decomposition or discover them
+            if "decomposition" not in results["steps"]:
+                # Need to discover phase files from plan directory
+                plan_dir = Path(plan_path).parent
+                phase_files = sorted(plan_dir.glob("*-phase-*.md"))
+                phase_files = [str(f) for f in phase_files]
+            else:
+                phase_files = results["steps"]["decomposition"].get("phase_files", [])
+
+            epic_title = f"Plan: {ticket_id}" if ticket_id else f"Plan: {datetime.now().strftime('%Y-%m-%d')}"
+            beads = step_beads_integration(project_path, phase_files, epic_title)
+            results["steps"]["beads"] = beads
+
+            if beads["success"]:
+                print(f"\nCreated epic: {beads.get('epic_id')}")
+
+        results["success"] = True
+        results["completed"] = datetime.now().isoformat()
+
+        # Set plan_dir for display
+        if plan_path:
+            results["plan_dir"] = str(Path(plan_path).parent)
+
+        return results
+
+    except Exception as e:
+        results["success"] = False
+        results["error"] = str(e)
+        return results
 
 
 if __name__ == "__main__":

@@ -1,7 +1,9 @@
 """Tests for helper functions - Behavior 1, 2, 3."""
 
 import pytest
-from planning_pipeline.helpers import extract_file_path
+from datetime import datetime, timedelta
+from pathlib import Path
+from planning_pipeline.helpers import extract_file_path, discover_thoughts_files
 
 
 class TestExtractFilePath:
@@ -168,3 +170,91 @@ class TestExtractPhaseFiles:
         assert "01-phase-1-setup.md" in result[0]
         assert "02-phase-2-impl.md" in result[1]
         assert "03-phase-3-test.md" in result[2]
+
+
+class TestDiscoverThoughtsFiles:
+    """Tests for discover_thoughts_files function."""
+
+    @pytest.fixture
+    def temp_project(self, tmp_path):
+        """Create a temporary project with thoughts directory."""
+        # Create searchable/shared/research structure
+        research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
+        research_dir.mkdir(parents=True)
+        plans_dir = tmp_path / "thoughts" / "searchable" / "shared" / "plans"
+        plans_dir.mkdir(parents=True)
+        return tmp_path
+
+    def test_discovers_today_files(self, temp_project):
+        """Discovers files with today's date."""
+        research_dir = temp_project / "thoughts" / "searchable" / "shared" / "research"
+        today = datetime.now().strftime('%Y-%m-%d')
+        (research_dir / f"{today}-test-research.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "research", days_back=0)
+        assert len(result) == 1
+        assert today in result[0].name
+
+    def test_excludes_old_files_with_days_back_0(self, temp_project):
+        """Files older than today are excluded when days_back=0."""
+        research_dir = temp_project / "thoughts" / "searchable" / "shared" / "research"
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        (research_dir / f"{yesterday}-old-research.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "research", days_back=0)
+        assert len(result) == 0
+
+    def test_includes_old_files_with_days_back(self, temp_project):
+        """Files within days_back are included."""
+        research_dir = temp_project / "thoughts" / "searchable" / "shared" / "research"
+        yesterday = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+        (research_dir / f"{yesterday}-old-research.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "research", days_back=7)
+        assert len(result) == 1
+
+    def test_returns_empty_for_missing_dir(self, tmp_path):
+        """Returns empty list when thoughts dir doesn't exist."""
+        result = discover_thoughts_files(tmp_path, "research")
+        assert result == []
+
+    def test_sorts_alphabetically(self, temp_project):
+        """Files are sorted alphabetically by name."""
+        research_dir = temp_project / "thoughts" / "searchable" / "shared" / "research"
+        today = datetime.now().strftime('%Y-%m-%d')
+        (research_dir / f"{today}-zebra.md").write_text("content")
+        (research_dir / f"{today}-alpha.md").write_text("content")
+        (research_dir / f"{today}-middle.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "research", days_back=0)
+        assert len(result) == 3
+        assert "alpha" in result[0].name
+        assert "middle" in result[1].name
+        assert "zebra" in result[2].name
+
+    def test_discovers_plans_files(self, temp_project):
+        """Discovers files from plans directory."""
+        plans_dir = temp_project / "thoughts" / "searchable" / "shared" / "plans"
+        today = datetime.now().strftime('%Y-%m-%d')
+        (plans_dir / f"{today}-test-plan.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "plans", days_back=0)
+        assert len(result) == 1
+        assert "plan" in result[0].name
+
+    def test_prefers_shared_over_searchable(self, temp_project):
+        """Prefers thoughts/shared over thoughts/searchable/shared."""
+        # Create thoughts/shared/research (higher priority)
+        shared_dir = temp_project / "thoughts" / "shared" / "research"
+        shared_dir.mkdir(parents=True)
+        today = datetime.now().strftime('%Y-%m-%d')
+        (shared_dir / f"{today}-shared.md").write_text("content")
+
+        # Also has searchable version
+        searchable_dir = temp_project / "thoughts" / "searchable" / "shared" / "research"
+        (searchable_dir / f"{today}-searchable.md").write_text("content")
+
+        result = discover_thoughts_files(temp_project, "research", days_back=0)
+        # Should find the shared one (first in search order)
+        assert len(result) == 1
+        assert "shared" in result[0].name

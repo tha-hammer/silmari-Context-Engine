@@ -66,6 +66,15 @@ def resume_pipeline(step: str, **kwargs):
     return result
 
 if __name__ == "__main__":
+    import warnings
+    warnings.warn(
+        "resume_pipeline.py is deprecated. Use 'python planning_orchestrator.py --resume' instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    print("\n⚠️  WARNING: resume_pipeline.py is deprecated.")
+    print("   Please use 'python planning_orchestrator.py --resume' instead.\n")
+
     parser = argparse.ArgumentParser(
         description="Resume a failed planning pipeline from a specific step",
         formatter_class=argparse.RawDescriptionHelpFormatter,
