@@ -11,44 +11,88 @@ from planning_pipeline.checkpoints import (
 class TestResearchCheckpoint:
     """Behavior 12: Interactive Checkpoint - Research."""
 
-    def test_continues_without_questions(self):
-        """Given research result without questions, returns continue=True on 'Y'."""
+    def test_continues_on_c(self):
+        """Given 'c' input, returns action='continue'."""
         research_result = {
             "research_path": "thoughts/shared/research/test.md",
             "open_questions": []
         }
 
-        with patch('builtins.input', return_value='Y'):
+        with patch('builtins.input', return_value='c'):
             result = interactive_checkpoint_research(research_result)
 
+        assert result["action"] == "continue"
         assert result["continue"] is True
         assert result["answers"] == []
 
+    def test_continues_on_empty_input(self):
+        """Given empty input (default), returns action='continue'."""
+        research_result = {
+            "research_path": "thoughts/shared/research/test.md",
+            "open_questions": []
+        }
+
+        with patch('builtins.input', return_value=''):
+            result = interactive_checkpoint_research(research_result)
+
+        assert result["action"] == "continue"
+        assert result["continue"] is True
+
     def test_collects_answers_for_questions(self):
-        """Given research result with questions, collects answers."""
+        """Given research result with questions, collects answers then prompts."""
         research_result = {
             "research_path": "thoughts/shared/research/test.md",
             "open_questions": ["Q1?", "Q2?"]
         }
 
-        # Simulate: "Answer1", "Answer2", "" (empty to finish)
-        inputs = iter(["Answer1", "Answer2", ""])
+        # Simulate: "Answer1", "Answer2", "" (empty to finish), then "c" to continue
+        inputs = iter(["Answer1", "Answer2", "", "c"])
         with patch('builtins.input', lambda _: next(inputs)):
             result = interactive_checkpoint_research(research_result)
 
-        assert result["continue"] is True
+        assert result["action"] == "continue"
         assert result["answers"] == ["Answer1", "Answer2"]
 
-    def test_stops_on_no(self):
-        """Given research result, stops on 'n' input."""
+    def test_revise_collects_revision_context(self):
+        """Given 'r' input, collects revision context."""
         research_result = {
             "research_path": "thoughts/shared/research/test.md",
             "open_questions": []
         }
 
-        with patch('builtins.input', return_value='n'):
+        # Simulate: "r", "Add more detail about auth", ""
+        inputs = iter(["r", "Add more detail about auth", ""])
+        with patch('builtins.input', lambda _: next(inputs)):
             result = interactive_checkpoint_research(research_result)
 
+        assert result["action"] == "revise"
+        assert result["continue"] is False
+        assert "auth" in result["revision_context"]
+
+    def test_restart_returns_action(self):
+        """Given 's' input, returns action='restart'."""
+        research_result = {
+            "research_path": "thoughts/shared/research/test.md",
+            "open_questions": []
+        }
+
+        with patch('builtins.input', return_value='s'):
+            result = interactive_checkpoint_research(research_result)
+
+        assert result["action"] == "restart"
+        assert result["continue"] is False
+
+    def test_exit_returns_action(self):
+        """Given 'e' input, returns action='exit'."""
+        research_result = {
+            "research_path": "thoughts/shared/research/test.md",
+            "open_questions": []
+        }
+
+        with patch('builtins.input', return_value='e'):
+            result = interactive_checkpoint_research(research_result)
+
+        assert result["action"] == "exit"
         assert result["continue"] is False
 
     def test_preserves_research_path(self):
@@ -58,10 +102,24 @@ class TestResearchCheckpoint:
             "open_questions": []
         }
 
-        with patch('builtins.input', return_value='Y'):
+        with patch('builtins.input', return_value='c'):
             result = interactive_checkpoint_research(research_result)
 
         assert result["research_path"] == "thoughts/shared/research/my-research.md"
+
+    def test_invalid_input_reprompts(self):
+        """Given invalid input, reprompts until valid."""
+        research_result = {
+            "research_path": "thoughts/shared/research/test.md",
+            "open_questions": []
+        }
+
+        # Simulate: "x" (invalid), "z" (invalid), "c" (valid)
+        inputs = iter(["x", "z", "c"])
+        with patch('builtins.input', lambda _: next(inputs)):
+            result = interactive_checkpoint_research(research_result)
+
+        assert result["action"] == "continue"
 
 
 class TestPlanCheckpoint:

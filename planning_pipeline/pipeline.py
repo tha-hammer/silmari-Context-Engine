@@ -50,28 +50,55 @@ class PlanningPipeline:
             "steps": {}
         }
 
-        # Step 1: Research
-        print("\n" + "="*60)
-        print("STEP 1/5: RESEARCH PHASE")
-        print("="*60)
+        # Step 1: Research (may loop on revise/restart)
+        current_prompt = research_prompt
+        additional_context = ""
 
-        research = step_research(self.project_path, research_prompt)
-        results["steps"]["research"] = research
+        while True:
+            print("\n" + "="*60)
+            print("STEP 1/5: RESEARCH PHASE")
+            print("="*60)
 
-        if not research["success"]:
-            results["success"] = False
-            results["failed_at"] = "research"
-            return results
+            research = step_research(self.project_path, current_prompt)
+            results["steps"]["research"] = research
 
-        if auto_approve:
-            additional_context = ""
-        else:
+            if not research["success"]:
+                results["success"] = False
+                results["failed_at"] = "research"
+                return results
+
+            if auto_approve:
+                break
+
             checkpoint = interactive_checkpoint_research(research)
-            if not checkpoint["continue"]:
+            action = checkpoint.get("action", "continue")
+
+            if action == "continue":
+                additional_context = "\n".join(checkpoint.get("answers", []))
+                break
+            elif action == "revise":
+                # Add revision context to prompt and re-run
+                revision = checkpoint.get("revision_context", "")
+                if revision:
+                    current_prompt = f"{current_prompt}\n\nAdditional context:\n{revision}"
+                print("\nRe-running research with additional context...")
+            elif action == "restart":
+                # Collect new prompt
+                print("\nEnter new research prompt (empty line to finish):")
+                lines = []
+                while True:
+                    line = input()
+                    if not line:
+                        break
+                    lines.append(line)
+                new_prompt = "\n".join(lines)
+                if new_prompt.strip():
+                    current_prompt = new_prompt
+                print("\nRestarting research with new prompt...")
+            else:  # action == "exit"
                 results["success"] = False
                 results["stopped_at"] = "research"
                 return results
-            additional_context = "\n".join(checkpoint.get("answers", []))
 
         # Step 2: Planning (may loop on feedback)
         while True:
