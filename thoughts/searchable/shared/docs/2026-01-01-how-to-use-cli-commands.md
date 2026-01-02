@@ -1,13 +1,13 @@
 ---
 date: 2026-01-01T17:32:38-05:00
 researcher: Claude Opus 4.5
-git_commit: fdafce6d743bd11605e706f149baa478d9c595b8
+git_commit: d4f7112845602cf6da56aca1f3c4bea154f80442
 branch: main
 repository: silmari-Context-Engine
 topic: "How to Use Command Line Commands"
-tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator, loop-runner, autonomous-loop]
+tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator, loop-runner, autonomous-loop, requirement-decomposition]
 status: complete
-last_updated: 2026-01-01
+last_updated: 2026-01-02
 last_updated_by: Claude Opus 4.5
 ---
 
@@ -461,6 +461,87 @@ Use `LoopRunner` from `planning_pipeline/autonomous_loop.py` to run an async exe
 
 ---
 
+## How to Use Requirement Decomposition in the Planning Pipeline
+
+Use `step_requirement_decomposition()` from `planning_pipeline/step_decomposition.py` to decompose research documents into structured requirement hierarchies with Mermaid visualization and property-based test skeletons.
+
+**Pipeline Position:** `step_research()` → `step_requirement_decomposition()` → `step_planning()`
+
+**Steps:**
+
+1. **Run requirement decomposition on a research file:**
+   ```python
+   from pathlib import Path
+   from planning_pipeline.step_decomposition import step_requirement_decomposition
+
+   result = step_requirement_decomposition(
+       project_path=Path.cwd(),
+       research_path="thoughts/shared/research/2026-01-02-my-feature-research.md"
+   )
+   ```
+
+2. **Check the result and access output files:**
+   ```python
+   if result["success"]:
+       print(f"Hierarchy JSON: {result['hierarchy_path']}")
+       print(f"Mermaid diagram: {result['diagram_path']}")
+       print(f"Test skeleton: {result.get('tests_path', 'None')}")
+       print(f"Total requirements: {result['requirement_count']}")
+   else:
+       print(f"Error: {result['error']}")
+   ```
+
+3. **Specify a custom output directory:**
+   ```python
+   result = step_requirement_decomposition(
+       project_path=Path.cwd(),
+       research_path="thoughts/shared/research/my-research.md",
+       output_dir="/path/to/custom/output"
+   )
+   ```
+   By default, outputs are written to `{project}/thoughts/shared/plans/{date}-requirements/`.
+
+4. **View the generated Mermaid diagram:**
+   - Open the `.mmd` file in [Mermaid Live Editor](https://mermaid.live) to visualize the requirement hierarchy
+   - Or use VS Code with the Mermaid extension
+   - The diagram shows requirements as rectangles with parent-child relationships
+
+5. **Use the generated test skeleton:**
+   - Open `property_tests_skeleton.py` in the output directory
+   - The file contains Hypothesis-based test stubs derived from acceptance criteria
+   - Fill in the `TODO` sections with actual implementation tests
+
+**Output Files:**
+
+| File | Description |
+|------|-------------|
+| `requirements_hierarchy.json` | Full requirement hierarchy with metadata, acceptance criteria, and implementation components |
+| `requirements_diagram.mmd` | Mermaid flowchart showing requirement relationships |
+| `property_tests_skeleton.py` | Hypothesis test stubs (only created if acceptance criteria exist) |
+
+**Integration with Planning Orchestrator:**
+
+```python
+from planning_pipeline.steps import step_research
+from planning_pipeline.step_decomposition import step_requirement_decomposition
+
+# Step 1: Run research
+research_result = step_research(project_path, "Implement user authentication")
+
+# Step 2: Decompose into requirements
+if research_result["success"]:
+    decomp_result = step_requirement_decomposition(
+        project_path=project_path,
+        research_path=research_result["research_path"]
+    )
+
+    if decomp_result["success"]:
+        print(f"Created {decomp_result['requirement_count']} requirements")
+        # Continue to step_planning() with the hierarchy
+```
+
+---
+
 ## Conclusion
 
 For detailed API documentation and parameter references, consult the source files directly:
@@ -472,3 +553,7 @@ For detailed API documentation and parameter references, consult the source file
 - `planning_pipeline/beads_controller.py` - BeadsController class methods
 - `planning_pipeline/integrated_orchestrator.py` - IntegratedOrchestrator and PlanInfo classes
 - `planning_pipeline/autonomous_loop.py` - LoopRunner and LoopState for async orchestrator integration
+- `planning_pipeline/step_decomposition.py` - step_requirement_decomposition() for research decomposition
+- `planning_pipeline/decomposition.py` - decompose_requirements() BAML-based decomposition
+- `planning_pipeline/visualization.py` - generate_requirements_mermaid() diagram generation
+- `planning_pipeline/property_generator.py` - derive_properties() and generate_test_skeleton() for Hypothesis tests
