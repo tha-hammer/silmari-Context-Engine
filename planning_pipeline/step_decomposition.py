@@ -65,9 +65,30 @@ def step_requirement_decomposition(
     if not isinstance(project_path, Path):
         project_path = Path(project_path)
 
-    # Resolve research file path
-    research_file = project_path / research_path
-    if not research_file.exists():
+    # Resolve research file path - try multiple locations
+    # 1. If absolute path, use directly
+    # 2. Try as relative to project
+    # 3. Try searchable variant (thoughts/searchable/shared vs thoughts/shared)
+    research_file = None
+
+    if Path(research_path).is_absolute():
+        research_file = Path(research_path)
+    else:
+        # Try direct path first
+        candidate = project_path / research_path
+        if candidate.exists():
+            research_file = candidate
+        else:
+            # Try searchable variant: thoughts/shared/X -> thoughts/searchable/shared/X
+            if research_path.startswith("thoughts/shared/"):
+                searchable_path = research_path.replace(
+                    "thoughts/shared/", "thoughts/searchable/shared/", 1
+                )
+                candidate = project_path / searchable_path
+                if candidate.exists():
+                    research_file = candidate
+
+    if research_file is None or not research_file.exists():
         return {
             "success": False,
             "error": f"Research file not found: {research_path}",
