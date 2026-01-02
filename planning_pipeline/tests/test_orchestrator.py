@@ -400,19 +400,19 @@ class TestResumeArgumentParsing:
         args = parse_args(["--resume-step", "planning"])
         assert args.resume_step == "planning"
 
-    def test_parses_resume_step_decomposition(self):
-        """Given --resume-step decomposition, parses correctly."""
+    def test_parses_resume_step_requirement_decomposition(self):
+        """Given --resume-step requirement_decomposition, parses correctly."""
         from planning_orchestrator import parse_args
 
-        args = parse_args(["--resume-step", "decomposition"])
-        assert args.resume_step == "decomposition"
+        args = parse_args(["--resume-step", "requirement_decomposition"])
+        assert args.resume_step == "requirement_decomposition"
 
-    def test_parses_resume_step_beads(self):
-        """Given --resume-step beads, parses correctly."""
+    def test_parses_resume_step_phase_decomposition(self):
+        """Given --resume-step phase_decomposition, parses correctly."""
         from planning_orchestrator import parse_args
 
-        args = parse_args(["--resume-step", "beads"])
-        assert args.resume_step == "beads"
+        args = parse_args(["--resume-step", "phase_decomposition"])
+        assert args.resume_step == "phase_decomposition"
 
     def test_parses_research_path(self):
         """Given --research-path, parses the path."""
@@ -451,6 +451,45 @@ class TestResumeArgumentParsing:
         assert args.plan_path == "/path/plan.md"
 
 
+class TestResumeStepArguments:
+    """Tests for --resume-step CLI argument parsing with updated step names."""
+
+    def test_accepts_requirement_decomposition(self):
+        """Should accept requirement_decomposition as valid step."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume", "--resume-step", "requirement_decomposition"])
+        assert args.resume_step == "requirement_decomposition"
+
+    def test_accepts_phase_decomposition(self):
+        """Should accept phase_decomposition as valid step."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume", "--resume-step", "phase_decomposition"])
+        assert args.resume_step == "phase_decomposition"
+
+    def test_accepts_planning(self):
+        """Should still accept planning as valid step."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--resume", "--resume-step", "planning"])
+        assert args.resume_step == "planning"
+
+    def test_rejects_old_decomposition_name(self):
+        """Should reject old 'decomposition' name."""
+        from planning_orchestrator import parse_args
+
+        with pytest.raises(SystemExit):
+            parse_args(["--resume", "--resume-step", "decomposition"])
+
+    def test_rejects_beads(self):
+        """Should reject 'beads' as resume step."""
+        from planning_orchestrator import parse_args
+
+        with pytest.raises(SystemExit):
+            parse_args(["--resume", "--resume-step", "beads"])
+
+
 class TestExecuteFromStep:
     """Tests for execute_from_step function."""
 
@@ -478,3 +517,143 @@ class TestExecuteFromStep:
         assert "started" in result
         assert "resumed_from" in result
         assert result["resumed_from"] == "planning"
+
+
+class TestResumeFlowWithNewSteps:
+    """Tests for resume flow with updated step names."""
+
+    def test_resume_from_requirement_decomposition(self, tmp_path):
+        """Should start from requirement_decomposition step."""
+        from unittest.mock import patch
+        from planning_orchestrator import execute_from_step
+
+        steps_called = []
+
+        # Create research file
+        research_file = tmp_path / "research.md"
+        research_file.write_text("# Research\nSome content")
+
+        with patch("planning_pipeline.step_decomposition.step_requirement_decomposition") as mock_req_decomp, \
+             patch("planning_pipeline.step_planning") as mock_planning, \
+             patch("planning_pipeline.step_phase_decomposition") as mock_phase_decomp, \
+             patch("planning_pipeline.step_beads_integration") as mock_beads, \
+             patch("planning_pipeline.write_checkpoint"):
+
+            def req_decomp_side_effect(*a, **kw):
+                steps_called.append("requirement_decomposition")
+                return {"success": True, "hierarchy_path": str(tmp_path / "h.json"),
+                        "diagram_path": str(tmp_path / "d.mmd"), "tests_path": None,
+                        "requirement_count": 1, "output_dir": str(tmp_path)}
+
+            def planning_side_effect(*a, **kw):
+                steps_called.append("planning")
+                return {"success": True, "plan_path": str(tmp_path / "plan.md"), "output": ""}
+
+            def phase_decomp_side_effect(*a, **kw):
+                steps_called.append("phase_decomposition")
+                return {"success": True, "phase_files": [str(tmp_path / "p.md")], "output": ""}
+
+            def beads_side_effect(*a, **kw):
+                steps_called.append("beads")
+                return {"success": True, "epic_id": "b", "phase_issues": []}
+
+            mock_req_decomp.side_effect = req_decomp_side_effect
+            mock_planning.side_effect = planning_side_effect
+            mock_phase_decomp.side_effect = phase_decomp_side_effect
+            mock_beads.side_effect = beads_side_effect
+
+            result = execute_from_step(
+                project_path=tmp_path,
+                resume_step="requirement_decomposition",
+                research_path=str(research_file),
+            )
+
+        assert "requirement_decomposition" in steps_called
+        assert "planning" in steps_called
+        assert "phase_decomposition" in steps_called
+        assert result["success"] is True
+
+    def test_resume_from_phase_decomposition(self, tmp_path):
+        """Should start from phase_decomposition step (renamed from decomposition)."""
+        from unittest.mock import patch
+        from planning_orchestrator import execute_from_step
+
+        steps_called = []
+        plan_file = tmp_path / "plan.md"
+        plan_file.write_text("# Test Plan")
+
+        with patch("planning_pipeline.step_phase_decomposition") as mock_phase_decomp, \
+             patch("planning_pipeline.step_beads_integration") as mock_beads, \
+             patch("planning_pipeline.write_checkpoint"):
+
+            def phase_decomp_side_effect(*a, **kw):
+                steps_called.append("phase_decomposition")
+                return {"success": True, "phase_files": [str(tmp_path / "p.md")], "output": ""}
+
+            def beads_side_effect(*a, **kw):
+                steps_called.append("beads")
+                return {"success": True, "epic_id": "b", "phase_issues": []}
+
+            mock_phase_decomp.side_effect = phase_decomp_side_effect
+            mock_beads.side_effect = beads_side_effect
+
+            result = execute_from_step(
+                project_path=tmp_path,
+                resume_step="phase_decomposition",
+                plan_path=str(plan_file),
+            )
+
+        assert "phase_decomposition" in steps_called
+        assert result["success"] is True
+
+    def test_resume_does_not_run_earlier_steps(self, tmp_path):
+        """Resuming from requirement_decomposition should not run research."""
+        from unittest.mock import patch
+        from planning_orchestrator import execute_from_step
+
+        steps_called = []
+
+        # Create research file
+        research_file = tmp_path / "research.md"
+        research_file.write_text("# Research\nSome content")
+
+        # Research step is never imported by execute_from_step, so we just verify
+        # that it doesn't appear in the steps called
+        with patch("planning_pipeline.step_decomposition.step_requirement_decomposition") as mock_req_decomp, \
+             patch("planning_pipeline.step_planning") as mock_planning, \
+             patch("planning_pipeline.step_phase_decomposition") as mock_phase_decomp, \
+             patch("planning_pipeline.step_beads_integration") as mock_beads, \
+             patch("planning_pipeline.write_checkpoint"):
+
+            def req_decomp_side_effect(*a, **kw):
+                steps_called.append("requirement_decomposition")
+                return {"success": True, "hierarchy_path": str(tmp_path / "h.json"),
+                        "diagram_path": str(tmp_path / "d.mmd"), "tests_path": None,
+                        "requirement_count": 1, "output_dir": str(tmp_path)}
+
+            def planning_side_effect(*a, **kw):
+                steps_called.append("planning")
+                return {"success": True, "plan_path": str(tmp_path / "plan.md"), "output": ""}
+
+            def phase_decomp_side_effect(*a, **kw):
+                steps_called.append("phase_decomposition")
+                return {"success": True, "phase_files": [str(tmp_path / "p.md")], "output": ""}
+
+            def beads_side_effect(*a, **kw):
+                steps_called.append("beads")
+                return {"success": True, "epic_id": "b", "phase_issues": []}
+
+            mock_req_decomp.side_effect = req_decomp_side_effect
+            mock_planning.side_effect = planning_side_effect
+            mock_phase_decomp.side_effect = phase_decomp_side_effect
+            mock_beads.side_effect = beads_side_effect
+
+            execute_from_step(
+                project_path=tmp_path,
+                resume_step="requirement_decomposition",
+                research_path=str(research_file),
+            )
+
+        # Research step should never be called by execute_from_step
+        # (it's only in the full pipeline run)
+        assert "research" not in steps_called

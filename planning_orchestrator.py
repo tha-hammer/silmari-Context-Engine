@@ -64,9 +64,9 @@ Examples:
     parser.add_argument(
         "--resume-step", "--resume_step",
         dest="resume_step",
-        choices=["planning", "decomposition", "beads"],
+        choices=["planning", "requirement_decomposition", "phase_decomposition"],
         metavar="STEP",
-        help="Step to resume from: planning, decomposition, or beads (not a file path! use --research-path for files)"
+        help="Step to resume from: planning, requirement_decomposition, or phase_decomposition"
     )
     parser.add_argument(
         "--research-path", "--research_path",
@@ -332,12 +332,15 @@ def handle_resume_flow(args, project_path: Path) -> int:
             # Determine resume step from checkpoint phase
             if not args.resume_step:
                 phase = checkpoint.get("phase", "").lower()
-                if "planning" in phase:
+                if "requirement" in phase and "decomposition" in phase:
+                    args.resume_step = "requirement_decomposition"
+                elif "planning" in phase:
                     args.resume_step = "planning"
+                elif "phase" in phase and "decomposition" in phase:
+                    args.resume_step = "phase_decomposition"
                 elif "decomposition" in phase:
-                    args.resume_step = "decomposition"
-                elif "beads" in phase:
-                    args.resume_step = "beads"
+                    # Legacy checkpoint - default to phase_decomposition
+                    args.resume_step = "phase_decomposition"
 
     # Determine what step we're resuming from
     resume_step = args.resume_step
@@ -345,21 +348,21 @@ def handle_resume_flow(args, project_path: Path) -> int:
     # If no step specified, determine from available paths
     if not resume_step:
         if args.plan_path:
-            resume_step = "decomposition"
+            resume_step = "phase_decomposition"
         elif args.research_path:
             resume_step = "planning"
         else:
             # Need to select a research file
             resume_step = "planning"
 
-    # Get research path if needed for planning step
-    if resume_step == "planning" and not args.research_path:
+    # Get research path if needed for planning or requirement_decomposition steps
+    if resume_step in ("planning", "requirement_decomposition") and not args.research_path:
         args.research_path = interactive_file_selection(project_path, "research")
         if not args.research_path:
             return 1
 
-    # Get plan path if needed for decomposition/beads steps
-    if resume_step in ("decomposition", "beads") and not args.plan_path:
+    # Get plan path if needed for phase_decomposition step
+    if resume_step == "phase_decomposition" and not args.plan_path:
         args.plan_path = interactive_file_selection(project_path, "plans")
         if not args.plan_path:
             return 1
@@ -432,7 +435,7 @@ def execute_from_step(
 
     Args:
         project_path: Root project path
-        resume_step: Step to start from
+        resume_step: Step to start from (planning, requirement_decomposition, phase_decomposition)
         research_path: Path to research document
         plan_path: Path to plan document
         ticket_id: Optional ticket ID
@@ -448,6 +451,7 @@ def execute_from_step(
         step_beads_integration,
         write_checkpoint,
     )
+    from planning_pipeline.step_decomposition import step_requirement_decomposition
 
     results = {
         "started": datetime.now().isoformat(),
@@ -456,10 +460,33 @@ def execute_from_step(
     }
 
     try:
-        if resume_step == "planning":
-            # Step 2: Planning
+        # Step: Requirement Decomposition
+        if resume_step == "requirement_decomposition":
             print(f"\n{'='*60}")
-            print("STEP 2/5: PLANNING PHASE")
+            print("STEP 2/6: REQUIREMENT DECOMPOSITION")
+            print("="*60)
+
+            req_decomp = step_requirement_decomposition(project_path, research_path)
+            results["steps"]["requirement_decomposition"] = req_decomp
+
+            if not req_decomp["success"]:
+                if not auto_approve:
+                    print(f"\nDecomposition failed: {req_decomp.get('error')}")
+                    print("\nOptions:")
+                    print("  (R)etry - Try decomposition again")
+                    print("  (C)ontinue - Skip decomposition and proceed to planning")
+                    choice = input("\nChoice [R/c]: ").strip().lower()
+                    if choice == 'r' or choice == '':
+                        # Recursive retry
+                        return execute_from_step(project_path, resume_step, research_path, plan_path, ticket_id, auto_approve)
+                print("Skipping decomposition, continuing to planning...")
+            else:
+                print(f"\nDecomposed into {req_decomp['requirement_count']} requirements")
+
+        # Step: Planning (runs for requirement_decomposition and planning resume points)
+        if resume_step in ("requirement_decomposition", "planning"):
+            print(f"\n{'='*60}")
+            print("STEP 3/6: PLANNING PHASE")
             print("="*60)
 
             planning = step_planning(project_path, research_path, "")
@@ -477,48 +504,48 @@ def execute_from_step(
                 results["error"] = "No plan_path extracted"
                 return results
 
-        if resume_step in ("planning", "decomposition"):
-            # Step 3: Decomposition
+        # Step: Phase Decomposition
+        if resume_step in ("requirement_decomposition", "planning", "phase_decomposition"):
             print(f"\n{'='*60}")
-            print("STEP 3/5: PHASE DECOMPOSITION")
+            print("STEP 4/6: PHASE DECOMPOSITION")
             print("="*60)
 
             decomposition = step_phase_decomposition(project_path, plan_path)
-            results["steps"]["decomposition"] = decomposition
+            results["steps"]["phase_decomposition"] = decomposition
 
             if not decomposition["success"]:
                 artifacts = [research_path] if research_path else []
                 if plan_path:
                     artifacts.append(plan_path)
-                write_checkpoint(project_path, "decomposition-failed", artifacts)
+                write_checkpoint(project_path, "phase_decomposition-failed", artifacts)
                 results["success"] = False
-                results["failed_at"] = "decomposition"
+                results["failed_at"] = "phase_decomposition"
                 return results
 
             phase_files = decomposition.get("phase_files", [])
             print(f"\nCreated {len(phase_files)} phase files")
 
-        if resume_step in ("planning", "decomposition", "beads"):
-            # Step 4: Beads
-            print(f"\n{'='*60}")
-            print("STEP 4/5: BEADS INTEGRATION")
-            print("="*60)
+        # Step: Beads Integration (always runs for all resume points)
+        print(f"\n{'='*60}")
+        print("STEP 5/6: BEADS INTEGRATION")
+        print("="*60)
 
-            # Get phase_files from decomposition or discover them
-            if "decomposition" not in results["steps"]:
-                # Need to discover phase files from plan directory
-                plan_dir = Path(plan_path).parent
-                phase_files = sorted(plan_dir.glob("*-phase-*.md"))
-                phase_files = [str(f) for f in phase_files]
-            else:
-                phase_files = results["steps"]["decomposition"].get("phase_files", [])
+        # Get phase_files from decomposition or discover them
+        if "phase_decomposition" not in results["steps"]:
+            # Need to discover phase files from plan directory
+            plan_dir = Path(plan_path).parent
+            phase_files = sorted(plan_dir.glob("*-phase-*.md"))
+            phase_files = [str(f) for f in phase_files]
+        else:
+            phase_files = results["steps"]["phase_decomposition"].get("phase_files", [])
 
-            epic_title = f"Plan: {ticket_id}" if ticket_id else f"Plan: {datetime.now().strftime('%Y-%m-%d')}"
-            beads = step_beads_integration(project_path, phase_files, epic_title)
-            results["steps"]["beads"] = beads
+        epic_title = f"Plan: {ticket_id}" if ticket_id else f"Plan: {datetime.now().strftime('%Y-%m-%d')}"
+        beads = step_beads_integration(project_path, phase_files, epic_title)
+        results["steps"]["beads"] = beads
 
-            if beads["success"]:
-                print(f"\nCreated epic: {beads.get('epic_id')}")
+        if beads["success"]:
+            print(f"\nCreated epic: {beads.get('epic_id')}")
+            results["epic_id"] = beads.get("epic_id")
 
         results["success"] = True
         results["completed"] = datetime.now().isoformat()

@@ -7,17 +7,19 @@ from typing import Any, Optional
 from .beads_controller import BeadsController
 from .steps import step_research, step_planning, step_phase_decomposition, step_beads_integration, step_memory_sync
 from .checkpoints import interactive_checkpoint_research, interactive_checkpoint_plan
+from .step_decomposition import step_requirement_decomposition
 
 
 class PlanningPipeline:
     """Interactive planning pipeline with deterministic control.
 
-    Orchestrates 5 steps:
+    Orchestrates 6 steps:
     1. Research - Analyze codebase and create research document
-    2. Planning - Create implementation plan from research
-    3. Phase Decomposition - Split plan into phase files
-    4. Beads Integration - Create issues and dependencies
-    5. Memory Capture - Record session metadata
+    2. Memory Sync - Record research and clear context
+    3. Requirement Decomposition - Generate structured requirements hierarchy
+    4. Planning - Create implementation plan from research
+    5. Phase Decomposition - Split plan into phase files
+    6. Beads Integration - Create issues and dependencies
     """
 
     def __init__(self, project_path: Path):
@@ -56,7 +58,7 @@ class PlanningPipeline:
 
         while True:
             print("\n" + "="*60)
-            print("STEP 1/5: RESEARCH PHASE")
+            print("STEP 1/6: RESEARCH PHASE")
             print("="*60)
 
             research = step_research(self.project_path, current_prompt)
@@ -127,10 +129,48 @@ class PlanningPipeline:
         if memory_result.get("context_cleared"):
             print("  ✓ Claude context cleared")
 
-        # Step 2: Planning (may loop on feedback)
+        # Step 2: Requirement Decomposition (with retry loop)
         while True:
             print("\n" + "="*60)
-            print("STEP 2/5: PLANNING PHASE")
+            print("STEP 2/6: REQUIREMENT DECOMPOSITION")
+            print("="*60)
+
+            req_decomp = step_requirement_decomposition(
+                self.project_path,
+                research["research_path"]
+            )
+            results["steps"]["requirement_decomposition"] = req_decomp
+
+            if req_decomp["success"]:
+                print(f"\nDecomposed into {req_decomp['requirement_count']} requirements")
+                print(f"Hierarchy: {req_decomp['hierarchy_path']}")
+                print(f"Diagram: {req_decomp['diagram_path']}")
+                break
+
+            # Decomposition failed
+            print(f"\nDecomposition failed: {req_decomp.get('error', 'Unknown error')}")
+
+            if auto_approve:
+                print("Auto-approve mode: skipping to planning")
+                break
+
+            # Interactive prompt
+            print("\nOptions:")
+            print("  (R)etry - Try decomposition again")
+            print("  (C)ontinue - Skip decomposition and proceed to planning")
+
+            choice = input("\nChoice [R/c]: ").strip().lower()
+            if choice == 'r' or choice == '':
+                print("\nRetrying decomposition...")
+                continue
+            else:
+                print("\nSkipping decomposition, continuing to planning...")
+                break
+
+        # Step 3: Planning (may loop on feedback)
+        while True:
+            print("\n" + "="*60)
+            print("STEP 3/6: PLANNING PHASE")
             print("="*60)
 
             planning = step_planning(
@@ -161,9 +201,9 @@ class PlanningPipeline:
                 additional_context = plan_checkpoint["feedback"]
                 print("\nRe-running planning with feedback...")
 
-        # Step 3: Phase Decomposition
+        # Step 4: Phase Decomposition
         print("\n" + "="*60)
-        print("STEP 3/5: PHASE DECOMPOSITION")
+        print("STEP 4/6: PHASE DECOMPOSITION")
         print("="*60)
 
         if not planning.get("plan_path"):
@@ -197,9 +237,9 @@ class PlanningPipeline:
 
         print(f"\nCreated {len(decomposition['phase_files'])} phase files")
 
-        # Step 4: Beads Integration
+        # Step 5: Beads Integration
         print("\n" + "="*60)
-        print("STEP 4/5: BEADS INTEGRATION")
+        print("STEP 5/6: BEADS INTEGRATION")
         print("="*60)
 
         epic_title = f"Plan: {ticket_id}" if ticket_id else f"Plan: {datetime.now().strftime('%Y-%m-%d')}"
@@ -214,9 +254,9 @@ class PlanningPipeline:
             print(f"\nCreated epic: {beads.get('epic_id')}")
             print(f"Created {len(beads.get('phase_issues', []))} phase issues")
 
-        # Step 5: Memory Capture (placeholder)
+        # Step 6: Memory Capture (placeholder)
         print("\n" + "="*60)
-        print("STEP 5/5: MEMORY CAPTURE")
+        print("STEP 6/6: MEMORY CAPTURE")
         print("="*60)
         print("Memory capture: using existing hooks")
         results["steps"]["memory"] = {"success": True}
