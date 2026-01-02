@@ -1,7 +1,7 @@
 ---
 date: 2026-01-01T17:32:38-05:00
 researcher: Claude Opus 4.5
-git_commit: d4f7112845602cf6da56aca1f3c4bea154f80442
+git_commit: 170cbfdb7565a893100ca5817913d9b4937cd23e
 branch: main
 repository: silmari-Context-Engine
 topic: "How to Use Command Line Commands"
@@ -58,7 +58,7 @@ Use `orchestrator.py` to initialize and run an AI-powered development session on
 
 ## How to Run the Planning Pipeline
 
-Use `planning_orchestrator.py` to execute a 5-step planning workflow: Research, Planning, Phase Decomposition, Beads Integration, and Memory Capture.
+Use `planning_orchestrator.py` to execute a 6-step planning workflow: Research, Requirement Decomposition, Planning, Phase Decomposition, Beads Integration, and Memory Capture.
 
 **Steps:**
 
@@ -85,14 +85,53 @@ Use `planning_orchestrator.py` to execute a 5-step planning workflow: Research, 
 
 5. **Resume from a previous step:**
    ```bash
+   # Resume from planning (step 3)
    python planning_orchestrator.py --resume --resume-step planning
+
+   # Resume from requirement decomposition (step 2)
+   python planning_orchestrator.py --resume --resume-step requirement_decomposition
+
+   # Resume from phase decomposition (step 4)
+   python planning_orchestrator.py --resume --resume-step phase_decomposition
    ```
+
+   Available resume steps: `planning`, `requirement_decomposition`, `phase_decomposition`
 
 6. **Use existing research or plan files:**
    ```bash
-   python planning_orchestrator.py --research-path thoughts/research/my-research.md
-   python planning_orchestrator.py --plan-path thoughts/plans/my-plan.md
+   # Provide research file when resuming from requirement_decomposition or planning
+   python planning_orchestrator.py --resume --research-path thoughts/research/my-research.md
+
+   # Provide plan file when resuming from phase_decomposition
+   python planning_orchestrator.py --resume --plan-path thoughts/plans/my-plan.md
    ```
+
+7. **Combine resume options:**
+   ```bash
+   python planning_orchestrator.py --resume \
+     --resume-step requirement_decomposition \
+     --research-path thoughts/shared/research/2026-01-02-feature-research.md \
+     --auto-approve
+   ```
+
+**Pipeline Steps:**
+
+| Step | Name | Description |
+|------|------|-------------|
+| 1/6 | Research | Claude researches the topic and generates a research document |
+| 2/6 | Requirement Decomposition | BAML-based decomposition into structured requirements with Mermaid visualization |
+| 3/6 | Planning | Claude creates a detailed implementation plan |
+| 4/6 | Phase Decomposition | Plan is split into phase files |
+| 5/6 | Beads Integration | Epic and phase issues are created in beads |
+| 6/6 | Memory Capture | Session data is recorded to memory systems |
+
+**Handling Decomposition Failures:**
+
+When requirement decomposition fails (e.g., BAML API issues), the pipeline prompts:
+- **(R)etry** - Attempt decomposition again
+- **(C)ontinue** - Skip decomposition and proceed to planning
+
+In `--auto-approve` mode, failures are logged and the pipeline continues automatically.
 
 ---
 
@@ -273,8 +312,17 @@ python loop-runner.py ~/myproject --max-sessions 50
 ### Resume Work After Interruption
 
 ```bash
-# Resume planning from a specific step
-python planning_orchestrator.py --project ~/myproject --resume --resume-step beads
+# Resume from requirement decomposition (includes planning + subsequent steps)
+python planning_orchestrator.py --project ~/myproject --resume --resume-step requirement_decomposition
+
+# Resume from planning step only
+python planning_orchestrator.py --project ~/myproject --resume --resume-step planning
+
+# Resume from phase decomposition (when plan already exists)
+python planning_orchestrator.py --project ~/myproject --resume --resume-step phase_decomposition
+
+# Auto-detect resume point from checkpoints
+python planning_orchestrator.py --project ~/myproject --resume
 
 # Or continue the orchestrator
 python orchestrator.py --project ~/myproject --continue
