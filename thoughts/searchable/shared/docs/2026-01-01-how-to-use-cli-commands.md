@@ -1,11 +1,11 @@
 ---
 date: 2026-01-01T17:32:38-05:00
 researcher: Claude Opus 4.5
-git_commit: 13313f8c47ffdb3e249df96edc42458a06b79a18
+git_commit: fdafce6d743bd11605e706f149baa478d9c595b8
 branch: main
 repository: silmari-Context-Engine
 topic: "How to Use Command Line Commands"
-tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator]
+tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator, loop-runner, autonomous-loop]
 status: complete
 last_updated: 2026-01-01
 last_updated_by: Claude Opus 4.5
@@ -55,82 +55,6 @@ Use `orchestrator.py` to initialize and run an AI-powered development session on
    python orchestrator.py --project ~/path/to/project --with-qa
    ```
 
----
-
-## How to Use the Integrated Orchestrator
-
-Use `IntegratedOrchestrator` from `planning_pipeline/integrated_orchestrator.py` to manage project state through beads and coordinate LLM-powered planning workflows programmatically.
-
-**Steps:**
-
-1. **Initialize the orchestrator:**
-   ```python
-   from pathlib import Path
-   from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
-
-   orchestrator = IntegratedOrchestrator(Path("~/myproject"))
-   ```
-
-2. **Detect project information:**
-   ```python
-   info = orchestrator.get_project_info()
-   print(f"Project: {info['name']}")
-   print(f"Stack: {info['stack']}")
-   print(f"Description: {info['description']}")
-   ```
-   This uses Claude to analyze overview files or README and extract project metadata.
-
-3. **Get feature status from beads:**
-   ```python
-   status = orchestrator.get_feature_status()
-   print(f"Total: {status['total']}")
-   print(f"Completed: {status['completed']}")
-   print(f"Remaining: {status['remaining']}")
-   print(f"Blocked: {status['blocked']}")
-   ```
-
-4. **Get the next ready feature:**
-   ```python
-   feature = orchestrator.get_next_feature()
-   if feature:
-       print(f"Next: {feature['title']} ({feature['id']})")
-   else:
-       print("No features ready")
-   ```
-   Returns the next issue with no blockers and all dependencies met.
-
-5. **Create phase issues from plan files:**
-   ```python
-   phase_files = [
-       "thoughts/plans/01-setup.md",
-       "thoughts/plans/02-implementation.md",
-       "thoughts/plans/03-testing.md"
-   ]
-   result = orchestrator.create_phase_issues(phase_files, "Feature Implementation")
-   print(f"Epic ID: {result['epic_id']}")
-   for phase in result['phase_issues']:
-       print(f"  Phase {phase['phase']}: {phase['issue_id']}")
-   ```
-   Creates an epic and linked phase tasks with sequential dependencies.
-
-6. **Sync features with git remote:**
-   ```python
-   exit_code = orchestrator.sync_features_with_git()
-   if exit_code == 0:
-       print("Synced successfully")
-   ```
-
-7. **Log session activity:**
-   ```python
-   orchestrator.log_session(
-       session_id="abc123",
-       action="get_next_feature",
-       result={"feature_id": "beads-001", "title": "Setup auth"}
-   )
-   ```
-   Logs are written to `.agent/sessions/<session_id>.json`.
-
----
 
 ## How to Run the Planning Pipeline
 
@@ -358,6 +282,185 @@ python orchestrator.py --project ~/myproject --continue
 
 ---
 
+---
+
+## How to Use the Integrated Orchestrator
+
+Use `IntegratedOrchestrator` from `planning_pipeline/integrated_orchestrator.py` to manage project state through beads and coordinate LLM-powered planning workflows programmatically.
+
+**Steps:**
+
+1. **Initialize the orchestrator:**
+   ```python
+   from pathlib import Path
+   from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
+
+   orchestrator = IntegratedOrchestrator(Path("~/myproject"))
+   ```
+
+2. **Detect project information:**
+   ```python
+   info = orchestrator.get_project_info()
+   print(f"Project: {info['name']}")
+   print(f"Stack: {info['stack']}")
+   print(f"Description: {info['description']}")
+   ```
+   This uses Claude to analyze overview files or README and extract project metadata.
+
+3. **Get feature status from beads:**
+   ```python
+   status = orchestrator.get_feature_status()
+   print(f"Total: {status['total']}")
+   print(f"Completed: {status['completed']}")
+   print(f"Remaining: {status['remaining']}")
+   print(f"Blocked: {status['blocked']}")
+   ```
+
+4. **Get the next ready feature:**
+   ```python
+   feature = orchestrator.get_next_feature()
+   if feature:
+       print(f"Next: {feature['title']} ({feature['id']})")
+   else:
+       print("No features ready")
+   ```
+   Returns the next issue with no blockers and all dependencies met.
+
+5. **Create phase issues from plan files:**
+   ```python
+   phase_files = [
+       "thoughts/plans/01-setup.md",
+       "thoughts/plans/02-implementation.md",
+       "thoughts/plans/03-testing.md"
+   ]
+   result = orchestrator.create_phase_issues(phase_files, "Feature Implementation")
+   print(f"Epic ID: {result['epic_id']}")
+   for phase in result['phase_issues']:
+       print(f"  Phase {phase['phase']}: {phase['issue_id']}")
+   ```
+   Creates an epic and linked phase tasks with sequential dependencies.
+
+6. **Sync features with git remote:**
+   ```python
+   exit_code = orchestrator.sync_features_with_git()
+   if exit_code == 0:
+       print("Synced successfully")
+   ```
+
+7. **Log session activity:**
+   ```python
+   orchestrator.log_session(
+       session_id="abc123",
+       action="get_next_feature",
+       result={"feature_id": "beads-001", "title": "Setup auth"}
+   )
+   ```
+   Logs are written to `.agent/sessions/<session_id>.json`.
+
+8. **Discover available plans:**
+   ```python
+   plans = orchestrator.discover_plans()
+   for plan in plans:
+       print(f"{plan.name} (priority {plan.priority}): {plan.path}")
+   ```
+   Searches `thoughts/**/plans/*-overview.md` and returns plans sorted by priority.
+
+9. **Get currently in-progress feature:**
+   ```python
+   current = orchestrator.get_current_feature()
+   if current:
+       print(f"In progress: {current['title']} ({current['id']})")
+   ```
+   Returns the first issue with status `in_progress`, useful for resuming interrupted work.
+
+---
+
+## How to Use the Async LoopRunner with Orchestrator Integration
+
+Use `LoopRunner` from `planning_pipeline/autonomous_loop.py` to run an async execution loop that integrates with `IntegratedOrchestrator` for automatic plan discovery, phase progression, and status tracking.
+
+**Steps:**
+
+1. **Initialize with orchestrator (automatic mode):**
+   ```python
+   import asyncio
+   from pathlib import Path
+   from planning_pipeline.autonomous_loop import LoopRunner, LoopState
+   from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
+
+   orchestrator = IntegratedOrchestrator(Path("~/myproject"))
+   runner = LoopRunner(orchestrator=orchestrator)
+   ```
+   The orchestrator provides plan discovery and feature tracking.
+
+2. **Initialize with explicit plan path (manual mode):**
+   ```python
+   runner = LoopRunner(plan_path="/path/to/my-plan.md")
+   ```
+   Use this mode for backward compatibility when no orchestrator is available.
+
+3. **Run the execution loop:**
+   ```python
+   async def main():
+       await runner.run()
+       print(f"Final state: {runner.state}")  # COMPLETED or FAILED
+
+   asyncio.run(main())
+   ```
+   With an orchestrator, the loop:
+   - Discovers plans from `thoughts/**/plans/*-overview.md`
+   - Queries `get_next_feature()` for each phase
+   - Skips BLOCKED features automatically
+   - Updates issue status to `in_progress`, `completed`, or `failed`
+
+4. **Check the runner state:**
+   ```python
+   if runner.state == LoopState.COMPLETED:
+       print("All features done!")
+   elif runner.state == LoopState.FAILED:
+       print(f"Failed at phase: {runner.current_phase}")
+   elif runner.state == LoopState.PAUSED:
+       print("Execution paused")
+   ```
+   Available states: `IDLE`, `RUNNING`, `PAUSED`, `COMPLETED`, `FAILED`
+
+5. **Pause and resume execution:**
+   ```python
+   async def run_with_pause():
+       # Start running
+       task = asyncio.create_task(runner.run())
+
+       # Pause after some condition
+       await runner.pause()
+       print(f"Paused at: {runner.current_phase}")
+
+       # Later, resume
+       await runner.resume()
+       print(f"Final state: {runner.state}")
+   ```
+   When resuming with an orchestrator, the runner queries `get_current_feature()` to restore state from any `in_progress` issue.
+
+6. **Use both orchestrator and explicit plan path:**
+   ```python
+   runner = LoopRunner(
+       orchestrator=orchestrator,
+       plan_path="/explicit/override-plan.md"
+   )
+   await runner.run()
+   ```
+   When an explicit `plan_path` is provided, it takes precedence over orchestrator discovery.
+
+7. **Set initial phase:**
+   ```python
+   runner = LoopRunner(
+       plan_path="/path/to/plan.md",
+       current_phase="phase-3"
+   )
+   ```
+   Use this to start execution at a specific phase.
+
+---
+
 ## Conclusion
 
 For detailed API documentation and parameter references, consult the source files directly:
@@ -367,4 +470,5 @@ For detailed API documentation and parameter references, consult the source file
 - `loop-runner.py` - Feature loop with argparse help
 - `mcp-setup.py` - MCP configuration with argparse help
 - `planning_pipeline/beads_controller.py` - BeadsController class methods
-- `planning_pipeline/integrated_orchestrator.py` - IntegratedOrchestrator class methods
+- `planning_pipeline/integrated_orchestrator.py` - IntegratedOrchestrator and PlanInfo classes
+- `planning_pipeline/autonomous_loop.py` - LoopRunner and LoopState for async orchestrator integration
