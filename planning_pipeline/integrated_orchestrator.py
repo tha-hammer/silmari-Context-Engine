@@ -225,3 +225,66 @@ Return ONLY valid JSON: {{"name": "...", "stack": "...", "description": "..."}}"
 
         existing.append(log_entry)
         session_file.write_text(json.dumps(existing, indent=2, default=str))
+
+    def discover_plans(self) -> list["PlanInfo"]:
+        """Discover available plans from the thoughts directory.
+
+        Returns:
+            List of PlanInfo objects sorted by priority (1=highest).
+        """
+        search_patterns = [
+            "thoughts/**/plans/*-00-overview.md",
+            "thoughts/**/plans/*-overview.md",
+        ]
+
+        plans = []
+        for pattern in search_patterns:
+            for file_path in self.project_path.glob(pattern):
+                # Extract priority from filename (e.g., 01-feature-x -> priority 1)
+                name = file_path.stem
+                parts = name.split("-")
+                try:
+                    priority = int(parts[0]) if parts[0].isdigit() else 50
+                except (ValueError, IndexError):
+                    priority = 50
+
+                plans.append(PlanInfo(
+                    path=str(file_path),
+                    name=name,
+                    priority=priority
+                ))
+
+        # Sort by priority (lower = higher priority)
+        plans.sort(key=lambda p: p.priority)
+        return plans
+
+    def get_current_feature(self) -> dict[str, Any] | None:
+        """Get the currently IN_PROGRESS feature, if any.
+
+        Returns:
+            Issue dict with status IN_PROGRESS, or None if no active feature.
+        """
+        result = self.bd.list_issues(status="in_progress")
+
+        if not result["success"]:
+            return None
+
+        data = result.get("data", [])
+        if isinstance(data, list) and data:
+            return data[0]
+        elif isinstance(data, dict):
+            return data
+
+        return None
+
+
+class PlanInfo:
+    """Information about a discovered plan."""
+
+    def __init__(self, path: str, name: str, priority: int = 50):
+        self.path = path
+        self.name = name
+        self.priority = priority
+
+    def __repr__(self) -> str:
+        return f"PlanInfo(path={self.path!r}, name={self.name!r}, priority={self.priority})"
