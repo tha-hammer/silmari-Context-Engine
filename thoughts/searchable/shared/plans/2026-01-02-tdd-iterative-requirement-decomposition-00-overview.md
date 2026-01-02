@@ -13,7 +13,7 @@ This implementation adds an **iterative requirement decomposition loop** to the 
 | Phase | Title | Human-Testable Function | Status |
 |-------|-------|------------------------|--------|
 | 1 | [Data Models](./2026-01-02-tdd-iterative-requirement-decomposition-01-phase-1.md) | `RequirementNode` round-trip serialization | ✅ Complete |
-| 2 | [Visualization](./2026-01-02-tdd-iterative-requirement-decomposition-02-phase-2.md) | `generate_requirements_mermaid()` | Pending |
+| 2 | [Visualization](./2026-01-02-tdd-iterative-requirement-decomposition-02-phase-2.md) | `generate_requirements_mermaid()` | ✅ Complete |
 | 3 | [Property Generator](./2026-01-02-tdd-iterative-requirement-decomposition-03-phase-3.md) | `generate_test_skeleton()` | Pending |
 | 4 | [BAML Decomposition](./2026-01-02-tdd-iterative-requirement-decomposition-04-phase-4.md) | `decompose_requirements()` | Pending |
 | 5 | [Step Integration](./2026-01-02-tdd-iterative-requirement-decomposition-05-phase-5.md) | `step_requirement_decomposition()` | Pending |
