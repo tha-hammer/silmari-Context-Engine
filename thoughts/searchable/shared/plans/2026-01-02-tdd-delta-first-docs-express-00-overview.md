@@ -20,7 +20,7 @@ Implement a documentation-first development workflow for the Express TypeScript 
 | Phase 2 | ✅ Complete | 2026-01-02 | getDocument method with syntax highlighting, 11 passing tests |
 | Phase 3 | ✅ Complete | 2026-01-02 | Index route with EJS template, 4 passing tests (15 total) |
 | Phase 4 | ✅ Complete | 2026-01-02 | Document route with show.ejs template, 6 new tests (21 total) |
-| Phase 5 | ⏳ Pending | - | - |
+| Phase 5 | ✅ Complete | 2026-01-02 | Integration tests + env-configurable paths, 6 new tests (27 total) |
 | Phase 6 | ⏳ Pending | - | - |
 
 ## Phase Files
