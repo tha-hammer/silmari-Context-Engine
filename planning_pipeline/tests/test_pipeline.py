@@ -51,11 +51,11 @@ class TestPipelineStructure:
         from planning_pipeline.pipeline import step_requirement_decomposition
         assert callable(step_requirement_decomposition)
 
-    def test_docstring_mentions_six_steps(self):
-        """Pipeline docstring should mention 6 steps."""
+    def test_docstring_mentions_seven_steps(self):
+        """Pipeline docstring should mention 7 steps."""
         from planning_pipeline.pipeline import PlanningPipeline
         docstring = PlanningPipeline.__doc__
-        assert "6 steps" in docstring or "six steps" in docstring.lower()
+        assert "7 steps" in docstring or "seven steps" in docstring.lower()
 
 
 class TestPipelineRequirementDecomposition:
@@ -154,8 +154,8 @@ class TestPipelineRequirementDecomposition:
 class TestStepNumbering:
     """Tests for correct step numbering in output."""
 
-    def test_step_headers_show_six_total(self, tmp_path, capsys):
-        """All step headers should show /6 format."""
+    def test_step_headers_show_seven_total(self, tmp_path, capsys):
+        """All step headers should show /7 format."""
         from planning_pipeline.pipeline import PlanningPipeline
 
         with patch.multiple(
@@ -177,13 +177,14 @@ class TestStepNumbering:
             pipeline.run("test", auto_approve=True)
 
         output = capsys.readouterr().out
-        assert "STEP 1/6" in output
-        assert "STEP 2/6" in output
-        assert "STEP 3/6" in output
-        assert "STEP 4/6" in output
-        assert "STEP 5/6" in output
-        assert "STEP 6/6" in output
-        assert "/5" not in output  # No old numbering
+        assert "STEP 1/7" in output
+        assert "STEP 2/7" in output
+        assert "STEP 3/7" in output
+        assert "STEP 4/7" in output  # Context Generation
+        assert "STEP 5/7" in output
+        assert "STEP 6/7" in output
+        assert "STEP 7/7" in output
+        assert "/6" not in output  # No old numbering
 
 
 class TestDecompositionFailureHandling:

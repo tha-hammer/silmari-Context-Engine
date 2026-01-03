@@ -8,18 +8,20 @@ from .beads_controller import BeadsController
 from .steps import step_research, step_planning, step_phase_decomposition, step_beads_integration, step_memory_sync
 from .checkpoints import interactive_checkpoint_research, interactive_checkpoint_plan
 from .step_decomposition import step_requirement_decomposition
+from .context_generation import step_context_generation
 
 
 class PlanningPipeline:
     """Interactive planning pipeline with deterministic control.
 
-    Orchestrates 6 steps:
+    Orchestrates 7 steps:
     1. Research - Analyze codebase and create research document
     2. Memory Sync - Record research and clear context
     3. Requirement Decomposition - Generate structured requirements hierarchy
-    4. Planning - Create implementation plan from research
-    5. Phase Decomposition - Split plan into phase files
-    6. Beads Integration - Create issues and dependencies
+    4. Context Generation - Extract tech stack and file groups
+    5. Planning - Create implementation plan from research
+    6. Phase Decomposition - Split plan into phase files
+    7. Beads Integration - Create issues and dependencies
     """
 
     def __init__(self, project_path: Path):
@@ -46,7 +48,7 @@ class PlanningPipeline:
             - plan_dir: path to plan directory
             - epic_id: ID of created epic
         """
-        results = {
+        results: dict[str, Any] = {
             "started": datetime.now().isoformat(),
             "ticket_id": ticket_id,
             "steps": {}
@@ -58,7 +60,7 @@ class PlanningPipeline:
 
         while True:
             print("\n" + "="*60)
-            print("STEP 1/6: RESEARCH PHASE")
+            print("STEP 1/7: RESEARCH PHASE")
             print("="*60)
 
             research = step_research(self.project_path, current_prompt)
@@ -109,9 +111,9 @@ class PlanningPipeline:
                 results["stopped_at"] = "research"
                 return results
 
-        # Memory sync between research and planning
+        # Step 2: Memory sync between research and planning
         print("\n" + "="*60)
-        print("MEMORY SYNC: Recording research & clearing context")
+        print("STEP 2/7: MEMORY SYNC")
         print("="*60)
 
         session_id = f"research-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
@@ -129,10 +131,10 @@ class PlanningPipeline:
         if memory_result.get("context_cleared"):
             print("  ✓ Claude context cleared")
 
-        # Step 2: Requirement Decomposition (with retry loop)
+        # Step 3: Requirement Decomposition (with retry loop)
         while True:
             print("\n" + "="*60)
-            print("STEP 2/6: REQUIREMENT DECOMPOSITION")
+            print("STEP 3/7: REQUIREMENT DECOMPOSITION")
             print("="*60)
 
             req_decomp = step_requirement_decomposition(
@@ -167,10 +169,34 @@ class PlanningPipeline:
                 print("\nSkipping decomposition, continuing to planning...")
                 break
 
-        # Step 3: Planning (may loop on feedback)
+        # Step 4: Context Generation (tech stack and file groups)
+        print("\n" + "="*60)
+        print("STEP 4/7: CONTEXT GENERATION")
+        print("="*60)
+
+        context_gen = step_context_generation(
+            self.project_path,
+            output_dir=None,  # Use default
+            max_files=100,
+        )
+        results["steps"]["context_generation"] = context_gen
+
+        if context_gen["success"]:
+            tech_stack = context_gen.get("tech_stack")
+            file_groups = context_gen.get("file_groups")
+            if tech_stack:
+                print(f"  ✓ Tech stack: {', '.join(tech_stack.languages) if tech_stack.languages else 'N/A'}")
+            if file_groups:
+                print(f"  ✓ File groups: {len(file_groups.groups)} groups identified")
+            print(f"  ✓ Output: {context_gen.get('output_dir')}")
+        else:
+            print(f"  ⚠ Context generation failed: {context_gen.get('error', 'Unknown error')}")
+            print("  → Continuing without context (non-blocking)")
+
+        # Step 5: Planning (may loop on feedback)
         while True:
             print("\n" + "="*60)
-            print("STEP 3/6: PLANNING PHASE")
+            print("STEP 5/7: PLANNING PHASE")
             print("="*60)
 
             planning = step_planning(
@@ -201,9 +227,9 @@ class PlanningPipeline:
                 additional_context = plan_checkpoint["feedback"]
                 print("\nRe-running planning with feedback...")
 
-        # Step 4: Phase Decomposition
+        # Step 6: Phase Decomposition
         print("\n" + "="*60)
-        print("STEP 4/6: PHASE DECOMPOSITION")
+        print("STEP 6/7: PHASE DECOMPOSITION")
         print("="*60)
 
         if not planning.get("plan_path"):
@@ -237,9 +263,9 @@ class PlanningPipeline:
 
         print(f"\nCreated {len(decomposition['phase_files'])} phase files")
 
-        # Step 5: Beads Integration
+        # Step 7: Beads Integration
         print("\n" + "="*60)
-        print("STEP 5/6: BEADS INTEGRATION")
+        print("STEP 7/7: BEADS INTEGRATION")
         print("="*60)
 
         epic_title = f"Plan: {ticket_id}" if ticket_id else f"Plan: {datetime.now().strftime('%Y-%m-%d')}"
@@ -254,18 +280,14 @@ class PlanningPipeline:
             print(f"\nCreated epic: {beads.get('epic_id')}")
             print(f"Created {len(beads.get('phase_issues', []))} phase issues")
 
-        # Step 6: Memory Capture (placeholder)
-        print("\n" + "="*60)
-        print("STEP 6/6: MEMORY CAPTURE")
-        print("="*60)
-        print("Memory capture: using existing hooks")
+        # Memory capture handled by existing hooks (not a numbered step)
         results["steps"]["memory"] = {"success": True}
 
         # Complete - clean up any checkpoint for this run
         from .checkpoint_manager import detect_resumable_checkpoint, delete_checkpoint
-        checkpoint = detect_resumable_checkpoint(self.project_path)
-        if checkpoint:
-            delete_checkpoint(checkpoint.get("file_path", ""))
+        resumable_cp = detect_resumable_checkpoint(self.project_path)
+        if resumable_cp:
+            delete_checkpoint(resumable_cp.get("file_path", ""))
 
         results["success"] = True
         results["completed"] = datetime.now().isoformat()
