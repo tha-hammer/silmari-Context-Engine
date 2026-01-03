@@ -7,6 +7,7 @@ __pycache__/
 .env
 venv/
 ENV/
+.venv/
 
 # IDE
 .idea/
@@ -23,3 +24,9 @@ Thumbs.db
 *.log
 .agent/working-context/
 .agent/artifacts/
+
+#hypothesis
+.hypothesis/
+
+# BAML
+baml_client/
