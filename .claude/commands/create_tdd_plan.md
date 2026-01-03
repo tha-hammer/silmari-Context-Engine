@@ -101,8 +101,8 @@ Get feedback on structure before writing details:
 
 ### Step 4: Write Plan
 
-1. **Write to**: `thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-tdd-description.md`
-   - Format: `YYYY-MM-DD-ENG-XXXX-tdd-description.md`
+1. **Write to**: `thoughts/searchable/plans/YYYY-MM-DD-tdd-description.md`
+   - Format: `YYYY-MM-DD-tdd-description.md`
    - Examples: `2025-01-08-ENG-1478-tdd-parent-child-tracking.md`
 
 2. **Use template structure**:
@@ -192,11 +192,11 @@ describe('[Behavior]', () => {
 
 ## References
 - Ticket: `thoughts/{user_name}/tickets/eng_XXXX.md`
-- Research: `thoughts/shared/research/[relevant].md`
+- Research: `thoughts/searchable/research/[relevant].md`
 - Patterns: `[file:line]`
 ````
 
-### Step 4.5: Beads Issue Tracking (Recommended)
+### Step 4.5: Beads Issue Tracking (CRITICAL)
 
 After writing the plan file:
 

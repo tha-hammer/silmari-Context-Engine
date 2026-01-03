@@ -93,17 +93,16 @@ Then wait for the user's research query.
 
 5. **Gather metadata for the research document:**
    - Run the `silmari-oracle metadata` script to generate all relevant metadata
-   - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
+   - Filename: `thoughts/searchable/research/YYYY-MM-DD-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
-       - ENG-XXXX is the ticket number (omit if no ticket)
        - description is a brief kebab-case description of the research topic
      - Examples:
        - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
        - Without ticket: `2025-01-08-authentication-flow.md`
 
 6. **Generate research document:**
-   - Use the metadata gathered in step 4
+   - Use the metadata gathered in step 5
    - Structure the document with YAML frontmatter followed by content:
      ```markdown
      ---
@@ -152,12 +151,12 @@ Then wait for the user's research query.
 
      ## Historical Context (from thoughts/)
      [Relevant insights from thoughts/ directory with references]
-     - `thoughts/shared/something.md` - Historical decision about X
+     - `thoughts/searchable/something.md` - Historical decision about X
      - `thoughts/local/notes.md` - Past exploration of Y
      Note: Paths exclude "searchable/" even if found there
 
      ## Related Research
-     [Links to other research documents in thoughts/shared/research/]
+     [Links to other research documents in thoughts/searchable/research/]
 
      ## Open Questions
      [Any areas that need further investigation]

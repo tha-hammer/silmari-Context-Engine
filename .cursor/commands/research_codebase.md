@@ -11,6 +11,20 @@ You are tasked with conducting comprehensive research across the codebase to ans
 - ONLY describe what exists, where it exists, how it works, and how components interact
 - You are creating a technical map/documentation of the existing system
 
+## Beads Integration
+
+Before starting research:
+1. **Check for related issues**: Run `bd list --status=open` to see if there's already a tracked issue for this topic
+2. **Review existing research**: If a beads issue exists, run `bd show <id>` for context - it may reference prior research
+
+After completing research:
+1. **Link to existing issues**: If the research relates to tracked work, note the beads issue IDs in your research document
+2. **Create issues for discovered work**: If research reveals actionable items (bugs, features, tech debt), optionally create beads issues:
+   ```bash
+   bd create --title="[Discovered item]" --type=task|bug|feature --priority=2
+   ```
+3. **Sync beads**: Run `bd sync` if any issues were created or updated
+
 ## Initial Setup:
 
 When this command is invoked, respond with:
@@ -79,17 +93,16 @@ Then wait for the user's research query.
 
 5. **Gather metadata for the research document:**
    - Run the `silmari-oracle metadata` script to generate all relevant metadata
-   - Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`
+   - Filename: `thoughts/searchable/research/YYYY-MM-DD-description.md`
      - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
-       - ENG-XXXX is the ticket number (omit if no ticket)
        - description is a brief kebab-case description of the research topic
      - Examples:
        - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
        - Without ticket: `2025-01-08-authentication-flow.md`
 
 6. **Generate research document:**
-   - Use the metadata gathered in step 4
+   - Use the metadata gathered in step 5
    - Structure the document with YAML frontmatter followed by content:
      ```markdown
      ---
@@ -138,12 +151,12 @@ Then wait for the user's research query.
 
      ## Historical Context (from thoughts/)
      [Relevant insights from thoughts/ directory with references]
-     - `thoughts/shared/something.md` - Historical decision about X
+     - `thoughts/searchable/something.md` - Historical decision about X
      - `thoughts/local/notes.md` - Past exploration of Y
      Note: Paths exclude "searchable/" even if found there
 
      ## Related Research
-     [Links to other research documents in thoughts/shared/research/]
+     [Links to other research documents in thoughts/searchable/research/]
 
      ## Open Questions
      [Any areas that need further investigation]
