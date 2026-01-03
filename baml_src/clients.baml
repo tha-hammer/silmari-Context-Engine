@@ -1,0 +1,139 @@
+// Learn more about clients at https://docs.boundaryml.com/docs/snippets/clients/overview
+
+// Environment-driven clients for CodeWriter4.0 BAML migration
+// These clients use environment variables for configuration but have static providers
+
+// Primary OpenAI client for LLM_PROVIDER=openai
+client<llm> EnvironmentOpenAI {
+  provider openai
+  options {
+    model env.LLM_MODEL
+    api_key env.OPENAI_API_KEY
+    temperature env.LLM_TEMPERATURE
+    max_tokens env.MAX_TOKENS
+  }
+}
+
+// Primary Anthropic client for LLM_PROVIDER=anthropic  
+client<llm> EnvironmentAnthropic {
+  provider anthropic
+  options {
+    model env.ANTHROPIC_MODEL
+    api_key env.ANTHROPIC_API_KEY
+    temperature env.ANTHROPIC_TEMPERATURE
+    
+  }
+}
+
+// SRC2 Ollama client for SRC2_LLM_PROVIDER=ollama
+client<llm> EnvironmentOllama {
+  provider "openai-generic"
+  options {
+    model env.OLLAMA_MODEL
+    base_url "http://localhost:11434/v1"
+    temperature 0.5
+    max_tokens 32015
+  }
+}
+
+client<llm> CustomGPT4o {
+  provider openai
+  options {
+    model env.LLM_MODEL
+    api_key env.OPENAI_API_KEY
+    temperature env.LLM_TEMPERATURE
+    max_tokens env.MAX_TOKENS
+  }
+}
+
+client<llm> CustomGPT4oMini {
+  provider openai
+  retry_policy Exponential
+  options {
+    model "gpt-4o-mini"
+    api_key env.OPENAI_API_KEY
+    temperature env.LLM_TEMPERATURE
+    max_tokens env.MAX_TOKENS
+  }
+}
+
+client<llm> CustomSonnet {
+  provider anthropic
+  options {
+    model "claude-sonnet-4-5-20250929"
+    api_key env.ANTHROPIC_API_KEY
+    temperature env.ANTHROPIC_TEMPERATURE
+    max_tokens env.ANTHROPIC_MAX_TOKENS
+  }
+}
+
+
+client<llm> CustomHaiku {
+  provider anthropic
+  retry_policy Constant
+  options {
+    model "claude-haiku-4-5-20251001"
+    api_key env.ANTHROPIC_API_KEY
+    temperature 0.3
+    max_tokens 64000
+    
+  }
+}
+
+client<llm> OllamaClient {
+  provider "openai-generic"
+  options {
+    model env.OLLAMA_MODEL
+    base_url env.OLLAMA_HOST
+    temperature env.OLLAMA_TEMPERATURE
+    max_tokens env.OLLAMA_MAX_TOKENS
+  }
+}
+
+// https://docs.boundaryml.com/docs/snippets/clients/round-robin
+client<llm> CustomFast {
+  provider round-robin
+  options {
+    // This will alternate between the two clients
+    strategy [CustomGPT4oMini, CustomHaiku]
+  }
+}
+
+// https://docs.boundaryml.com/docs/snippets/clients/fallback
+client<llm> OpenaiFallback {
+  provider fallback
+  options {
+    // This will try the clients in order until one succeeds
+    strategy [CustomGPT4oMini, CustomGPT4oMini]
+  }
+}
+
+// Haiku with Ollama fallback for requirement decomposition
+// Tries Claude Haiku first (high accuracy), falls back to local Ollama if API fails
+client<llm> HaikuWithOllamaFallback {
+  provider fallback
+  options {
+    strategy [CustomHaiku, EnvironmentOllama]
+  }
+}
+
+// https://docs.boundaryml.com/docs/snippets/clients/retry
+retry_policy Constant {
+  max_retries 3
+  // Strategy is optional
+  strategy {
+    type constant_delay
+    delay_ms 200
+  }
+}
+
+retry_policy Exponential {
+  max_retries 2
+  // Strategy is optional
+  strategy {
+    type exponential_backoff
+    delay_ms 300
+    multiplier 1.5
+    max_delay_ms 10000
+  }
+}
