@@ -11,6 +11,10 @@ Usage:
     python planning_orchestrator.py --auto-approve     # Skip checkpoints
 """
 
+# Load .env file before any other imports that might need env vars
+from dotenv import load_dotenv
+load_dotenv()
+
 import argparse
 import subprocess
 from pathlib import Path
