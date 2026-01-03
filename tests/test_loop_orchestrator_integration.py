@@ -1,9 +1,10 @@
 """Integration tests for LoopRunner + IntegratedOrchestrator."""
 
+import subprocess
 import tempfile
 import pytest
 from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, MagicMock, patch
 
 from planning_pipeline.autonomous_loop import LoopRunner, LoopState
 from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator, PlanInfo
@@ -204,3 +205,157 @@ class TestPlanDiscoveryIntegration:
         # Plans should be sorted by priority
         priorities = [p.priority for p in plans]
         assert priorities == sorted(priorities)
+
+
+class TestExecutePhaseE2E:
+    """End-to-end tests with real _execute_phase (mocked Claude)."""
+
+    @pytest.fixture
+    def full_setup(self, tmp_path):
+        """Set up full orchestrator environment."""
+        # Create plan file
+        plans_dir = tmp_path / "thoughts" / "shared" / "plans"
+        plans_dir.mkdir(parents=True)
+        plan_file = plans_dir / "2026-01-03-test-feature.md"
+        plan_file.write_text("""# Test Feature Plan
+
+## Phase 1
+- Implement feature
+
+## Success
+- Tests pass
+""")
+
+        # Initialize git
+        subprocess.run(["git", "init"], cwd=tmp_path, capture_output=True)
+        subprocess.run(["git", "config", "user.email", "test@test.com"], cwd=tmp_path, capture_output=True)
+        subprocess.run(["git", "config", "user.name", "Test"], cwd=tmp_path, capture_output=True)
+        (tmp_path / "README.md").write_text("# Test Project")
+        subprocess.run(["git", "add", "."], cwd=tmp_path, capture_output=True)
+        subprocess.run(["git", "commit", "-m", "initial"], cwd=tmp_path, capture_output=True)
+
+        return tmp_path
+
+    @pytest.mark.asyncio
+    async def test_full_loop_with_mocked_claude(self, full_setup):
+        """Should execute full loop with mocked Claude subprocess."""
+        # Mock orchestrator
+        orchestrator = Mock()
+        orchestrator.discover_plans = Mock(return_value=[
+            Mock(path=str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md"), priority=1)
+        ])
+
+        feature_mock = {"id": "feature-1", "title": "Test Feature", "status": "open"}
+        orchestrator.get_next_feature = Mock(side_effect=[feature_mock, None])
+        orchestrator.get_current_feature = Mock(return_value=None)
+        orchestrator.bd = Mock()
+        orchestrator.bd.update_status = Mock()
+
+        runner = LoopRunner(orchestrator=orchestrator)
+        runner._project_path = full_setup
+        runner.plan_path = str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+
+        with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
+            mock_invoke.return_value = {
+                "success": True,
+                "output": "Feature implemented successfully",
+                "error": "",
+                "elapsed": 10.0
+            }
+            with patch('planning_pipeline.phase_execution.result_checker._run_bd_sync'):
+                await runner.run()
+
+        # Verify Claude was invoked
+        assert mock_invoke.call_count >= 1
+
+    @pytest.mark.asyncio
+    async def test_loop_handles_claude_failure(self, full_setup):
+        """Should handle Claude failure and update status appropriately."""
+        orchestrator = Mock()
+        feature_mock = {"id": "feature-1", "title": "Test Feature", "status": "open"}
+        orchestrator.get_next_feature = Mock(side_effect=[feature_mock, None])
+        orchestrator.get_current_feature = Mock(return_value=None)
+        orchestrator.bd = Mock()
+        orchestrator.bd.update_status = Mock()
+
+        runner = LoopRunner(orchestrator=orchestrator)
+        runner._project_path = full_setup
+        runner.plan_path = str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+        runner.current_phase = "feature-1"
+
+        with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
+            mock_invoke.return_value = {
+                "success": False,
+                "output": "",
+                "error": "Claude crashed",
+                "elapsed": 5.0
+            }
+
+            result = await runner._execute_phase()
+
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_loop_with_multiple_phases(self, full_setup):
+        """Should execute multiple phases in sequence."""
+        # Create multiple plan files
+        plans_dir = full_setup / "thoughts" / "shared" / "plans"
+        (plans_dir / "2026-01-03-feature-a.md").write_text("# Feature A\n- Step 1")
+        (plans_dir / "2026-01-03-feature-b.md").write_text("# Feature B\n- Step 1")
+
+        orchestrator = Mock()
+        features = [
+            {"id": "feature-a", "title": "Feature A", "status": "open"},
+            {"id": "feature-b", "title": "Feature B", "status": "open"},
+        ]
+        orchestrator.get_next_feature = Mock(side_effect=features + [None])
+        orchestrator.get_current_feature = Mock(return_value=None)
+        orchestrator.bd = Mock()
+        orchestrator.bd.update_status = Mock()
+
+        runner = LoopRunner(orchestrator=orchestrator)
+        runner._project_path = full_setup
+
+        call_count = 0
+        with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
+            def invoke_side_effect(*args, **kwargs):
+                nonlocal call_count
+                call_count += 1
+                return {
+                    "success": True,
+                    "output": f"Phase {call_count} done",
+                    "error": "",
+                    "elapsed": 5.0
+                }
+            mock_invoke.side_effect = invoke_side_effect
+
+            with patch('planning_pipeline.phase_execution.result_checker._run_bd_sync'):
+                # Execute phases manually to test the flow
+                for feature in features:
+                    runner.current_phase = feature["id"]
+                    runner.plan_path = str(plans_dir / f"2026-01-03-{feature['id']}.md")
+                    await runner._execute_phase()
+
+        # Verify Claude was invoked twice
+        assert call_count == 2
+
+    @pytest.mark.asyncio
+    async def test_loop_respects_timeout(self, full_setup):
+        """Should handle timeout during Claude invocation."""
+        runner = LoopRunner(
+            plan_path=str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+        )
+        runner._project_path = full_setup
+        runner.current_phase = "timeout-test"
+
+        with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
+            mock_invoke.return_value = {
+                "success": False,
+                "output": "",
+                "error": "Command timed out after 3600s",
+                "elapsed": 3600
+            }
+
+            result = await runner._execute_phase()
+
+        assert result is False

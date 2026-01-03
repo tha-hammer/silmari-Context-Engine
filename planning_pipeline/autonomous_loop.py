@@ -20,7 +20,12 @@ Usage:
 
 import logging
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
+
+from planning_pipeline.phase_execution.prompt_builder import build_phase_prompt
+from planning_pipeline.phase_execution.claude_invoker import invoke_claude
+from planning_pipeline.phase_execution.result_checker import check_execution_result
 
 if TYPE_CHECKING:
     from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
@@ -58,6 +63,7 @@ class LoopRunner:
         plan_path: Optional[str] = None,
         current_phase: Optional[str] = None,
         orchestrator: Optional["IntegratedOrchestrator"] = None,
+        project_path: Optional[Path] = None,
     ):
         """Initialize the LoopRunner.
 
@@ -65,11 +71,15 @@ class LoopRunner:
             plan_path: Path to the plan file. Required if no orchestrator provided.
             current_phase: Initial phase to execute (optional).
             orchestrator: IntegratedOrchestrator for advanced features (optional).
+            project_path: Path to project directory for git/beads operations (optional).
         """
         self.plan_path = plan_path
         self.current_phase = current_phase
         self.orchestrator = orchestrator
         self.state = LoopState.IDLE
+
+        # Project path for git/beads operations
+        self._project_path = project_path or Path.cwd()
 
         # Internal state for orchestrator integration
         self._current_feature: Optional[Any] = None
@@ -143,16 +153,34 @@ class LoopRunner:
                 f"Failed to update feature status for {self._current_feature.get('id')}: {e}"
             )
 
+    def _build_phase_prompt(self) -> str:
+        """Build prompt for the current phase."""
+        return build_phase_prompt(self.plan_path, self.current_phase)
+
     async def _execute_phase(self) -> bool:
         """Execute the current phase.
+
+        Builds prompt, invokes Claude, and validates result.
 
         Returns:
             True if phase completed successfully, False otherwise.
         """
-        # Placeholder for actual phase execution
-        # In real implementation, this would invoke Claude Code
+        try:
+            # Build prompt
+            prompt = self._build_phase_prompt()
+        except FileNotFoundError as e:
+            logger.error(f"Plan file not found: {e}")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to build prompt: {e}")
+            return False
+
+        # Invoke Claude
         logger.info(f"Executing phase: {self.current_phase}")
-        return True
+        claude_result = invoke_claude(prompt, timeout=3600)  # 1 hour timeout
+
+        # Check result
+        return check_execution_result(claude_result, project_path=self._project_path)
 
     async def _execute_loop(self) -> None:
         """Execute the main loop, progressing through phases."""
