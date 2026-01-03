@@ -70,10 +70,77 @@ def extract_phase_files(output: str) -> list[str]:
     return re.findall(pattern, output)
 
 
+def resolve_file_path(
+    project_path: Path,
+    path_input: str,
+    file_type: str
+) -> Optional[Path]:
+    """Resolve a file path from various input formats.
+
+    Accepts:
+    - Absolute paths: /home/user/project/thoughts/shared/research/file.md
+    - Relative paths: thoughts/shared/research/file.md
+    - Just filename: 2026-01-02-my-research.md
+    - Partial filename: my-research.md (fuzzy match)
+
+    Args:
+        project_path: Root project directory
+        path_input: User-provided path string
+        file_type: "research" or "plans"
+
+    Returns:
+        Resolved absolute Path or None if not found
+    """
+    if not path_input:
+        return None
+
+    input_path = Path(path_input).expanduser()
+
+    # Case 1: Absolute path exists
+    if input_path.is_absolute() and input_path.exists():
+        return input_path
+
+    # Case 2: Relative path from project root
+    relative_from_project = project_path / input_path
+    if relative_from_project.exists():
+        return relative_from_project.resolve()
+
+    # Case 3: Just a filename - search in thoughts directories
+    thoughts_dir = project_path / "thoughts"
+    search_dirs = [
+        thoughts_dir / "searchable" / "shared" / file_type,
+        thoughts_dir / "shared" / file_type,
+    ]
+
+    filename = input_path.name
+
+    for search_dir in search_dirs:
+        if not search_dir.exists():
+            continue
+
+        # Exact filename match
+        exact_match = search_dir / filename
+        if exact_match.exists():
+            return exact_match.resolve()
+
+        # Fuzzy match: filename is a suffix of an existing file
+        for f in search_dir.glob("*.md"):
+            if f.name == filename or f.name.endswith(f"-{filename}"):
+                return f.resolve()
+
+            # Match if input is a substring of the filename (after date prefix)
+            if len(f.stem) >= 10:
+                name_part = f.stem[11:]  # Skip YYYY-MM-DD-
+                if filename.replace(".md", "") in name_part:
+                    return f.resolve()
+
+    return None
+
+
 def discover_thoughts_files(
     project_path: Path,
     file_type: str,
-    days_back: int = 0
+    days_back: int = 7
 ) -> list[Path]:
     """Discover research or plan files from thoughts directory.
 

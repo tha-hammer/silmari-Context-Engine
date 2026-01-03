@@ -72,13 +72,13 @@ Examples:
         "--research-path", "--research_path",
         dest="research_path",
         metavar="FILE",
-        help="Path to existing research .md file (use with --resume)"
+        help="Research .md file: full path, relative path, or just filename (auto-resolved)"
     )
     parser.add_argument(
         "--plan-path", "--plan_path",
         dest="plan_path",
         metavar="FILE",
-        help="Path to existing plan .md file (use with --resume)"
+        help="Plan .md file: full path, relative path, or just filename (auto-resolved)"
     )
 
     return parser.parse_args(args)
@@ -356,16 +356,40 @@ def handle_resume_flow(args, project_path: Path) -> int:
             resume_step = "planning"
 
     # Get research path if needed for planning or requirement_decomposition steps
-    if resume_step in ("planning", "requirement_decomposition") and not args.research_path:
-        args.research_path = interactive_file_selection(project_path, "research")
+    if resume_step in ("planning", "requirement_decomposition"):
+        if args.research_path:
+            # Try to resolve the provided path (supports full, relative, or just filename)
+            from planning_pipeline import resolve_file_path
+            resolved = resolve_file_path(project_path, args.research_path, "research")
+            if resolved:
+                args.research_path = str(resolved)
+                print(f"  Resolved research path: {resolved.name}")
+            else:
+                print(f"{Colors.YELLOW}Warning: Could not resolve '{args.research_path}'{Colors.END}")
+                args.research_path = None
+
         if not args.research_path:
-            return 1
+            args.research_path = interactive_file_selection(project_path, "research")
+            if not args.research_path:
+                return 1
 
     # Get plan path if needed for phase_decomposition step
-    if resume_step == "phase_decomposition" and not args.plan_path:
-        args.plan_path = interactive_file_selection(project_path, "plans")
+    if resume_step == "phase_decomposition":
+        if args.plan_path:
+            # Try to resolve the provided path (supports full, relative, or just filename)
+            from planning_pipeline import resolve_file_path
+            resolved = resolve_file_path(project_path, args.plan_path, "plans")
+            if resolved:
+                args.plan_path = str(resolved)
+                print(f"  Resolved plan path: {resolved.name}")
+            else:
+                print(f"{Colors.YELLOW}Warning: Could not resolve '{args.plan_path}'{Colors.END}")
+                args.plan_path = None
+
         if not args.plan_path:
-            return 1
+            args.plan_path = interactive_file_selection(project_path, "plans")
+            if not args.plan_path:
+                return 1
 
     print(f"\n{Colors.CYAN}Resuming from {resume_step} step...{Colors.END}")
 
