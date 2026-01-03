@@ -62,8 +62,8 @@ def step_research(project_path: Path, research_prompt: str) -> dict[str, Any]:
     # Rejoin and replace date placeholder in filename section
     research_instructions = "\n".join(lines)
     research_instructions = research_instructions.replace(
-        "Filename: `thoughts/shared/research/YYYY-MM-DD-ENG-XXXX-description.md`",
-        f"Filename: `thoughts/shared/research/{date_str}-pipeline-research.md` (or `{date_str}-ENG-XXXX-description.md` if ticket exists)"
+        "Filename: `thoughts/shared/research/YYYY-MM-DD-description.md`",
+        f"Filename: `thoughts/shared/research/{date_str}-pipeline-research.md` (or `{date_str}-description.md` if ticket exists)"
     )
 
     prompt = f"""{research_instructions}
@@ -81,6 +81,17 @@ After creating the document, output the path.
 
     research_path = extract_file_path(result["output"], "research")
     open_questions = extract_open_questions(result["output"])
+
+    # Validate that research_path was extracted - common failure when running from external directory
+    if not research_path:
+        return {
+            "success": False,
+            "error": "Research completed but no research file path found in output. "
+                     "Claude may not have created a file, or the path pattern was not recognized. "
+                     "Check that the project has a thoughts/shared/research/ directory.",
+            "output": result["output"],
+            "open_questions": open_questions
+        }
 
     return {
         "success": True,
@@ -155,12 +166,12 @@ def step_planning(
     # Rejoin and replace date placeholder in filename section
     planning_instructions = "\n".join(lines)
     planning_instructions = planning_instructions.replace(
-        "`thoughts/shared/plans/YYYY-MM-DD-ENG-XXXX-tdd-description.md`",
+        "`thoughts/shared/plans/YYYY-MM-DD-tdd-description.md`",
         f"`thoughts/shared/plans/{date_str}-plan.md`"
     )
     planning_instructions = planning_instructions.replace(
-        "- Format: `YYYY-MM-DD-ENG-XXXX-tdd-description.md`",
-        f"- Format: `{date_str}-plan.md` (or `{date_str}-ENG-XXXX-tdd-description.md` if ticket exists)"
+        "- Format: `YYYY-MM-DD-tdd-description.md`",
+        f"- Format: `{date_str}-plan.md` (or `{date_str}-tdd-description.md` if ticket exists)"
     )
 
     prompt = f"""{planning_instructions}
@@ -218,12 +229,12 @@ Output the plan file path when complete.
                 additional_input = "\n".join(user_response)
                 prompt = f"""{prompt}
 
-## User Clarification (Attempt {attempt + 2})
+## User Clarification answering open questions in planning process. (Attempt {attempt + 2})
 {additional_input}
 
 Now create the plan file. Output the plan file path when complete.
 """
-                print(f"\nRetrying with additional context...")
+                print(f"Sending additional context...")
                 continue
 
         # No plan path and not a question, or max retries reached
@@ -259,13 +270,14 @@ def step_phase_decomposition(project_path: Path, plan_path: str) -> dict[str, An
 Read the plan file at: {plan_path}
 
 ## Instructions
-Create distinct phase files based on the plan. Each phase should end with 1 testable function.
+Create distinct phase files based on the plan. Each phase should end with 1 human-testable function.
 
 ## Output Structure
 Create files at: {plan_dir}/
-- 00-overview.md (links to all phases)
-- 01-phase-1-<name>.md
-- 02-phase-2-<name>.md
+Append YYYY-MM-DD-tdd-description to the filename of each file.
+- YYYY-MM-DD-tdd-description-00-overview.md (links to all phases)
+- YYYY-MM-DD-tdd-description-01-phase-1.md
+- YYYY-MM-DD-tdd-description-02-phase-2.md
 - etc.
 
 ## Phase File Template
@@ -339,7 +351,7 @@ def step_beads_integration(
             actual_phase_files.append(f)
 
     # Create issues for each phase
-    phase_issues = []
+    phase_issues: list[dict[str, Any]] = []
     for i, phase_file in enumerate(actual_phase_files):
         # Extract phase name from filename like "01-phase-1-setup.md"
         phase_name = Path(phase_file).stem.split('-', 2)[-1].replace('-', ' ').title()
@@ -360,8 +372,8 @@ def step_beads_integration(
 
     # Link dependencies (each phase depends on previous)
     for i in range(1, len(phase_issues)):
-        curr_id = phase_issues[i].get("issue_id")
-        prev_id = phase_issues[i-1].get("issue_id")
+        curr_id: str | None = phase_issues[i].get("issue_id")
+        prev_id: str | None = phase_issues[i-1].get("issue_id")
         if curr_id and prev_id:
             bd.add_dependency(curr_id, prev_id)
 
@@ -392,10 +404,10 @@ def step_beads_integration(
 
     # Annotate each phase file
     for phase_info in phase_issues:
-        phase_file = phase_info["file"]
-        phase_path = Path(phase_file)
+        pfile: str = phase_info["file"]
+        phase_path = Path(pfile)
         if not phase_path.is_absolute():
-            phase_path = project_path / phase_file
+            phase_path = project_path / pfile
 
         if phase_path.exists():
             phase_content = phase_path.read_text()
@@ -406,10 +418,10 @@ def step_beads_integration(
                     overview_content = ov_path.read_text()
 
             annotated = _annotate_phase_with_claude(
-                project_path, phase_file, phase_content, overview_content, phase_info
+                project_path, pfile, phase_content, overview_content, phase_info
             )
             if annotated:
-                files_annotated.append(phase_file)
+                files_annotated.append(pfile)
 
     return {
         "success": True,

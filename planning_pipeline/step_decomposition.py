@@ -12,9 +12,10 @@ Pipeline position: step_research() -> [step_requirement_decomposition()] -> step
 """
 
 import json
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from planning_pipeline.decomposition import (
     DecompositionError,
@@ -31,10 +32,17 @@ from planning_pipeline.property_generator import (
 from planning_pipeline.visualization import generate_requirements_mermaid
 
 
+def _print_progress(message: str) -> None:
+    """Print progress message and flush stdout."""
+    print(message)
+    sys.stdout.flush()
+
+
 def step_requirement_decomposition(
     project_path: Path,
     research_path: str,
     output_dir: Optional[str] = None,
+    progress: Optional[Callable[[str], None]] = None,
 ) -> dict[str, Any]:
     """Execute requirement decomposition step.
 
@@ -50,6 +58,7 @@ def step_requirement_decomposition(
         research_path: Path to research document (relative to project_path).
         output_dir: Optional custom output directory. Defaults to
             {project}/thoughts/shared/plans/{date}-requirements/
+        progress: Optional callback for CLI progress updates.
 
     Returns:
         Dict with:
@@ -61,9 +70,19 @@ def step_requirement_decomposition(
         - output_dir: str (directory where outputs were written)
         - error: str (if success=False)
     """
+    # Use default progress callback if none provided
+    report = progress or _print_progress
+
     # Ensure project_path is a Path
     if not isinstance(project_path, Path):
         project_path = Path(project_path)
+
+    # Validate research_path is provided
+    if not research_path:
+        return {
+            "success": False,
+            "error": "research_path is required but was None or empty",
+        }
 
     # Resolve research file path - try multiple locations
     # 1. If absolute path, use directly
@@ -95,6 +114,7 @@ def step_requirement_decomposition(
         }
 
     # Read research content
+    report(f"  Reading research: {research_file.name}")
     try:
         research_content = research_file.read_text()
     except Exception as e:
@@ -102,9 +122,10 @@ def step_requirement_decomposition(
             "success": False,
             "error": f"Failed to read research file: {e}",
         }
+    report(f"  ✓ Loaded {len(research_content):,} chars from research")
 
-    # Call decomposition
-    result = decompose_requirements(research_content)
+    # Call decomposition (progress callback passed through)
+    result = decompose_requirements(research_content, progress=report)
 
     # Handle decomposition error
     if isinstance(result, DecompositionError):
@@ -131,6 +152,7 @@ def step_requirement_decomposition(
     out_path.mkdir(parents=True, exist_ok=True)
 
     # Write hierarchy JSON
+    report("  Writing outputs...")
     hierarchy_file = out_path / "requirements_hierarchy.json"
     try:
         with open(hierarchy_file, "w") as f:
@@ -175,6 +197,8 @@ def step_requirement_decomposition(
             except Exception as e:
                 # Non-fatal - we can continue without test file
                 pass
+
+    report(f"  ✓ Wrote hierarchy, diagram{', tests' if tests_path else ''}")
 
     # Count total requirements (including children)
     requirement_count = _count_requirements(hierarchy)

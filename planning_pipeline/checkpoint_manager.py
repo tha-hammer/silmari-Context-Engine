@@ -169,7 +169,7 @@ def write_checkpoint(
     project_path: Path,
     phase: str,
     artifacts: list[str],
-    errors: list[str] = None
+    errors: Optional[list[str]] = None
 ) -> str:
     """Write a checkpoint file for failed pipeline state.
 
