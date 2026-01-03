@@ -1,13 +1,13 @@
 ---
 date: 2026-01-01T17:32:38-05:00
 researcher: Claude Opus 4.5
-git_commit: 170cbfdb7565a893100ca5817913d9b4937cd23e
+git_commit: d24c54cb42e1da573232a131906c9243a60c4cfe
 branch: main
 repository: silmari-Context-Engine
 topic: "How to Use Command Line Commands"
-tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator, loop-runner, autonomous-loop, requirement-decomposition]
+tags: [documentation, cli, how-to, orchestrator, planning-pipeline, integrated-orchestrator, loop-runner, autonomous-loop, requirement-decomposition, phase-execution]
 status: complete
-last_updated: 2026-01-02
+last_updated: 2026-01-03
 last_updated_by: Claude Opus 4.5
 ---
 
@@ -437,15 +437,18 @@ Use `LoopRunner` from `planning_pipeline/autonomous_loop.py` to run an async exe
    from planning_pipeline.integrated_orchestrator import IntegratedOrchestrator
 
    orchestrator = IntegratedOrchestrator(Path("~/myproject"))
-   runner = LoopRunner(orchestrator=orchestrator)
+   runner = LoopRunner(orchestrator=orchestrator, project_path=Path("~/myproject"))
    ```
-   The orchestrator provides plan discovery and feature tracking.
+   The orchestrator provides plan discovery and feature tracking. The `project_path` is used for git/beads operations during phase execution.
 
 2. **Initialize with explicit plan path (manual mode):**
    ```python
-   runner = LoopRunner(plan_path="/path/to/my-plan.md")
+   runner = LoopRunner(
+       plan_path="/path/to/my-plan.md",
+       project_path=Path("~/myproject")
+   )
    ```
-   Use this mode for backward compatibility when no orchestrator is available.
+   Use this mode for backward compatibility when no orchestrator is available. The `project_path` defaults to the current working directory if not specified.
 
 3. **Run the execution loop:**
    ```python
@@ -506,6 +509,97 @@ Use `LoopRunner` from `planning_pipeline/autonomous_loop.py` to run an async exe
    )
    ```
    Use this to start execution at a specific phase.
+
+---
+
+## How to Use the Phase Execution Module
+
+The `planning_pipeline/phase_execution/` module provides the components that `LoopRunner._execute_phase()` uses to build prompts, invoke Claude Code, and validate results.
+
+**Module Components:**
+
+| File | Purpose |
+|------|---------|
+| `prompt_builder.py` | Builds prompts from plan files with phase context |
+| `claude_invoker.py` | Invokes Claude Code CLI subprocess with timeout handling |
+| `result_checker.py` | Validates execution results and runs `bd sync` |
+
+**Steps:**
+
+1. **Build a prompt from a plan file:**
+   ```python
+   from planning_pipeline.phase_execution.prompt_builder import build_phase_prompt
+
+   prompt = build_phase_prompt(
+       plan_path="/path/to/plan.md",
+       current_phase="feature-auth-login"
+   )
+   print(prompt)
+   ```
+   The prompt includes the plan content, phase identifier, and execution instructions.
+
+2. **Invoke Claude Code directly:**
+   ```python
+   from planning_pipeline.phase_execution.claude_invoker import invoke_claude
+
+   result = invoke_claude(prompt, timeout=3600)  # 1 hour timeout
+
+   if result["success"]:
+       print(f"Output: {result['output']}")
+       print(f"Elapsed: {result['elapsed']}s")
+   else:
+       print(f"Error: {result['error']}")
+   ```
+   The invoker runs `claude --print --permission-mode bypassPermissions -p <prompt>` and captures stdout/stderr.
+
+3. **Validate execution results:**
+   ```python
+   from pathlib import Path
+   from planning_pipeline.phase_execution.result_checker import check_execution_result
+
+   success = check_execution_result(
+       claude_result=result,
+       project_path=Path("~/myproject")
+   )
+
+   if success:
+       print("Phase completed successfully")
+   else:
+       print("Phase failed")
+   ```
+   The checker verifies Claude returned success, checks git status, and runs `bd sync` if beads is available.
+
+4. **Handle invocation errors gracefully:**
+   ```python
+   result = invoke_claude(prompt, timeout=60)
+
+   if not result["success"]:
+       if "timed out" in result["error"].lower():
+           print("Claude timed out - increase timeout or simplify task")
+       elif "not found" in result["error"].lower():
+           print("Claude CLI not installed - run: npm install -g @anthropic-ai/claude-code")
+       else:
+           print(f"Unknown error: {result['error']}")
+   ```
+
+**Result Dictionary Structure:**
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `success` | `bool` | `True` if Claude returned exit code 0 |
+| `output` | `str` | Claude's stdout (the response) |
+| `error` | `str` | stderr or error message |
+| `elapsed` | `float` | Execution time in seconds |
+
+**Integration with LoopRunner:**
+
+The `LoopRunner._execute_phase()` method uses these components internally:
+```python
+# Pseudocode of _execute_phase():
+prompt = build_phase_prompt(self.plan_path, self.current_phase)
+claude_result = invoke_claude(prompt, timeout=3600)
+return check_execution_result(claude_result, self._project_path)
+```
 
 ---
 
@@ -601,6 +695,9 @@ For detailed API documentation and parameter references, consult the source file
 - `planning_pipeline/beads_controller.py` - BeadsController class methods
 - `planning_pipeline/integrated_orchestrator.py` - IntegratedOrchestrator and PlanInfo classes
 - `planning_pipeline/autonomous_loop.py` - LoopRunner and LoopState for async orchestrator integration
+- `planning_pipeline/phase_execution/prompt_builder.py` - build_phase_prompt() for generating Claude prompts
+- `planning_pipeline/phase_execution/claude_invoker.py` - invoke_claude() for subprocess invocation
+- `planning_pipeline/phase_execution/result_checker.py` - check_execution_result() for validating outputs
 - `planning_pipeline/step_decomposition.py` - step_requirement_decomposition() for research decomposition
 - `planning_pipeline/decomposition.py` - decompose_requirements() BAML-based decomposition
 - `planning_pipeline/visualization.py` - generate_requirements_mermaid() diagram generation
