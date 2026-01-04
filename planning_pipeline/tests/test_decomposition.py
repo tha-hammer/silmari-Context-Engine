@@ -180,6 +180,324 @@ class TestDecompositionProperties:
         assert isinstance(result, (RequirementHierarchy, DecompositionError))
 
 
+class TestCreateChildFromDetailsFunctionId:
+    """Tests for function_id extraction in _create_child_from_details."""
+
+    def test_function_id_extracted_from_baml_response(self, mock_baml_subprocess_details):
+        """Given BAML returns function_id, when child created, then function_id stored."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        config = DecompositionConfig()
+
+        # Act - use the fixture which has function_id="AUTH_001"
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Login flow implementation",
+            details_response=mock_baml_subprocess_details,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        # Assert
+        assert child.function_id == "AUTH_001"
+
+
+class TestCreateChildFromDetailsRelatedConcepts:
+    """Tests for related_concepts extraction in _create_child_from_details."""
+
+    def test_related_concepts_extracted_from_baml_response(self, mock_baml_subprocess_details):
+        """Given BAML returns related_concepts, when child created, then stored."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        config = DecompositionConfig()
+
+        # Act - use the fixture which has related_concepts=["forms", "validation"]
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Login flow implementation",
+            details_response=mock_baml_subprocess_details,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        # Assert
+        assert child.related_concepts == ["forms", "validation"]
+
+    def test_related_concepts_empty_when_none_in_response(self):
+        """Given BAML response has None related_concepts, when child created, then empty list."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = None
+        mock_detail.description = "Some description"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = None
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.related_concepts == []
+
+    def test_related_concepts_empty_when_empty_list_in_response(self):
+        """Given BAML response has empty related_concepts list, when child created, then empty list."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = None
+        mock_detail.description = "Some description"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.related_concepts == []
+
+    def test_related_concepts_empty_when_no_implementation_details(self):
+        """Given no implementation_details in response, when child created, then empty list."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        mock_response = MagicMock()
+        mock_response.implementation_details = []
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Some process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.related_concepts == []
+
+    def test_related_concepts_preserves_multiple_values(self):
+        """Given BAML returns multiple related_concepts, when child created, then all stored."""
+        from planning_pipeline.decomposition import _create_child_from_details
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = "TEST_001"
+        mock_detail.description = "Test implementation"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = ["auth", "jwt", "oauth", "session", "security"]
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Auth",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.related_concepts == ["auth", "jwt", "oauth", "session", "security"]
+
+    def test_function_id_generated_when_not_in_response(self):
+        """Given BAML response has no function_id, when child created, then generated."""
+        from planning_pipeline.decomposition import _create_child_from_details
+        from unittest.mock import MagicMock
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = None
+        mock_detail.description = "Some description"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Some process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        # Phase 6: function_id is now generated from description when not provided
+        assert child.function_id is not None
+        assert "." in child.function_id
+
+    def test_function_id_generated_when_empty_string(self):
+        """Given BAML response has empty function_id, when child created, then generated."""
+        from planning_pipeline.decomposition import _create_child_from_details
+        from unittest.mock import MagicMock
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = ""  # Empty string
+        mock_detail.description = "Some description"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Some process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        # Phase 6: function_id is now generated from description when not provided
+        assert child.function_id is not None
+        assert "." in child.function_id
+
+    def test_function_id_none_when_no_implementation_details(self):
+        """Given no implementation_details in response, when child created, then None."""
+        from planning_pipeline.decomposition import _create_child_from_details
+        from unittest.mock import MagicMock
+
+        mock_response = MagicMock()
+        mock_response.implementation_details = []
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Some process",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.function_id is None
+
+
+class TestGenerateFunctionIdFromDescription:
+    """Tests for semantic function_id generation."""
+
+    def test_generate_function_id_auth_pattern(self):
+        """Given auth-related description, when generated, then Auth.* pattern."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Authenticate user credentials")
+        assert result == "Auth.authenticate"
+
+    def test_generate_function_id_validate_pattern(self):
+        """Given validation description, when generated, then Validator.validate."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Validate input data")
+        assert result == "Validator.validate"
+
+    def test_generate_function_id_create_pattern(self):
+        """Given create description, when generated, then Service.create."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Create new user account")
+        assert result == "User.create"
+
+    def test_generate_function_id_fallback(self):
+        """Given unknown pattern, when generated, then Service.action format."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Something completely different")
+        assert "." in result  # At least has Service.action format
+
+    def test_generate_function_id_dashboard_render(self):
+        """Given dashboard render description, when generated, then Dashboard.render."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Render dashboard UI")
+        assert result == "Dashboard.render"
+
+    def test_generate_function_id_fetch_data(self):
+        """Given fetch description, when generated, then Data.fetch."""
+        from planning_pipeline.decomposition import _generate_function_id
+
+        result = _generate_function_id("Fetch user data from API")
+        assert result == "Data.fetch"
+
+    def test_child_gets_generated_function_id_when_baml_none(self):
+        """Given BAML returns no function_id, when child created, then generated."""
+        from planning_pipeline.decomposition import (
+            _create_child_from_details,
+            DecompositionConfig,
+        )
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = None
+        mock_detail.description = "Authenticate user credentials"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Auth",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.function_id is not None
+        assert "." in child.function_id
+
+    def test_child_gets_generated_function_id_when_baml_empty_string(self):
+        """Given BAML returns empty function_id, when child created, then generated."""
+        from planning_pipeline.decomposition import (
+            _create_child_from_details,
+            DecompositionConfig,
+        )
+
+        mock_response = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = ""
+        mock_detail.description = "Validate user input"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_response.implementation_details = [mock_detail]
+
+        config = DecompositionConfig()
+
+        child = _create_child_from_details(
+            child_id="REQ_001.1",
+            sub_process="Validation",
+            details_response=mock_response,
+            parent_id="REQ_001",
+            config=config,
+        )
+
+        assert child.function_id is not None
+        assert "." in child.function_id
+
+
 @pytest.mark.integration
 class TestDecomposeRequirementsIntegration:
     """Integration tests - require ANTHROPIC_API_KEY."""

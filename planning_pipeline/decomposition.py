@@ -291,6 +291,103 @@ def decompose_requirements(
         )
 
 
+# Action verb mappings for semantic function_id generation
+_ACTION_MAP: dict[str, str] = {
+    "authenticate": "authenticate",
+    "login": "login",
+    "logout": "logout",
+    "register": "register",
+    "create": "create",
+    "update": "update",
+    "delete": "delete",
+    "get": "get",
+    "fetch": "fetch",
+    "retrieve": "retrieve",
+    "validate": "validate",
+    "verify": "verify",
+    "render": "render",
+    "display": "display",
+    "show": "show",
+    "process": "process",
+    "transform": "transform",
+    "calculate": "calculate",
+    "send": "send",
+    "receive": "receive",
+    "store": "store",
+    "save": "save",
+    "load": "load",
+}
+
+# Subject/noun mappings for semantic function_id generation
+# Note: Order matters - more specific/domain terms should come first
+# as we iterate and take the first match
+_SUBJECT_PRIORITY: list[tuple[str, str]] = [
+    # Auth-related (check before "user" since auth often involves users)
+    ("authentication", "Auth"),
+    ("authenticate", "Auth"),  # verb but indicates auth context
+    ("auth", "Auth"),
+    # Validation-related (check before "data" since validation often involves data)
+    ("validation", "Validator"),
+    ("validator", "Validator"),
+    ("validate", "Validator"),  # verb but indicates validation context
+    # Dashboard/UI
+    ("dashboard", "Dashboard"),
+    # Data-related
+    ("data", "Data"),
+    # User-related (after auth/validation since those are more specific)
+    ("user", "User"),
+    # Other services
+    ("report", "Report"),
+    ("service", "Service"),
+    ("api", "API"),
+    ("endpoint", "Endpoint"),
+]
+
+
+def _generate_function_id(description: str, parent_id: Optional[str] = None) -> str:
+    """Generate a semantic function_id from requirement description.
+
+    Maps common verbs and nouns to produce Service.action style identifiers.
+
+    Args:
+        description: Human-readable description of the requirement
+        parent_id: Optional parent ID for context (affects default subject)
+
+    Returns:
+        Generated function_id in Service.action format
+
+    Examples:
+        >>> _generate_function_id("Authenticate user credentials")
+        'Auth.authenticate'
+        >>> _generate_function_id("Render dashboard UI")
+        'Dashboard.render'
+        >>> _generate_function_id("Validate input data")
+        'Validator.validate'
+    """
+    desc_lower = description.lower()
+
+    # Find action verb
+    action: Optional[str] = None
+    for verb, mapped in _ACTION_MAP.items():
+        if verb in desc_lower:
+            action = mapped
+            break
+    if not action:
+        words = description.split()
+        action = words[0].lower() if words else "perform"
+
+    # Find subject noun (priority-ordered search)
+    subject: Optional[str] = None
+    for noun, mapped in _SUBJECT_PRIORITY:
+        if noun in desc_lower:
+            subject = mapped
+            break
+    if not subject:
+        subject = "Implementation" if parent_id and "." in parent_id else "Service"
+
+    return f"{subject}.{action}"
+
+
 def _create_child_from_details(
     child_id: str,
     sub_process: str,
@@ -322,6 +419,20 @@ def _create_child_from_details(
     # Use first implementation detail (primary)
     detail = details_response.implementation_details[0]
 
+    # Extract or generate function_id
+    function_id: Optional[str] = None
+    if hasattr(detail, "function_id") and detail.function_id:
+        function_id = detail.function_id
+    else:
+        # Generate from description when BAML doesn't provide one
+        desc = detail.description if hasattr(detail, "description") else sub_process
+        function_id = _generate_function_id(desc, parent_id)
+
+    # Extract related_concepts from BAML response (empty list if missing)
+    related_concepts: list[str] = []
+    if hasattr(detail, "related_concepts") and detail.related_concepts:
+        related_concepts = list(detail.related_concepts)
+
     # Build implementation components
     impl = None
     if hasattr(detail, "implementation") and detail.implementation:
@@ -344,6 +455,8 @@ def _create_child_from_details(
         parent_id=parent_id,
         acceptance_criteria=acceptance_criteria,
         implementation=impl,
+        function_id=function_id,
+        related_concepts=related_concepts,
     )
 
 
