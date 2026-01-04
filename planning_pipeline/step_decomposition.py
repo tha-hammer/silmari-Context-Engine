@@ -145,8 +145,8 @@ def step_requirement_decomposition(
     if output_dir:
         out_path = Path(output_dir)
     else:
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        out_path = project_path / "thoughts" / "shared" / "plans" / f"{date_str}-requirements"
+        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M")
+        out_path = project_path / "thoughts" / "searchable" / "shared" / "plans" / f"{date_str}-requirements"
 
     # Create output directory
     out_path.mkdir(parents=True, exist_ok=True)

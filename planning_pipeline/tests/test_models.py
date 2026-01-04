@@ -22,6 +22,12 @@ from hypothesis.stateful import RuleBasedStateMachine, rule, invariant, Bundle
 # Valid requirement types
 VALID_TYPES = ["parent", "sub_process", "implementation"]
 
+# Valid categories for requirements
+VALID_CATEGORIES = frozenset([
+    "functional", "non_functional", "security",
+    "performance", "usability", "integration"
+])
+
 
 @st.composite
 def _requirement_id_strategy(draw, prefix: str = "REQ") -> str:
@@ -489,11 +495,17 @@ class RequirementHierarchyStateMachine(RuleBasedStateMachine):
             check_consistency(req)
 
     @invariant()
-    def hierarchy_depth_max_three(self):
-        """Hierarchy should not exceed 3 levels (parent -> sub_process -> implementation)."""
+    def hierarchy_depth_reasonable(self):
+        """Hierarchy depth should be reasonable (arbitrary but not infinite).
+
+        Note: Removed 3-level max constraint to support arbitrary depth.
+        We now allow any reasonable depth (up to 20 levels for sanity).
+        """
+        max_reasonable_depth = 20
+
         def check_depth(node, current_depth=1):
-            assert current_depth <= 3, (
-                f"Node {node.id} at depth {current_depth} exceeds max depth of 3"
+            assert current_depth <= max_reasonable_depth, (
+                f"Node {node.id} at depth {current_depth} exceeds max depth of {max_reasonable_depth}"
             )
             for child in node.children:
                 check_depth(child, current_depth + 1)
@@ -508,6 +520,389 @@ TestRequirementHierarchyStateful = RequirementHierarchyStateMachine.TestCase
 # =============================================================================
 # Manual test cases for edge cases
 # =============================================================================
+
+
+# =============================================================================
+# Tests for function_id field on RequirementNode
+# =============================================================================
+
+
+class TestRequirementNodeFunctionId:
+    """Tests for function_id field on RequirementNode."""
+
+    def test_function_id_stored_on_creation(self):
+        """Given function_id provided, when node created, then function_id is stored."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            function_id="AuthService.login",
+        )
+        assert node.function_id == "AuthService.login"
+
+    def test_function_id_serialized_to_dict(self):
+        """Given node with function_id, when to_dict called, then function_id in output."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            function_id="DataValidator.validate",
+        )
+        result = node.to_dict()
+        assert result["function_id"] == "DataValidator.validate"
+
+    def test_function_id_deserialized_from_dict(self):
+        """Given dict with function_id, when from_dict called, then function_id restored."""
+        from planning_pipeline.models import RequirementNode
+
+        data = {
+            "id": "REQ_001",
+            "description": "Test requirement",
+            "type": "parent",
+            "function_id": "UserService.create",
+            "parent_id": None,
+            "children": [],
+            "acceptance_criteria": [],
+            "implementation": None,
+            "testable_properties": [],
+        }
+        node = RequirementNode.from_dict(data)
+        assert node.function_id == "UserService.create"
+
+    def test_function_id_none_when_not_provided(self):
+        """Given no function_id, when node created, then function_id is None."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+        )
+        assert node.function_id is None
+
+    @given(st.text(min_size=1, max_size=100).filter(lambda x: x.strip()))
+    def test_function_id_roundtrip_property(self, function_id: str):
+        """Property: function_id survives serialization roundtrip."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test",
+            type="parent",
+            function_id=function_id,
+        )
+        restored = RequirementNode.from_dict(node.to_dict())
+        assert restored.function_id == function_id
+
+
+# =============================================================================
+# Manual test cases for edge cases
+# =============================================================================
+
+
+# =============================================================================
+# Tests for related_concepts field on RequirementNode
+# =============================================================================
+
+
+class TestRequirementNodeRelatedConcepts:
+    """Tests for related_concepts field on RequirementNode."""
+
+    def test_related_concepts_stored_on_creation(self):
+        """Given related_concepts provided, when node created, then stored."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            related_concepts=["auth", "jwt", "session"],
+        )
+        assert node.related_concepts == ["auth", "jwt", "session"]
+
+    def test_related_concepts_default_empty_list(self):
+        """Given no related_concepts, when node created, then empty list."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+        )
+        assert node.related_concepts == []
+
+    def test_related_concepts_serialized_to_dict(self):
+        """Given node with related_concepts, when to_dict, then in output."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            related_concepts=["database", "caching"],
+        )
+        result = node.to_dict()
+        assert result["related_concepts"] == ["database", "caching"]
+
+    def test_related_concepts_deserialized_from_dict(self):
+        """Given dict with related_concepts, when from_dict, then restored."""
+        from planning_pipeline.models import RequirementNode
+
+        data = {
+            "id": "REQ_001",
+            "description": "Test requirement",
+            "type": "parent",
+            "parent_id": None,
+            "children": [],
+            "acceptance_criteria": [],
+            "implementation": None,
+            "testable_properties": [],
+            "related_concepts": ["api", "rest"],
+        }
+        node = RequirementNode.from_dict(data)
+        assert node.related_concepts == ["api", "rest"]
+
+    @given(st.lists(st.text(min_size=1, max_size=50), max_size=10))
+    def test_related_concepts_roundtrip_property(self, concepts: list[str]):
+        """Property: related_concepts survives serialization roundtrip."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test",
+            type="parent",
+            related_concepts=concepts,
+        )
+        restored = RequirementNode.from_dict(node.to_dict())
+        assert restored.related_concepts == concepts
+
+
+# =============================================================================
+# Tests for category field on RequirementNode
+# =============================================================================
+
+
+class TestRequirementNodeCategory:
+    """Tests for category field on RequirementNode."""
+
+    def test_category_stored_on_creation(self):
+        """Given category provided, when node created, then stored."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            category="security",
+        )
+        assert node.category == "security"
+
+    def test_category_default_functional(self):
+        """Given no category, when node created, then defaults to functional."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+        )
+        assert node.category == "functional"
+
+    def test_category_serialized_to_dict(self):
+        """Given node with category, when to_dict, then in output."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            category="performance",
+        )
+        result = node.to_dict()
+        assert result["category"] == "performance"
+
+    def test_category_deserialized_from_dict(self):
+        """Given dict with category, when from_dict, then restored."""
+        from planning_pipeline.models import RequirementNode
+
+        data = {
+            "id": "REQ_001",
+            "description": "Test requirement",
+            "type": "parent",
+            "category": "usability",
+            "parent_id": None,
+            "children": [],
+            "acceptance_criteria": [],
+            "implementation": None,
+            "testable_properties": [],
+        }
+        node = RequirementNode.from_dict(data)
+        assert node.category == "usability"
+
+    def test_invalid_category_raises_error(self):
+        """Given invalid category, when node created, then ValueError."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="Invalid category"):
+            RequirementNode(
+                id="REQ_001",
+                description="Test requirement",
+                type="parent",
+                category="invalid_category",
+            )
+
+    @given(st.sampled_from(list(VALID_CATEGORIES)))
+    def test_valid_categories_accepted(self, category: str):
+        """Property: all valid categories are accepted."""
+        from planning_pipeline.models import RequirementNode
+
+        node = RequirementNode(
+            id="REQ_001",
+            description="Test",
+            type="parent",
+            category=category,
+        )
+        assert node.category == category
+
+
+# =============================================================================
+# Manual test cases for edge cases
+# =============================================================================
+
+
+# =============================================================================
+# Tests for arbitrary depth ID generation
+# =============================================================================
+
+
+class TestArbitraryDepthIds:
+    """Tests for arbitrary depth ID generation."""
+
+    def test_four_level_hierarchy(self):
+        """Given 4-level nesting, when add_child used, then IDs correct."""
+        from planning_pipeline.models import RequirementNode, RequirementHierarchy
+
+        hierarchy = RequirementHierarchy()
+
+        # Level 1: REQ_001
+        parent = RequirementNode(id="REQ_001", description="Parent", type="parent")
+        hierarchy.add_requirement(parent)
+
+        # Level 2: REQ_001.1
+        sub = RequirementNode(id="REQ_001.1", description="Sub", type="sub_process")
+        hierarchy.add_child("REQ_001", sub)
+
+        # Level 3: REQ_001.1.1
+        impl = RequirementNode(id="REQ_001.1.1", description="Impl", type="implementation")
+        hierarchy.add_child("REQ_001.1", impl)
+
+        # Level 4: REQ_001.1.1.1
+        detail = RequirementNode(id="REQ_001.1.1.1", description="Detail", type="implementation")
+        hierarchy.add_child("REQ_001.1.1", detail)
+
+        # Assert structure
+        assert hierarchy.get_by_id("REQ_001.1.1.1") is not None
+        assert hierarchy.get_by_id("REQ_001.1.1.1").parent_id == "REQ_001.1.1"
+
+    def test_next_child_id_generation(self):
+        """Given parent with children, when next ID generated, then increments."""
+        from planning_pipeline.models import RequirementNode
+
+        parent = RequirementNode(id="REQ_001.2.3", description="Parent", type="implementation")
+
+        # Simulate adding children
+        next_id_1 = f"{parent.id}.1"  # REQ_001.2.3.1
+        next_id_2 = f"{parent.id}.2"  # REQ_001.2.3.2
+
+        assert next_id_1 == "REQ_001.2.3.1"
+        assert next_id_2 == "REQ_001.2.3.2"
+
+    @given(st.integers(min_value=1, max_value=10))
+    def test_arbitrary_depth_property(self, depth: int):
+        """Property: hierarchy supports arbitrary depth."""
+        from planning_pipeline.models import RequirementNode, RequirementHierarchy
+
+        hierarchy = RequirementHierarchy()
+
+        # Build nested hierarchy to given depth
+        current_id = "REQ_001"
+        parent = RequirementNode(id=current_id, description="Root", type="parent")
+        hierarchy.add_requirement(parent)
+
+        for i in range(1, depth):
+            child_id = f"{current_id}.{i}"
+            child = RequirementNode(
+                id=child_id,
+                description=f"Level {i+1}",
+                type="implementation",
+            )
+            hierarchy.add_child(current_id, child)
+            current_id = child_id
+
+        # Assert deepest node is findable
+        assert hierarchy.get_by_id(current_id) is not None
+
+    def test_get_depth_method(self):
+        """Given node ID, when get_depth called, then correct depth returned."""
+        # REQ_001 -> depth 1
+        # REQ_001.1 -> depth 2
+        # REQ_001.1.3 -> depth 3
+        # REQ_001.1.3.2 -> depth 4
+
+        def get_depth(node_id: str) -> int:
+            """Calculate depth from ID pattern."""
+            if not node_id.startswith("REQ_"):
+                return 0
+            parts = node_id.split(".")
+            return len(parts)
+
+        assert get_depth("REQ_001") == 1
+        assert get_depth("REQ_001.1") == 2
+        assert get_depth("REQ_001.1.3") == 3
+        assert get_depth("REQ_001.1.3.2") == 4
+
+    def test_next_child_id_method_on_hierarchy(self):
+        """Test that RequirementHierarchy.next_child_id generates correct IDs."""
+        from planning_pipeline.models import RequirementNode, RequirementHierarchy
+
+        hierarchy = RequirementHierarchy()
+
+        # Level 1: REQ_001
+        parent = RequirementNode(id="REQ_001", description="Parent", type="parent")
+        hierarchy.add_requirement(parent)
+
+        # Generate next child ID
+        next_id = hierarchy.next_child_id("REQ_001")
+        assert next_id == "REQ_001.1"
+
+        # Add child with that ID
+        child1 = RequirementNode(id=next_id, description="First child", type="sub_process")
+        hierarchy.add_child("REQ_001", child1)
+
+        # Generate next child ID - should be .2
+        next_id = hierarchy.next_child_id("REQ_001")
+        assert next_id == "REQ_001.2"
+
+        # Add another child
+        child2 = RequirementNode(id=next_id, description="Second child", type="sub_process")
+        hierarchy.add_child("REQ_001", child2)
+
+        # Test nested depth
+        next_id = hierarchy.next_child_id("REQ_001.1")
+        assert next_id == "REQ_001.1.1"
+
+    def test_next_child_id_raises_for_missing_parent(self):
+        """Given missing parent, when next_child_id called, then ValueError."""
+        from planning_pipeline.models import RequirementHierarchy
+
+        hierarchy = RequirementHierarchy()
+
+        with pytest.raises(ValueError, match="Parent REQ_999 not found"):
+            hierarchy.next_child_id("REQ_999")
 
 
 class TestManualEdgeCases:

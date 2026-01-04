@@ -388,52 +388,37 @@ def _generate_function_id(description: str, parent_id: Optional[str] = None) -> 
     return f"{subject}.{action}"
 
 
-def _create_child_from_details(
-    child_id: str,
-    sub_process: str,
-    details_response: Any,
+def _create_implementation_node(
+    impl_id: str,
+    detail: Any,
     parent_id: str,
     config: DecompositionConfig,
 ) -> RequirementNode:
-    """Create a child RequirementNode from BAML subprocess details response.
+    """Create an implementation-level RequirementNode from BAML detail.
 
     Args:
-        child_id: ID for the new child node
-        sub_process: Original sub-process description
-        details_response: BAML SubprocessDetailsResponse
-        parent_id: ID of parent node
+        impl_id: ID for the new implementation node (format: REQ_XXX.Y.Z)
+        detail: BAML ImplementationDetail object
+        parent_id: ID of parent sub_process node
         config: Decomposition configuration
 
     Returns:
-        RequirementNode with implementation details
+        RequirementNode with type="implementation"
     """
-    # Default to basic node if no implementation details
-    if not details_response.implementation_details:
-        return RequirementNode(
-            id=child_id,
-            description=sub_process,
-            type="sub_process",
-            parent_id=parent_id,
-        )
-
-    # Use first implementation detail (primary)
-    detail = details_response.implementation_details[0]
-
     # Extract or generate function_id
     function_id: Optional[str] = None
     if hasattr(detail, "function_id") and detail.function_id:
         function_id = detail.function_id
     else:
-        # Generate from description when BAML doesn't provide one
-        desc = detail.description if hasattr(detail, "description") else sub_process
+        desc = detail.description if hasattr(detail, "description") else ""
         function_id = _generate_function_id(desc, parent_id)
 
-    # Extract related_concepts from BAML response (empty list if missing)
+    # Extract related_concepts
     related_concepts: list[str] = []
     if hasattr(detail, "related_concepts") and detail.related_concepts:
         related_concepts = list(detail.related_concepts)
 
-    # Build implementation components
+    # Extract implementation components
     impl = None
     if hasattr(detail, "implementation") and detail.implementation:
         impl = ImplementationComponents(
@@ -443,21 +428,70 @@ def _create_child_from_details(
             shared=list(detail.implementation.shared or []),
         )
 
-    # Build acceptance criteria if configured
-    acceptance_criteria = []
+    # Extract acceptance criteria
+    acceptance_criteria: list[str] = []
     if config.include_acceptance_criteria and hasattr(detail, "acceptance_criteria"):
         acceptance_criteria = list(detail.acceptance_criteria or [])
 
     return RequirementNode(
-        id=child_id,
-        description=detail.description if hasattr(detail, "description") else sub_process,
-        type="sub_process",
+        id=impl_id,
+        description=detail.description if hasattr(detail, "description") else "Implementation",
+        type="implementation",
         parent_id=parent_id,
         acceptance_criteria=acceptance_criteria,
         implementation=impl,
         function_id=function_id,
         related_concepts=related_concepts,
     )
+
+
+def _create_child_from_details(
+    child_id: str,
+    sub_process: str,
+    details_response: Any,
+    parent_id: str,
+    config: DecompositionConfig,
+) -> RequirementNode:
+    """Create a sub_process RequirementNode with implementation children.
+
+    Creates a 3-tier hierarchy structure:
+    - sub_process node (this function's return value)
+      - implementation children (one per implementation_detail from BAML)
+
+    Args:
+        child_id: ID for the sub_process node (format: REQ_XXX.Y)
+        sub_process: Original sub-process description
+        details_response: BAML SubprocessDetailsResponse
+        parent_id: ID of parent node
+        config: Decomposition configuration
+
+    Returns:
+        RequirementNode with type="sub_process" and implementation children
+    """
+    # Create sub_process node (no implementation data - that goes on children)
+    sub_node = RequirementNode(
+        id=child_id,
+        description=sub_process,
+        type="sub_process",
+        parent_id=parent_id,
+    )
+
+    # Default to basic node if no implementation details
+    if not details_response.implementation_details:
+        return sub_node
+
+    # Create implementation children from each detail
+    for impl_idx, detail in enumerate(details_response.implementation_details):
+        impl_id = f"{child_id}.{impl_idx + 1}"
+        impl_node = _create_implementation_node(
+            impl_id=impl_id,
+            detail=detail,
+            parent_id=child_id,
+            config=config,
+        )
+        sub_node.children.append(impl_node)
+
+    return sub_node
 
 
 def decompose_requirements_cli_fallback(

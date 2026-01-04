@@ -184,7 +184,7 @@ class TestCreateChildFromDetailsFunctionId:
     """Tests for function_id extraction in _create_child_from_details."""
 
     def test_function_id_extracted_from_baml_response(self, mock_baml_subprocess_details):
-        """Given BAML returns function_id, when child created, then function_id stored."""
+        """Given BAML returns function_id, when child created, then function_id stored on impl."""
         from planning_pipeline.decomposition import _create_child_from_details
 
         config = DecompositionConfig()
@@ -198,15 +198,17 @@ class TestCreateChildFromDetailsFunctionId:
             config=config,
         )
 
-        # Assert
-        assert child.function_id == "AUTH_001"
+        # Assert - function_id is on implementation children (3-tier)
+        assert child.type == "sub_process"
+        assert len(child.children) == 1
+        assert child.children[0].function_id == "AUTH_001"
 
 
 class TestCreateChildFromDetailsRelatedConcepts:
     """Tests for related_concepts extraction in _create_child_from_details."""
 
     def test_related_concepts_extracted_from_baml_response(self, mock_baml_subprocess_details):
-        """Given BAML returns related_concepts, when child created, then stored."""
+        """Given BAML returns related_concepts, when child created, then stored on impl."""
         from planning_pipeline.decomposition import _create_child_from_details
 
         config = DecompositionConfig()
@@ -220,8 +222,10 @@ class TestCreateChildFromDetailsRelatedConcepts:
             config=config,
         )
 
-        # Assert
-        assert child.related_concepts == ["forms", "validation"]
+        # Assert - related_concepts is on implementation children (3-tier)
+        assert child.type == "sub_process"
+        assert len(child.children) == 1
+        assert child.children[0].related_concepts == ["forms", "validation"]
 
     def test_related_concepts_empty_when_none_in_response(self):
         """Given BAML response has None related_concepts, when child created, then empty list."""
@@ -293,7 +297,7 @@ class TestCreateChildFromDetailsRelatedConcepts:
         assert child.related_concepts == []
 
     def test_related_concepts_preserves_multiple_values(self):
-        """Given BAML returns multiple related_concepts, when child created, then all stored."""
+        """Given BAML returns multiple related_concepts, when child created, then all stored on impl."""
         from planning_pipeline.decomposition import _create_child_from_details
 
         mock_response = MagicMock()
@@ -315,10 +319,12 @@ class TestCreateChildFromDetailsRelatedConcepts:
             config=config,
         )
 
-        assert child.related_concepts == ["auth", "jwt", "oauth", "session", "security"]
+        # Assert - related_concepts is on implementation children (3-tier)
+        assert len(child.children) == 1
+        assert child.children[0].related_concepts == ["auth", "jwt", "oauth", "session", "security"]
 
     def test_function_id_generated_when_not_in_response(self):
-        """Given BAML response has no function_id, when child created, then generated."""
+        """Given BAML response has no function_id, when child created, then generated on impl."""
         from planning_pipeline.decomposition import _create_child_from_details
         from unittest.mock import MagicMock
 
@@ -341,12 +347,13 @@ class TestCreateChildFromDetailsRelatedConcepts:
             config=config,
         )
 
-        # Phase 6: function_id is now generated from description when not provided
-        assert child.function_id is not None
-        assert "." in child.function_id
+        # Phase 6+7: function_id is generated on implementation children (3-tier)
+        assert len(child.children) == 1
+        assert child.children[0].function_id is not None
+        assert "." in child.children[0].function_id
 
     def test_function_id_generated_when_empty_string(self):
-        """Given BAML response has empty function_id, when child created, then generated."""
+        """Given BAML response has empty function_id, when child created, then generated on impl."""
         from planning_pipeline.decomposition import _create_child_from_details
         from unittest.mock import MagicMock
 
@@ -369,9 +376,10 @@ class TestCreateChildFromDetailsRelatedConcepts:
             config=config,
         )
 
-        # Phase 6: function_id is now generated from description when not provided
-        assert child.function_id is not None
-        assert "." in child.function_id
+        # Phase 6+7: function_id is generated on implementation children (3-tier)
+        assert len(child.children) == 1
+        assert child.children[0].function_id is not None
+        assert "." in child.children[0].function_id
 
     def test_function_id_none_when_no_implementation_details(self):
         """Given no implementation_details in response, when child created, then None."""
@@ -440,7 +448,7 @@ class TestGenerateFunctionIdFromDescription:
         assert result == "Data.fetch"
 
     def test_child_gets_generated_function_id_when_baml_none(self):
-        """Given BAML returns no function_id, when child created, then generated."""
+        """Given BAML returns no function_id, when child created, then generated on impl."""
         from planning_pipeline.decomposition import (
             _create_child_from_details,
             DecompositionConfig,
@@ -465,11 +473,13 @@ class TestGenerateFunctionIdFromDescription:
             config=config,
         )
 
-        assert child.function_id is not None
-        assert "." in child.function_id
+        # function_id is on implementation children (3-tier)
+        assert len(child.children) == 1
+        assert child.children[0].function_id is not None
+        assert "." in child.children[0].function_id
 
     def test_child_gets_generated_function_id_when_baml_empty_string(self):
-        """Given BAML returns empty function_id, when child created, then generated."""
+        """Given BAML returns empty function_id, when child created, then generated on impl."""
         from planning_pipeline.decomposition import (
             _create_child_from_details,
             DecompositionConfig,
@@ -494,8 +504,203 @@ class TestGenerateFunctionIdFromDescription:
             config=config,
         )
 
-        assert child.function_id is not None
-        assert "." in child.function_id
+        # function_id is on implementation children (3-tier)
+        assert len(child.children) == 1
+        assert child.children[0].function_id is not None
+        assert "." in child.children[0].function_id
+
+
+class TestThreeTierHierarchy:
+    """Tests for 3-tier hierarchy: parent -> sub_process -> implementation."""
+
+    def test_implementation_details_become_children(self, patch_baml_client):
+        """Given BAML returns multiple impl details, when decomposed, then 3-tier."""
+        # Arrange: Mock BAML to return multiple implementation details
+        mock_initial = MagicMock()
+        mock_req = MagicMock()
+        mock_req.description = "Parent requirement"
+        mock_req.sub_processes = ["Sub process 1"]
+        mock_req.related_concepts = []
+        mock_initial.requirements = [mock_req]
+
+        mock_subprocess = MagicMock()
+        mock_detail1 = MagicMock()
+        mock_detail1.function_id = "Impl.detail1"
+        mock_detail1.description = "First implementation detail"
+        mock_detail1.acceptance_criteria = ["AC1"]
+        mock_detail1.implementation = None
+        mock_detail1.related_concepts = ["concept1"]
+
+        mock_detail2 = MagicMock()
+        mock_detail2.function_id = "Impl.detail2"
+        mock_detail2.description = "Second implementation detail"
+        mock_detail2.acceptance_criteria = ["AC2"]
+        mock_detail2.implementation = None
+        mock_detail2.related_concepts = ["concept2"]
+
+        mock_subprocess.implementation_details = [mock_detail1, mock_detail2]
+
+        patch_baml_client.ProcessGate1InitialExtractionPrompt.return_value = mock_initial
+        patch_baml_client.ProcessGate1SubprocessDetailsPrompt.return_value = mock_subprocess
+
+        # Act
+        result = decompose_requirements("Test research content")
+
+        # Assert: 3-tier structure
+        assert isinstance(result, RequirementHierarchy)
+        assert len(result.requirements) == 1
+
+        parent = result.requirements[0]
+        assert parent.type == "parent"
+        assert len(parent.children) == 1
+
+        sub_process = parent.children[0]
+        assert sub_process.type == "sub_process"
+        assert len(sub_process.children) == 2  # Two implementation details
+
+        impl1 = sub_process.children[0]
+        assert impl1.type == "implementation"
+        assert impl1.description == "First implementation detail"
+        assert impl1.function_id == "Impl.detail1"
+
+        impl2 = sub_process.children[1]
+        assert impl2.type == "implementation"
+        assert impl2.description == "Second implementation detail"
+
+    def test_implementation_node_ids_follow_pattern(self, patch_baml_client):
+        """Given 3-tier hierarchy, when built, then IDs are REQ_XXX.Y.Z."""
+        # Arrange
+        mock_initial = MagicMock()
+        mock_req = MagicMock()
+        mock_req.description = "Parent"
+        mock_req.sub_processes = ["Sub 1"]
+        mock_req.related_concepts = []
+        mock_initial.requirements = [mock_req]
+
+        mock_subprocess = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = "Impl.test"
+        mock_detail.description = "Implementation"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = []
+        mock_subprocess.implementation_details = [mock_detail]
+
+        patch_baml_client.ProcessGate1InitialExtractionPrompt.return_value = mock_initial
+        patch_baml_client.ProcessGate1SubprocessDetailsPrompt.return_value = mock_subprocess
+
+        # Act
+        result = decompose_requirements("Test")
+
+        # Assert
+        impl = result.requirements[0].children[0].children[0]
+        assert impl.id == "REQ_000.1.1"  # REQ_XXX.Y.Z pattern
+        assert impl.parent_id == "REQ_000.1"
+
+    def test_implementation_nodes_have_correct_parent_id(self, patch_baml_client):
+        """Given implementation nodes, when created, then parent_id points to sub_process."""
+        # Arrange
+        mock_initial = MagicMock()
+        mock_req = MagicMock()
+        mock_req.description = "Parent"
+        mock_req.sub_processes = ["Sub 1"]
+        mock_req.related_concepts = []
+        mock_initial.requirements = [mock_req]
+
+        mock_subprocess = MagicMock()
+        mock_detail1 = MagicMock()
+        mock_detail1.function_id = "Impl.1"
+        mock_detail1.description = "First impl"
+        mock_detail1.acceptance_criteria = []
+        mock_detail1.implementation = None
+        mock_detail1.related_concepts = []
+
+        mock_detail2 = MagicMock()
+        mock_detail2.function_id = "Impl.2"
+        mock_detail2.description = "Second impl"
+        mock_detail2.acceptance_criteria = []
+        mock_detail2.implementation = None
+        mock_detail2.related_concepts = []
+
+        mock_subprocess.implementation_details = [mock_detail1, mock_detail2]
+
+        patch_baml_client.ProcessGate1InitialExtractionPrompt.return_value = mock_initial
+        patch_baml_client.ProcessGate1SubprocessDetailsPrompt.return_value = mock_subprocess
+
+        # Act
+        result = decompose_requirements("Test")
+
+        # Assert
+        sub_process = result.requirements[0].children[0]
+        for impl in sub_process.children:
+            assert impl.parent_id == sub_process.id
+
+    def test_implementation_nodes_preserve_related_concepts(self, patch_baml_client):
+        """Given impl details with related_concepts, when created, then preserved."""
+        # Arrange
+        mock_initial = MagicMock()
+        mock_req = MagicMock()
+        mock_req.description = "Parent"
+        mock_req.sub_processes = ["Sub 1"]
+        mock_req.related_concepts = []
+        mock_initial.requirements = [mock_req]
+
+        mock_subprocess = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = "Impl.test"
+        mock_detail.description = "Implementation with concepts"
+        mock_detail.acceptance_criteria = []
+        mock_detail.implementation = None
+        mock_detail.related_concepts = ["auth", "jwt", "security"]
+        mock_subprocess.implementation_details = [mock_detail]
+
+        patch_baml_client.ProcessGate1InitialExtractionPrompt.return_value = mock_initial
+        patch_baml_client.ProcessGate1SubprocessDetailsPrompt.return_value = mock_subprocess
+
+        # Act
+        result = decompose_requirements("Test")
+
+        # Assert
+        impl = result.requirements[0].children[0].children[0]
+        assert impl.related_concepts == ["auth", "jwt", "security"]
+
+    def test_sub_process_node_has_no_implementation_data(self, patch_baml_client):
+        """Given 3-tier hierarchy, sub_process nodes should not have implementation."""
+        # Arrange
+        mock_initial = MagicMock()
+        mock_req = MagicMock()
+        mock_req.description = "Parent"
+        mock_req.sub_processes = ["Sub 1"]
+        mock_req.related_concepts = []
+        mock_initial.requirements = [mock_req]
+
+        mock_subprocess = MagicMock()
+        mock_detail = MagicMock()
+        mock_detail.function_id = "Impl.test"
+        mock_detail.description = "Implementation"
+        mock_detail.acceptance_criteria = ["AC1"]
+        mock_detail.implementation = MagicMock()
+        mock_detail.implementation.frontend = ["Component"]
+        mock_detail.implementation.backend = ["Service"]
+        mock_detail.implementation.middleware = []
+        mock_detail.implementation.shared = []
+        mock_detail.related_concepts = []
+        mock_subprocess.implementation_details = [mock_detail]
+
+        patch_baml_client.ProcessGate1InitialExtractionPrompt.return_value = mock_initial
+        patch_baml_client.ProcessGate1SubprocessDetailsPrompt.return_value = mock_subprocess
+
+        # Act
+        result = decompose_requirements("Test")
+
+        # Assert - sub_process has no implementation, children do
+        sub_process = result.requirements[0].children[0]
+        assert sub_process.implementation is None
+        assert sub_process.acceptance_criteria == []
+
+        impl = sub_process.children[0]
+        assert impl.implementation is not None
+        assert impl.acceptance_criteria == ["AC1"]
 
 
 @pytest.mark.integration

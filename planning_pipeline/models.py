@@ -18,6 +18,12 @@ VALID_REQUIREMENT_TYPES = frozenset(["parent", "sub_process", "implementation"])
 # Valid property types for testable properties
 VALID_PROPERTY_TYPES = frozenset(["invariant", "round_trip", "idempotence", "oracle"])
 
+# Valid categories for requirements
+VALID_CATEGORIES = frozenset([
+    "functional", "non_functional", "security",
+    "performance", "usability", "integration"
+])
+
 
 @dataclass
 class ImplementationComponents:
@@ -132,6 +138,9 @@ class RequirementNode:
     acceptance_criteria: list[str] = field(default_factory=list)
     implementation: Optional[ImplementationComponents] = None
     testable_properties: list[TestableProperty] = field(default_factory=list)
+    function_id: Optional[str] = None
+    related_concepts: list[str] = field(default_factory=list)
+    category: str = "functional"
 
     def __post_init__(self):
         """Validate requirement node after initialization."""
@@ -142,6 +151,11 @@ class RequirementNode:
 
         if not self.description or not self.description.strip():
             raise ValueError("Requirement description must not be empty")
+
+        if self.category not in VALID_CATEGORIES:
+            raise ValueError(
+                f"Invalid category '{self.category}'. Must be one of: {', '.join(sorted(VALID_CATEGORIES))}"
+            )
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary with recursive children."""
@@ -154,6 +168,9 @@ class RequirementNode:
             "acceptance_criteria": self.acceptance_criteria,
             "implementation": self.implementation.to_dict() if self.implementation else None,
             "testable_properties": [prop.to_dict() for prop in self.testable_properties],
+            "function_id": self.function_id,
+            "related_concepts": self.related_concepts,
+            "category": self.category,
         }
 
     @classmethod
@@ -181,6 +198,9 @@ class RequirementNode:
             acceptance_criteria=data.get("acceptance_criteria", []),
             implementation=impl,
             testable_properties=props,
+            function_id=data.get("function_id"),
+            related_concepts=data.get("related_concepts", []),
+            category=data.get("category", "functional"),
         )
 
 
@@ -247,6 +267,27 @@ class RequirementHierarchy:
             return None
 
         return search(self.requirements)
+
+    def next_child_id(self, parent_id: str) -> str:
+        """Generate the next child ID for a parent.
+
+        Creates IDs following the pattern: parent_id.N where N is the next
+        available child number (1-indexed).
+
+        Args:
+            parent_id: ID of the parent node
+
+        Returns:
+            Next child ID (e.g., "REQ_001.1" for first child of REQ_001)
+
+        Raises:
+            ValueError: If parent_id is not found in the hierarchy
+        """
+        parent = self.get_by_id(parent_id)
+        if parent is None:
+            raise ValueError(f"Parent {parent_id} not found")
+        next_num = len(parent.children) + 1
+        return f"{parent_id}.{next_num}"
 
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary."""
