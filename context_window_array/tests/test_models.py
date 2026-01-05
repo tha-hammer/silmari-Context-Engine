@@ -1,7 +1,10 @@
 """Tests for context_window_array.models module."""
 
+from datetime import datetime
+
 import pytest
-from context_window_array.models import EntryType
+
+from context_window_array.models import ContextEntry, EntryType
 
 
 class TestEntryType:
@@ -55,3 +58,148 @@ class TestEntryType:
         for entry_type in EntryType:
             assert isinstance(entry_type.value, str)
             assert len(entry_type.value) > 0
+
+
+class TestContextEntryCreation:
+    """Behavior 2: ContextEntry creation with all fields."""
+
+    def test_create_with_required_fields(self):
+        """Given required fields, when created, then entry has all fields."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="src/main.py",
+            content="def main(): pass",
+            summary="Main entry point",
+        )
+
+        assert entry.id == "ctx_001"
+        assert entry.entry_type == EntryType.FILE
+        assert entry.source == "src/main.py"
+        assert entry.content == "def main(): pass"
+        assert entry.summary == "Main entry point"
+
+    def test_created_at_defaults_to_now(self):
+        """Given no created_at, when created, then defaults to current time."""
+        before = datetime.now()
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+        )
+        after = datetime.now()
+
+        assert before <= entry.created_at <= after
+
+    def test_created_at_can_be_provided(self):
+        """Given explicit created_at, when created, then uses provided value."""
+        timestamp = datetime(2026, 1, 1, 12, 0, 0)
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+            created_at=timestamp,
+        )
+
+        assert entry.created_at == timestamp
+
+    def test_optional_fields_default_correctly(self):
+        """Given only required fields, when created, then optionals have defaults."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+        )
+
+        assert entry.references == []
+        assert entry.searchable is True
+        assert entry.compressed is False
+        assert entry.ttl is None
+        assert entry.parent_id is None
+        assert entry.derived_from == []
+
+    def test_create_with_all_fields(self):
+        """Given all fields, when created, then all populated correctly."""
+        timestamp = datetime(2026, 1, 1, 12, 0, 0)
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.COMMAND_RESULT,
+            source="grep -rn 'class' src/",
+            content="Found 50 matches...",
+            summary="50 class definitions found",
+            created_at=timestamp,
+            references=["ctx_000"],
+            searchable=True,
+            compressed=False,
+            ttl=5,
+            parent_id="ctx_000",
+            derived_from=["ctx_000"],
+        )
+
+        assert entry.id == "ctx_001"
+        assert entry.entry_type == EntryType.COMMAND_RESULT
+        assert entry.source == "grep -rn 'class' src/"
+        assert entry.content == "Found 50 matches..."
+        assert entry.summary == "50 class definitions found"
+        assert entry.created_at == timestamp
+        assert entry.references == ["ctx_000"]
+        assert entry.searchable is True
+        assert entry.compressed is False
+        assert entry.ttl == 5
+        assert entry.parent_id == "ctx_000"
+        assert entry.derived_from == ["ctx_000"]
+
+    def test_create_command_type(self):
+        """Given COMMAND type, when created, then entry is command."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.COMMAND,
+            source="bash",
+            content="grep -rn 'class' src/",
+            summary="Grep for class definitions",
+        )
+
+        assert entry.entry_type == EntryType.COMMAND
+
+    def test_create_task_type(self):
+        """Given TASK type, when created, then entry is task."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.TASK,
+            source="orchestrator",
+            content="Implement user authentication",
+            summary="Auth implementation task",
+        )
+
+        assert entry.entry_type == EntryType.TASK
+
+    def test_searchable_defaults_true(self):
+        """Given no searchable param, when created, then defaults to True."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+        )
+
+        assert entry.searchable is True
+
+    def test_searchable_can_be_false(self):
+        """Given searchable=False, when created, then entry not searchable."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.COMMAND,
+            source="bash",
+            content="ls -la",
+            summary="List files",
+            searchable=False,
+        )
+
+        assert entry.searchable is False

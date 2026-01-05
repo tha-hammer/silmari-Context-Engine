@@ -4,7 +4,10 @@ This module provides dataclasses and enums for representing context entries
 in an addressable array structure.
 """
 
+from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
+from typing import Optional
 
 
 class EntryType(Enum):
@@ -51,3 +54,53 @@ class EntryType(Enum):
 
     def __str__(self) -> str:
         return self.value
+
+
+@dataclass
+class ContextEntry:
+    """Single addressable entry in the context store.
+
+    Represents a piece of context that can be stored, searched, compressed,
+    and referenced by ID. Follows the Context Entry Schema from RLM research.
+
+    Attributes:
+        id: Unique identifier (format: ctx_XXX)
+        entry_type: Type of context entry
+        source: Origin (file path, command, task_id)
+        content: Full content (can be None if compressed)
+        summary: Compressed summary (always present after creation)
+        created_at: Creation timestamp (defaults to now)
+        references: List of referenced entry IDs
+        searchable: Whether to include in search index
+        compressed: True if content has been removed
+        ttl: Time-to-live in conversation turns (None = no expiry)
+        parent_id: ID of parent entry if derived
+        derived_from: List of entry IDs this was derived from
+
+    Example:
+        >>> entry = ContextEntry(
+        ...     id="ctx_001",
+        ...     entry_type=EntryType.FILE,
+        ...     source="src/main.py",
+        ...     content="def main(): pass",
+        ...     summary="Main entry point function",
+        ... )
+        >>> entry.id
+        'ctx_001'
+    """
+
+    # Required fields
+    id: str
+    entry_type: EntryType
+    source: str
+    content: Optional[str]
+    summary: Optional[str]
+
+    # Optional fields with defaults
+    created_at: datetime = field(default_factory=datetime.now)
+    references: list[str] = field(default_factory=list)
+    searchable: bool = True
+    compressed: bool = False
+    ttl: Optional[int] = None
+    parent_id: Optional[str] = None
+    derived_from: list[str] = field(default_factory=list)
