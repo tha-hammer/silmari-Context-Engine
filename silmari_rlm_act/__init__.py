@@ -11,6 +11,7 @@ from silmari_rlm_act.models import (
     PhaseType,
     PipelineState,
 )
+from silmari_rlm_act.pipeline import RLMActPipeline
 
 __all__ = [
     "AutonomyMode",
@@ -18,4 +19,5 @@ __all__ = [
     "PhaseStatus",
     "PhaseType",
     "PipelineState",
+    "RLMActPipeline",
 ]

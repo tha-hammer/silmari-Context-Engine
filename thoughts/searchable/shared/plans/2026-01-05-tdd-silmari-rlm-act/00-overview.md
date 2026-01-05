@@ -205,8 +205,8 @@ silmari-rlm-act/
 | 08 | Multi-Doc Phase | 17 | **DONE** |
 | 09 | Beads Sync Phase | 18 | **DONE** |
 | 10 | Implementation Phase | 34 | **DONE** |
-| 11 | Pipeline Orchestration | 15 | Pending |
-| 12 | CLI Entry Point | 8 | Pending |
+| 11 | Pipeline Orchestration | 16 | **DONE** |
+| 12 | CLI Entry Point | 8 | **DONE** |
 
 ## References
 
