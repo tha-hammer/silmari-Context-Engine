@@ -85,7 +85,7 @@ No imports from existing `planning_pipeline/` code.
 | 09 | Store Compression | store.py | test_store.py | `i5i2` | **DONE** |
 | 10 | Command/Result Separation | store.py | test_store.py | `gvee` | **DONE** |
 | 11 | Store TTL Processing | store.py | test_store.py | `43cq` | **DONE** |
-| 12 | Search Index Add | search_index.py | test_search.py | `xjv5` | |
+| 12 | Search Index Add | search_index.py | test_search.py | `xjv5` | **DONE** |
 | 13 | Search Query | search_index.py | test_search.py | `cym8` | |
 | 14 | Search Returns Summaries | search_index.py | test_search.py | `qji6` | |
 | 15 | Working Context Build | working_context.py | test_working_context.py | `emwg` | |
