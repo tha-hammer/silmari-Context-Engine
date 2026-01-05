@@ -2,7 +2,7 @@
 
 from typing import Optional, Union
 from context_window_array.models import ContextEntry, EntryType
-from context_window_array.exceptions import ContextCompressedError
+from context_window_array.search_index import VectorSearchIndex, StoreSearchResult
 
 
 class CentralContextStore:
@@ -19,6 +19,7 @@ class CentralContextStore:
         """Initialize empty context store."""
         self._entries: dict[str, ContextEntry] = {}
         self._id_counter: int = 0
+        self._search_index: VectorSearchIndex = VectorSearchIndex()
 
     def _generate_id(self) -> str:
         """Generate a unique entry ID."""
@@ -40,6 +41,11 @@ class CentralContextStore:
         if entry.id in self._entries:
             raise ValueError(f"Entry with id '{entry.id}' already exists")
         self._entries[entry.id] = entry
+
+        # Index for search if searchable
+        if entry.searchable:
+            self._search_index.add(entry)
+
         return entry.id
 
     def get(self, entry_id: str) -> Optional[ContextEntry]:
@@ -106,6 +112,7 @@ class CentralContextStore:
             return None if return_entry else False
 
         entry = self._entries.pop(entry_id)
+        self._search_index.remove(entry_id)
         return entry if return_entry else True
 
     def remove_multiple(self, entry_ids: list[str]) -> int:
@@ -121,12 +128,14 @@ class CentralContextStore:
         for entry_id in entry_ids:
             if entry_id in self._entries:
                 del self._entries[entry_id]
+                self._search_index.remove(entry_id)
                 removed += 1
         return removed
 
     def clear(self) -> None:
         """Remove all entries from the store."""
         self._entries.clear()
+        self._search_index = VectorSearchIndex()
 
     def compress(self, entry_id: str) -> bool:
         """Compress an entry by ID, removing content and retaining summary.
@@ -344,3 +353,58 @@ class CentralContextStore:
         else:
             entry.set_ttl(entry.ttl + additional)
         return True
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 10,
+        entry_types: Optional[list[EntryType]] = None,
+        min_score: float = 0.0,
+        include_content: bool = False,
+    ) -> list[StoreSearchResult]:
+        """Search for entries matching the query.
+
+        Returns summary views of entries by default (not full content).
+
+        Args:
+            query: Search query text
+            max_results: Maximum number of results
+            entry_types: Optional filter by entry types
+            min_score: Minimum similarity score
+            include_content: If True, include full content in results
+
+        Returns:
+            List of StoreSearchResult objects ranked by similarity
+        """
+        # Handle empty query
+        if not query or not query.strip():
+            return []
+
+        # Use the search index
+        index_results = self._search_index.search(
+            query=query,
+            max_results=max_results,
+            entry_types=entry_types,
+            min_score=min_score,
+        )
+
+        # Convert to StoreSearchResult with entry metadata
+        results = []
+        for index_result in index_results:
+            entry = self._entries.get(index_result.entry_id)
+            if entry is None:
+                continue
+
+            results.append(StoreSearchResult(
+                entry_id=entry.id,
+                entry_type=entry.entry_type,
+                source=entry.source,
+                summary=entry.summary,
+                content=entry.content if include_content else None,
+                score=index_result.score,
+                references=entry.references,
+                parent_id=entry.parent_id,
+                compressed=entry.compressed,
+            ))
+
+        return results

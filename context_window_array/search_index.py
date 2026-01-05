@@ -28,6 +28,36 @@ class SearchResult:
     entry_type: EntryType
 
 
+@dataclass
+class StoreSearchResult:
+    """Search result with entry metadata.
+
+    This is the result returned from CentralContextStore.search(),
+    containing summary view of entries (not full content by default).
+
+    Attributes:
+        entry_id: ID of the matching entry
+        entry_type: Type of the entry
+        source: Source identifier
+        summary: Entry summary
+        content: Full content (None by default, populated if include_content=True)
+        score: Cosine similarity score (0-1)
+        references: List of referenced entry IDs
+        parent_id: Parent entry ID (if any)
+        compressed: Whether entry is compressed
+    """
+
+    entry_id: str
+    entry_type: EntryType
+    source: str
+    summary: Optional[str]
+    content: Optional[str]  # None by default, populated if include_content=True
+    score: float
+    references: list[str]
+    parent_id: Optional[str]
+    compressed: bool
+
+
 class VectorSearchIndex:
     """Vector search index using TF-IDF and cosine similarity.
 

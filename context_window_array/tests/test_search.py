@@ -4,6 +4,7 @@ import pytest
 import numpy as np
 from context_window_array.models import ContextEntry, EntryType
 from context_window_array.search_index import VectorSearchIndex
+from context_window_array.store import CentralContextStore
 
 
 class TestSearchIndexAdd:
@@ -416,5 +417,214 @@ class TestSearchQuery:
         index = VectorSearchIndex()
 
         results = index.search("any query")
+
+        assert results == []
+
+
+class TestSearchReturnsSummaries:
+    """Behavior 14: Search returns summaries, not full content."""
+
+    def test_store_search_returns_summary_view(self):
+        """Given store with entries, when search(), then returns summary views."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="large_file.py",
+            content="def function definitions module code pass\n" * 100,  # Large content with matching terms
+            summary="Module with 200 function definitions",
+        ))
+
+        results = store.search("function definitions module")
+
+        assert len(results) > 0
+        result = results[0]
+        # Result should have summary, not full content
+        assert result.summary == "Module with 200 function definitions"
+        assert result.content is None  # Content not included by default
+
+    def test_store_search_can_include_content(self):
+        """Given store, when search(include_content=True), then content included."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def test(): pass",
+            summary="Test function",
+        ))
+
+        results = store.search("test function", include_content=True)
+
+        assert len(results) > 0
+        result = results[0]
+        assert result.content == "def test(): pass"
+        assert result.summary == "Test function"
+
+    def test_store_search_compressed_entry(self):
+        """Given compressed entry, when search(), then summary returned."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Compressed file summary",
+            compressed=True,
+        ))
+
+        results = store.search("compressed file")
+
+        assert len(results) > 0
+        result = results[0]
+        assert result.summary == "Compressed file summary"
+        assert result.content is None
+        assert result.compressed is True
+
+    def test_store_search_integrates_with_index(self):
+        """Given store with index, when search(), then uses vector search."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="auth.py",
+            content="authenticate user login password session",
+            summary="Authentication module",
+        ))
+        store.add(ContextEntry(
+            id="ctx_002",
+            entry_type=EntryType.FILE,
+            source="db.py",
+            content="database postgresql connect query",
+            summary="Database module",
+        ))
+
+        results = store.search("user authentication login")
+
+        assert len(results) > 0
+        # Auth entry should be most relevant
+        assert results[0].entry_id == "ctx_001"
+
+    def test_store_search_result_has_all_metadata(self):
+        """Given search result, then includes all entry metadata."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test content",
+            summary="Test summary",
+            references=["ctx_000"],
+            parent_id="ctx_000",
+        ))
+
+        results = store.search("test")
+
+        assert len(results) > 0
+        result = results[0]
+        assert result.entry_id == "ctx_001"
+        assert result.entry_type == EntryType.FILE
+        assert result.source == "test.py"
+        assert result.summary == "Test summary"
+        assert result.references == ["ctx_000"]
+        assert result.parent_id == "ctx_000"
+        assert hasattr(result, 'score')
+
+    def test_store_search_respects_searchable_flag(self):
+        """Given non-searchable entry, when search(), then not in results."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.COMMAND,
+            source="bash",
+            content="ls -la",
+            summary="List files",
+            searchable=False,
+        ))
+        store.add(ContextEntry(
+            id="ctx_002",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="list of items",
+            summary="List handler",
+            searchable=True,
+        ))
+
+        results = store.search("list")
+
+        result_ids = [r.entry_id for r in results]
+        assert "ctx_001" not in result_ids
+        assert "ctx_002" in result_ids
+
+    def test_store_search_filter_by_type(self):
+        """Given mixed entries, when search with type filter, then only matching types."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="code file",
+            summary="Code file",
+        ))
+        store.add(ContextEntry(
+            id="ctx_002",
+            entry_type=EntryType.TASK_RESULT,
+            source="orchestrator",
+            content="task completed code written",
+            summary="Task done",
+        ))
+
+        results = store.search("code", entry_types=[EntryType.FILE])
+
+        assert all(r.entry_type == EntryType.FILE for r in results)
+
+    def test_store_expand_search_result(self):
+        """Given search result, when expand(id), then get full content."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="Full content here with lots of details",
+            summary="Brief summary",
+        ))
+
+        # Search returns summary view
+        results = store.search("content details")
+        assert len(results) > 0
+        assert results[0].content is None
+
+        # Expand to get full content
+        full_entry = store.get("ctx_001")
+        assert full_entry.content == "Full content here with lots of details"
+
+    def test_store_search_max_results(self):
+        """Given many entries, when search with max_results, then limited."""
+        store = CentralContextStore()
+        for i in range(20):
+            store.add(ContextEntry(
+                id=f"ctx_{i:03d}",
+                entry_type=EntryType.FILE,
+                source=f"file{i}.py",
+                content=f"python code module {i}",
+                summary=f"Module {i}",
+            ))
+
+        results = store.search("python module", max_results=5)
+
+        assert len(results) <= 5
+
+    def test_store_search_empty_returns_empty(self):
+        """Given store, when search(''), then returns empty list."""
+        store = CentralContextStore()
+        store.add(ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="content",
+            summary="summary",
+        ))
+
+        results = store.search("")
 
         assert results == []

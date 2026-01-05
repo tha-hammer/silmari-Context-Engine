@@ -6,7 +6,7 @@ implementation LLMs.
 
 from context_window_array.exceptions import ContextCompressedError, ContextWindowArrayError
 from context_window_array.models import ContextEntry, EntryType
-from context_window_array.search_index import VectorSearchIndex
+from context_window_array.search_index import VectorSearchIndex, SearchResult, StoreSearchResult
 from context_window_array.store import CentralContextStore
 
 __all__ = [
@@ -14,6 +14,8 @@ __all__ = [
     "EntryType",
     "CentralContextStore",
     "VectorSearchIndex",
+    "SearchResult",
+    "StoreSearchResult",
     "ContextCompressedError",
     "ContextWindowArrayError",
 ]

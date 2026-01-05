@@ -399,7 +399,6 @@ class TestStoreCompression:
 
     def test_get_content_from_store(self):
         """Given store with entry, when get_content(id), then returns content."""
-        from context_window_array.exceptions import ContextCompressedError
 
         store = CentralContextStore()
         entry = ContextEntry(
