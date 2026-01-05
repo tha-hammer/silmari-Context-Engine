@@ -1,6 +1,6 @@
 """Central context store for managing addressable context entries."""
 
-from typing import Optional
+from typing import Optional, Union
 from context_window_array.models import ContextEntry, EntryType
 
 
@@ -79,3 +79,44 @@ class CentralContextStore:
     def __len__(self) -> int:
         """Return the number of entries in the store."""
         return len(self._entries)
+
+    def remove(
+        self,
+        entry_id: str,
+        return_entry: bool = False
+    ) -> Union[bool, Optional[ContextEntry]]:
+        """Remove an entry from the store.
+
+        Args:
+            entry_id: ID of entry to remove
+            return_entry: If True, return the removed entry instead of bool
+
+        Returns:
+            If return_entry=False: True if entry was removed, False if not found
+            If return_entry=True: The removed entry, or None if not found
+        """
+        if entry_id not in self._entries:
+            return None if return_entry else False
+
+        entry = self._entries.pop(entry_id)
+        return entry if return_entry else True
+
+    def remove_multiple(self, entry_ids: list[str]) -> int:
+        """Remove multiple entries from the store.
+
+        Args:
+            entry_ids: List of entry IDs to remove
+
+        Returns:
+            Number of entries actually removed
+        """
+        removed = 0
+        for entry_id in entry_ids:
+            if entry_id in self._entries:
+                del self._entries[entry_id]
+                removed += 1
+        return removed
+
+    def clear(self) -> None:
+        """Remove all entries from the store."""
+        self._entries.clear()

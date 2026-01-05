@@ -81,7 +81,7 @@ No imports from existing `planning_pipeline/` code.
 | 05 | ContextEntry TTL | models.py | test_models.py | `nj1n` | **DONE** |
 | 06 | ContextEntry Compression | models.py | test_models.py | `tj49` | **DONE** |
 | 07 | Store Add/Get | store.py | test_store.py | `pzi4` | **DONE** |
-| 08 | Store Remove | store.py | test_store.py | `nb09` | |
+| 08 | Store Remove | store.py | test_store.py | `nb09` | **DONE** |
 | 09 | Store Compression | store.py | test_store.py | `i5i2` | |
 | 10 | Command/Result Separation | store.py | test_store.py | `gvee` | |
 | 11 | Store TTL Processing | store.py | test_store.py | `43cq` | |
