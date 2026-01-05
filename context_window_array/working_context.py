@@ -30,6 +30,23 @@ class ContextEntryView:
 
 
 @dataclass
+class SearchResultView:
+    """Search result for working LLM context.
+
+    Contains summary view plus similarity score.
+    """
+    id: str
+    entry_type: EntryType
+    source: str
+    summary: Optional[str]
+    content: None = None  # Always None for working context
+    score: float = 0.0
+    references: list[str] = field(default_factory=list)
+    parent_id: Optional[str] = None
+    compressed: bool = False
+
+
+@dataclass
 class WorkingContext:
     """Context snapshot for the working LLM.
 
@@ -119,3 +136,51 @@ class WorkingLLMContext:
             total_count=len(views),
             summary_tokens=total_tokens,
         )
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 10,
+        entry_types: Optional[list[EntryType]] = None,
+        min_score: float = 0.0,
+    ) -> list[SearchResultView]:
+        """Search for relevant entries.
+
+        Returns summary views ranked by similarity.
+
+        Args:
+            query: Search query text
+            max_results: Maximum number of results
+            entry_types: Optional filter by entry types
+            min_score: Minimum similarity score
+
+        Returns:
+            List of SearchResultView ranked by similarity
+        """
+        if not query or not query.strip():
+            return []
+
+        # Use store's search method
+        store_results = self._store.search(
+            query=query,
+            max_results=max_results,
+            entry_types=entry_types,
+            min_score=min_score,
+            include_content=False,  # Never include content for working LLM
+        )
+
+        # Convert to SearchResultView
+        return [
+            SearchResultView(
+                id=r.entry_id,
+                entry_type=r.entry_type,
+                source=r.source,
+                summary=r.summary,
+                content=None,
+                score=r.score,
+                references=r.references,
+                parent_id=r.parent_id,
+                compressed=r.compressed,
+            )
+            for r in store_results
+        ]

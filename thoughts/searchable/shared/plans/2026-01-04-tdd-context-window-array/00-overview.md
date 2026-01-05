@@ -89,8 +89,8 @@ No imports from existing `planning_pipeline/` code.
 | 13 | Search Query | search_index.py | test_search.py | `cym8` | **DONE** |
 | 14 | Search Returns Summaries | search_index.py | test_search.py | `qji6` | **DONE** |
 | 15 | Working Context Build | working_context.py | test_working_context.py | `emwg` | **DONE** |
-| 16 | Working Context Search | working_context.py | test_working_context.py | `h2eo` | |
-| 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | |
+| 16 | Working Context Search | working_context.py | test_working_context.py | `h2eo` | **DONE** |
+| 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | **DONE** |
 | 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py | `2dd4` | |
 | 19 | Context Request | implementation_context.py | test_implementation_context.py | `2m3r` | |
 | 20 | Batch Creation | batching.py | test_batching.py | `27rc` | |
