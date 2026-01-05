@@ -196,7 +196,7 @@ silmari-rlm-act/
 | TDD Phase | Behavior | Est. Tests | Status |
 |-----------|----------|------------|--------|
 | 01 | Core Models (PhaseResult, PipelineState, AutonomyMode, PhaseType, PhaseStatus) | 42 | **DONE** |
-| 02 | Checkpoint Manager | 10 | Pending |
+| 02 | Checkpoint Manager | 21 | **DONE** |
 | 03 | Interactive Prompts | 12 | Pending |
 | 04 | CWA Integration | 15 | Pending |
 | 05 | Research Phase | 8 | Pending |

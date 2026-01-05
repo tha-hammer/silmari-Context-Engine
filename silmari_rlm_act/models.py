@@ -241,6 +241,7 @@ class PipelineState:
     autonomy_mode: AutonomyMode
     current_phase: Optional[PhaseType] = None
     phase_results: dict[PhaseType, PhaseResult] = field(default_factory=dict)
+    context_entry_ids: dict[PhaseType, list[str]] = field(default_factory=dict)
     started_at: Optional[datetime] = None
     checkpoint_id: Optional[str] = None
     beads_epic_id: Optional[str] = None
@@ -298,6 +299,28 @@ class PipelineState:
                 return False
         return True
 
+    def track_context_entry(self, phase_type: PhaseType, entry_id: str) -> None:
+        """Track a Context Window Array entry ID for a phase.
+
+        Args:
+            phase_type: Which phase the entry belongs to
+            entry_id: The CWA entry ID to track
+        """
+        if phase_type not in self.context_entry_ids:
+            self.context_entry_ids[phase_type] = []
+        self.context_entry_ids[phase_type].append(entry_id)
+
+    def get_context_entries(self, phase_type: PhaseType) -> list[str]:
+        """Get tracked CWA entry IDs for a phase.
+
+        Args:
+            phase_type: Which phase to get entries for
+
+        Returns:
+            List of entry IDs (empty list if none tracked)
+        """
+        return self.context_entry_ids.get(phase_type, [])
+
     def to_dict(self) -> dict[str, Any]:
         """Serialize to dictionary.
 
@@ -312,11 +335,26 @@ class PipelineState:
                 phase_type.value: result.to_dict()
                 for phase_type, result in self.phase_results.items()
             },
+            "context_entry_ids": {
+                phase_type.value: entry_ids
+                for phase_type, entry_ids in self.context_entry_ids.items()
+            },
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "checkpoint_id": self.checkpoint_id,
             "beads_epic_id": self.beads_epic_id,
             "metadata": self.metadata,
         }
+
+    def to_checkpoint_dict(self) -> dict[str, Any]:
+        """Serialize to checkpoint-compatible dictionary.
+
+        This is an alias for to_dict(), provided for semantic clarity
+        when writing checkpoints.
+
+        Returns:
+            Dictionary suitable for checkpoint storage.
+        """
+        return self.to_dict()
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "PipelineState":
@@ -341,13 +379,34 @@ class PipelineState:
             phase_type = PhaseType.from_string(phase_str)
             phase_results[phase_type] = PhaseResult.from_dict(result_data)
 
+        context_entry_ids: dict[PhaseType, list[str]] = {}
+        for phase_str, entry_ids in data.get("context_entry_ids", {}).items():
+            phase_type = PhaseType.from_string(phase_str)
+            context_entry_ids[phase_type] = entry_ids
+
         return cls(
             project_path=data["project_path"],
             autonomy_mode=AutonomyMode.from_string(data["autonomy_mode"]),
             current_phase=current_phase,
             phase_results=phase_results,
+            context_entry_ids=context_entry_ids,
             started_at=started_at,
             checkpoint_id=data.get("checkpoint_id"),
             beads_epic_id=data.get("beads_epic_id"),
             metadata=data.get("metadata", {}),
         )
+
+    @classmethod
+    def from_checkpoint_dict(cls, data: dict[str, Any]) -> "PipelineState":
+        """Deserialize from checkpoint dictionary.
+
+        This is an alias for from_dict(), provided for semantic clarity
+        when loading checkpoints.
+
+        Args:
+            data: Dictionary from checkpoint file's 'state' field
+
+        Returns:
+            Reconstructed PipelineState
+        """
+        return cls.from_dict(data)
