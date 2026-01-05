@@ -1,5 +1,7 @@
 # Context Window Array Architecture - TDD Implementation Plan
 
+**Epic**: `silmari-Context-Engine-jhxw`
+
 ## Overview
 
 This plan implements the **Hierarchical Context Array Architecture** for separating working and implementation LLMs with addressable context. Based on research synthesizing RLM (Recursive Language Models) and CodeAct patterns.
@@ -70,29 +72,32 @@ No imports from existing `planning_pipeline/` code.
 
 ## Implementation Phases
 
-| Phase | Behavior | File | Test File |
-|-------|----------|------|-----------|
-| 01 | EntryType Enum | models.py | test_models.py |
-| 02 | ContextEntry Creation | models.py | test_models.py |
-| 03 | ContextEntry Validation | models.py | test_models.py |
-| 04 | ContextEntry Serialization | models.py | test_models.py |
-| 05 | ContextEntry TTL | models.py | test_models.py |
-| 06 | ContextEntry Compression | models.py | test_models.py |
-| 07 | Store Add/Get | store.py | test_store.py |
-| 08 | Store Remove | store.py | test_store.py |
-| 09 | Store Compression | store.py | test_store.py |
-| 10 | Command/Result Separation | store.py | test_store.py |
-| 11 | Store TTL Processing | store.py | test_store.py |
-| 12 | Search Index Add | search_index.py | test_search.py |
-| 13 | Search Query | search_index.py | test_search.py |
-| 14 | Search Returns Summaries | search_index.py | test_search.py |
-| 15 | Working Context Build | working_context.py | test_working_context.py |
-| 16 | Working Context Search | working_context.py | test_working_context.py |
-| 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py |
-| 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py |
-| 19 | Context Request | implementation_context.py | test_implementation_context.py |
-| 20 | Batch Creation | batching.py | test_batching.py |
-| 21 | Batch Bounds | batching.py | test_batching.py |
+| Phase | Behavior | File | Test File | Beads ID | Status |
+|-------|----------|------|-----------|----------|--------|
+| 01 | EntryType Enum | models.py | test_models.py | `9e1g` | **DONE** |
+| 02 | ContextEntry Creation | models.py | test_models.py | `vl1r` | |
+| 03 | ContextEntry Validation | models.py | test_models.py | `2xqn` | |
+| 04 | ContextEntry Serialization | models.py | test_models.py | `9wdr` | |
+| 05 | ContextEntry TTL | models.py | test_models.py | `nj1n` | |
+| 06 | ContextEntry Compression | models.py | test_models.py | `tj49` | |
+| 07 | Store Add/Get | store.py | test_store.py | `pzi4` | |
+| 08 | Store Remove | store.py | test_store.py | `nb09` | |
+| 09 | Store Compression | store.py | test_store.py | `i5i2` | |
+| 10 | Command/Result Separation | store.py | test_store.py | `gvee` | |
+| 11 | Store TTL Processing | store.py | test_store.py | `43cq` | |
+| 12 | Search Index Add | search_index.py | test_search.py | `xjv5` | |
+| 13 | Search Query | search_index.py | test_search.py | `cym8` | |
+| 14 | Search Returns Summaries | search_index.py | test_search.py | `qji6` | |
+| 15 | Working Context Build | working_context.py | test_working_context.py | `emwg` | |
+| 16 | Working Context Search | working_context.py | test_working_context.py | `h2eo` | |
+| 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | |
+| 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py | `2dd4` | |
+| 19 | Context Request | implementation_context.py | test_implementation_context.py | `2m3r` | |
+| 20 | Batch Creation | batching.py | test_batching.py | `27rc` | |
+| 21 | Batch Execution | batching.py | test_batching.py | `hnr9` | |
+
+> **Note**: Beads IDs are short-form. Full ID format: `silmari-Context-Engine-{id}`
+> Use `bd show {id}` to view details, `bd update {id} --status=in_progress` to claim work.
 
 ## Test Commands
 
