@@ -2,6 +2,7 @@
 
 from typing import Optional, Union
 from context_window_array.models import ContextEntry, EntryType
+from context_window_array.exceptions import ContextCompressedError
 
 
 class CentralContextStore:
@@ -120,3 +121,86 @@ class CentralContextStore:
     def clear(self) -> None:
         """Remove all entries from the store."""
         self._entries.clear()
+
+    def compress(self, entry_id: str) -> bool:
+        """Compress an entry by ID, removing content and retaining summary.
+
+        Args:
+            entry_id: ID of entry to compress
+
+        Returns:
+            True if entry was found (and compressed or already compressed),
+            False if entry not found
+
+        Raises:
+            ValueError: If entry has no summary
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            return False
+        entry.compress()
+        return True
+
+    def compress_multiple(self, entry_ids: list[str]) -> int:
+        """Compress multiple entries.
+
+        Args:
+            entry_ids: List of entry IDs to compress
+
+        Returns:
+            Number of entries successfully compressed
+        """
+        compressed = 0
+        for entry_id in entry_ids:
+            entry = self.get(entry_id)
+            if entry is not None and entry.can_compress():
+                entry.compress()
+                compressed += 1
+        return compressed
+
+    def get_content(self, entry_id: str) -> Optional[str]:
+        """Get content of an entry.
+
+        Args:
+            entry_id: ID of entry
+
+        Returns:
+            Content string, or None if entry not found
+
+        Raises:
+            ContextCompressedError: If entry is compressed
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            return None
+        return entry.get_content()
+
+    def get_summary(self, entry_id: str) -> Optional[str]:
+        """Get summary of an entry.
+
+        Args:
+            entry_id: ID of entry
+
+        Returns:
+            Summary string, or None if entry not found
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            return None
+        return entry.summary
+
+    def get_compressed(self) -> list[ContextEntry]:
+        """Get all compressed entries.
+
+        Returns:
+            List of compressed entries
+        """
+        return [e for e in self._entries.values() if e.compressed]
+
+    def get_uncompressed(self) -> list[ContextEntry]:
+        """Get all uncompressed entries.
+
+        Returns:
+            List of uncompressed entries
+        """
+        return [e for e in self._entries.values() if not e.compressed]
