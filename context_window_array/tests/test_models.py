@@ -5,6 +5,7 @@ from datetime import datetime
 import pytest
 from hypothesis import given, settings, strategies as st
 
+from context_window_array.exceptions import ContextCompressedError
 from context_window_array.models import ContextEntry, EntryType
 
 
@@ -772,3 +773,219 @@ class TestContextEntryTTL:
 
         with pytest.raises(ValueError, match="ttl must be non-negative"):
             entry.set_ttl(-1)
+
+
+class TestContextEntryCompression:
+    """Behavior 6: ContextEntry compression state management."""
+
+    def test_compress_removes_content(self):
+        """Given entry with content, when compress(), then content is None."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        entry.compress()
+
+        assert entry.content is None
+
+    def test_compress_sets_compressed_flag(self):
+        """Given entry, when compress(), then compressed=True."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        entry.compress()
+
+        assert entry.compressed is True
+
+    def test_compress_retains_summary(self):
+        """Given entry with summary, when compress(), then summary retained."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        entry.compress()
+
+        assert entry.summary == "Main function"
+
+    def test_compress_without_summary_raises_error(self):
+        """Given entry without summary, when compress(), then raises ValueError."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary=None,
+        )
+
+        with pytest.raises(ValueError, match="Cannot compress entry without summary"):
+            entry.compress()
+
+    def test_compress_already_compressed_is_noop(self):
+        """Given already compressed entry, when compress(), then no error."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Main function",
+            compressed=True,
+        )
+
+        entry.compress()  # Should not raise
+
+        assert entry.compressed is True
+        assert entry.content is None
+
+    def test_is_compressed_when_compressed(self):
+        """Given compressed entry, when is_compressed(), then returns True."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Main function",
+            compressed=True,
+        )
+
+        assert entry.is_compressed() is True
+
+    def test_is_compressed_when_not_compressed(self):
+        """Given entry with content, when is_compressed(), then returns False."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+            compressed=False,
+        )
+
+        assert entry.is_compressed() is False
+
+    def test_get_content_when_not_compressed(self):
+        """Given entry with content, when get_content(), then returns content."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        assert entry.get_content() == "def main(): pass"
+
+    def test_get_content_when_compressed_raises_error(self):
+        """Given compressed entry, when get_content(), then raises ContextCompressedError."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Main function",
+            compressed=True,
+        )
+
+        with pytest.raises(ContextCompressedError, match="Entry ctx_001 is compressed"):
+            entry.get_content()
+
+    def test_get_content_or_summary_when_not_compressed(self):
+        """Given entry with content, when get_content_or_summary(), then returns content."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        assert entry.get_content_or_summary() == "def main(): pass"
+
+    def test_get_content_or_summary_when_compressed(self):
+        """Given compressed entry, when get_content_or_summary(), then returns summary."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Main function",
+            compressed=True,
+        )
+
+        assert entry.get_content_or_summary() == "Main function"
+
+    def test_can_compress_with_content_and_summary(self):
+        """Given entry with both content and summary, when can_compress(), then True."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Main function",
+        )
+
+        assert entry.can_compress() is True
+
+    def test_cannot_compress_without_summary(self):
+        """Given entry without summary, when can_compress(), then False."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary=None,
+        )
+
+        assert entry.can_compress() is False
+
+    def test_cannot_compress_already_compressed(self):
+        """Given already compressed entry, when can_compress(), then False."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="Main function",
+            compressed=True,
+        )
+
+        assert entry.can_compress() is False
+
+    def test_set_summary(self):
+        """Given entry, when set_summary(new), then summary updated."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Old summary",
+        )
+
+        entry.set_summary("New summary")
+
+        assert entry.summary == "New summary"
+
+    def test_set_summary_empty_raises_error(self):
+        """Given entry, when set_summary(''), then raises ValueError."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="def main(): pass",
+            summary="Old summary",
+        )
+
+        with pytest.raises(ValueError, match="Summary must not be empty"):
+            entry.set_summary("")

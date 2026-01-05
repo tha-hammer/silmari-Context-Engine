@@ -9,6 +9,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Optional
 
+from context_window_array.exceptions import ContextCompressedError
+
 
 class EntryType(Enum):
     """Types of context entries in the store.
@@ -241,3 +243,74 @@ class ContextEntry:
             parent_id=data.get("parent_id"),
             derived_from=data.get("derived_from", []),
         )
+
+    def compress(self) -> None:
+        """Compress entry by removing content and retaining summary.
+
+        Raises:
+            ValueError: If entry has no summary to retain
+        """
+        if self.compressed:
+            return  # Already compressed, no-op
+
+        if self.summary is None:
+            raise ValueError("Cannot compress entry without summary")
+
+        object.__setattr__(self, "content", None)
+        object.__setattr__(self, "compressed", True)
+
+    def is_compressed(self) -> bool:
+        """Check if entry is compressed.
+
+        Returns:
+            True if compressed flag is set, False otherwise.
+        """
+        return self.compressed
+
+    def get_content(self) -> str:
+        """Get full content of entry.
+
+        Returns:
+            Content string
+
+        Raises:
+            ContextCompressedError: If entry is compressed
+        """
+        if self.compressed:
+            raise ContextCompressedError(self.id)
+        return self.content  # type: ignore
+
+    def get_content_or_summary(self) -> str:
+        """Get content if available, otherwise summary.
+
+        Returns:
+            Content if not compressed, summary otherwise.
+        """
+        if self.content is not None:
+            return self.content
+        return self.summary  # type: ignore
+
+    def can_compress(self) -> bool:
+        """Check if entry can be compressed.
+
+        Returns:
+            True if entry has content, summary, and is not already compressed.
+        """
+        return (
+            not self.compressed
+            and self.content is not None
+            and self.summary is not None
+        )
+
+    def set_summary(self, summary: str) -> None:
+        """Set the summary value.
+
+        Args:
+            summary: New summary text
+
+        Raises:
+            ValueError: If summary is empty
+        """
+        if not summary or not summary.strip():
+            raise ValueError("Summary must not be empty")
+        object.__setattr__(self, "summary", summary)
