@@ -39,12 +39,13 @@ class ResearchPhase:
         DEFAULT_TIMEOUT: Default timeout in seconds (20 minutes)
     """
 
-    TEMPLATE_PATH = ".claude/commands/research_codebase.md"
+    TEMPLATE_PATH = "silmari_rlm_act/commands/research_codebase.md"
     DEFAULT_TIMEOUT = 1200  # 20 minutes
 
     # Patterns to match research file paths
     RESEARCH_PATH_PATTERNS = [
         r"thoughts/searchable/shared/research/[\w\-\.]+\.md",
+        r"thoughts/searchable/research/[\w\-\.]+\.md",
         r"thoughts/shared/research/[\w\-\.]+\.md",
         r"/[\w/\-\.]+/thoughts/[\w/\-\.]+research[\w/\-\.]+\.md",
     ]
@@ -100,11 +101,13 @@ class ResearchPhase:
         """
         return """# Research Task
 
+**Project path**: {project_path}
+
 Research the following question thoroughly:
 
 {research_question}
 
-Save your findings to a markdown file in thoughts/searchable/shared/research/.
+Save your findings to a markdown file in {project_path}/thoughts/searchable/shared/research/.
 Use the format: YYYY-MM-DD-topic-name.md
 
 Include:
@@ -126,6 +129,7 @@ Include:
         """
         template = self._load_template()
         prompt = template.replace("{research_question}", research_question)
+        prompt = prompt.replace("{project_path}", str(self.project_path))
         if additional_context:
             prompt += f"\n\nAdditional Context:\n{additional_context}"
         return prompt
@@ -214,6 +218,44 @@ Include:
 
         return summary[:max_length]
 
+    def _find_recent_research_file(self, started_at: datetime) -> Optional[Path]:
+        """Find recently created research file as fallback.
+
+        Searches thoughts/searchable/research/ for files created after started_at.
+
+        Args:
+            started_at: Time when research started
+
+        Returns:
+            Path to most recent research file, or None if not found
+        """
+        research_dirs = [
+            self.project_path / "thoughts" / "searchable" / "research",
+            self.project_path / "thoughts" / "searchable" / "shared" / "research",
+        ]
+
+        recent_files: list[tuple[Path, float]] = []
+
+        for research_dir in research_dirs:
+            if not research_dir.exists():
+                continue
+
+            for file_path in research_dir.glob("*.md"):
+                try:
+                    mtime = file_path.stat().st_mtime
+                    # Check if file was modified after research started
+                    if mtime >= started_at.timestamp():
+                        recent_files.append((file_path, mtime))
+                except OSError:
+                    continue
+
+        if not recent_files:
+            return None
+
+        # Return most recently modified file
+        recent_files.sort(key=lambda x: x[1], reverse=True)
+        return recent_files[0][0]
+
     def _extract_open_questions(self, output: str) -> list[str]:
         """Extract open questions from output.
 
@@ -281,11 +323,15 @@ Include:
             output = result.get("output", "")
             research_path = self._extract_research_path(output)
 
+            # Fallback: search research directories for recently created files
+            if not research_path:
+                research_path = self._find_recent_research_file(started_at)
+
             if not research_path:
                 return PhaseResult(
                     phase_type=PhaseType.RESEARCH,
                     status=PhaseStatus.FAILED,
-                    errors=["No research document path found in output"],
+                    errors=["No research document path found in output or research directories"],
                     started_at=started_at,
                     completed_at=completed_at,
                     duration_seconds=elapsed,

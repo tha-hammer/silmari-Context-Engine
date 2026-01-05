@@ -44,7 +44,7 @@ class TestExecuteResearch:
 
     def test_loads_research_template(self, tmp_path: Path) -> None:
         """Given execution, loads research command template."""
-        commands_dir = tmp_path / ".claude" / "commands"
+        commands_dir = tmp_path / "silmari_rlm_act" / "commands"
         commands_dir.mkdir(parents=True)
         template = commands_dir / "research_codebase.md"
         template.write_text("# Custom Research\n\n{research_question}")
