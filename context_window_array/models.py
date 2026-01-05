@@ -171,6 +171,44 @@ class ContextEntry:
             "derived_from": self.derived_from,
         }
 
+    def decrement_ttl(self) -> None:
+        """Decrement TTL by 1 if set and positive.
+
+        If TTL is None, does nothing (no expiry).
+        If TTL is 0, stays at 0.
+        """
+        if self.ttl is not None and self.ttl > 0:
+            object.__setattr__(self, "ttl", self.ttl - 1)
+
+    def is_expired(self) -> bool:
+        """Check if entry has expired based on TTL.
+
+        Returns:
+            True if TTL is 0, False if TTL is None or positive.
+        """
+        return self.ttl == 0
+
+    def has_ttl(self) -> bool:
+        """Check if entry has a TTL set.
+
+        Returns:
+            True if TTL is not None (even if 0), False otherwise.
+        """
+        return self.ttl is not None
+
+    def set_ttl(self, ttl: Optional[int]) -> None:
+        """Set the TTL value.
+
+        Args:
+            ttl: New TTL value (None for no expiry, 0+ for turns until expiry)
+
+        Raises:
+            ValueError: If ttl is negative
+        """
+        if ttl is not None and ttl < 0:
+            raise ValueError("ttl must be non-negative")
+        object.__setattr__(self, "ttl", ttl)
+
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> "ContextEntry":
         """Deserialize entry from dictionary.
