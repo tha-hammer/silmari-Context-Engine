@@ -5,8 +5,9 @@ Implementation LLMs receive full content for a bounded set of entries
 overwhelming the context window.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Generator, Optional
 
 from context_window_array.exceptions import EntryBoundsError
 from context_window_array.models import ContextEntry, EntryType
@@ -69,6 +70,9 @@ class ImplementationLLMContext:
         """
         self._store = store
         self._max_entries = max_entries
+        self._active_entries: set[str] = set()
+        self._total_requests: int = 0
+        self._total_releases: int = 0
 
     def validate_bounds(self, entry_ids: list[str]) -> bool:
         """Check if entry count is within bounds.
@@ -174,3 +178,109 @@ class ImplementationLLMContext:
             total_tokens=total_tokens,
             entry_ids=[e.id for e in entries],
         )
+
+    def is_in_use(self, entry_id: str) -> bool:
+        """Check if an entry is currently in use.
+
+        Args:
+            entry_id: ID of entry to check
+
+        Returns:
+            True if entry is in active use
+        """
+        return entry_id in self._active_entries
+
+    def get_active_entries(self) -> set[str]:
+        """Get all currently active entry IDs.
+
+        Returns:
+            Set of entry IDs currently in use
+        """
+        return self._active_entries.copy()
+
+    def request_context(
+        self,
+        entry_ids: list[str],
+        skip_validation: bool = False,
+    ) -> ImplementationContext:
+        """Request entries for implementation context.
+
+        Marks entries as in-use and returns full content.
+
+        Args:
+            entry_ids: IDs of entries to request
+            skip_validation: If True, skip bounds validation
+
+        Returns:
+            ImplementationContext with requested entries
+
+        Raises:
+            EntryBoundsError: If entry count exceeds max_entries
+        """
+        # Build validates bounds
+        result = self.build(entry_ids, skip_validation=skip_validation)
+
+        # Mark entries as in_use
+        for entry_id in result.entry_ids:
+            self._active_entries.add(entry_id)
+
+        self._total_requests += len(result.entry_ids)
+
+        return result
+
+    def release_context(self, entry_ids: Optional[list[str]] = None) -> None:
+        """Release entries from active use.
+
+        Args:
+            entry_ids: Specific entries to release, or None to release all
+        """
+        if entry_ids is None:
+            released = len(self._active_entries)
+            self._active_entries.clear()
+        else:
+            released = 0
+            for entry_id in entry_ids:
+                if entry_id in self._active_entries:
+                    self._active_entries.discard(entry_id)
+                    released += 1
+
+        self._total_releases += released
+
+    def get_usage_stats(self) -> dict:
+        """Get usage statistics.
+
+        Returns:
+            Dictionary with usage stats
+        """
+        return {
+            "active_count": len(self._active_entries),
+            "total_requests": self._total_requests,
+            "total_releases": self._total_releases,
+        }
+
+    @contextmanager
+    def request(
+        self,
+        entry_ids: list[str],
+        skip_validation: bool = False,
+    ) -> Generator[ImplementationContext, None, None]:
+        """Context manager for requesting and auto-releasing entries.
+
+        Guarantees:
+        - Entries are marked in_use when context is entered
+        - Entries are ALWAYS released when context exits (success or exception)
+        - release_context() is called in finally block
+
+        Args:
+            entry_ids: IDs of entries to request
+            skip_validation: If True, skip bounds validation
+
+        Yields:
+            ImplementationContext with requested entries
+        """
+        result = self.request_context(entry_ids, skip_validation=skip_validation)
+        try:
+            yield result
+        finally:
+            # ALWAYS releases, even if handler raises exception
+            self.release_context(result.entry_ids)

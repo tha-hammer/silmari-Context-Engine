@@ -92,7 +92,7 @@ No imports from existing `planning_pipeline/` code.
 | 16 | Working Context Search | working_context.py | test_working_context.py | `h2eo` | **DONE** |
 | 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | **DONE** |
 | 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py | `2dd4` | **DONE** |
-| 19 | Context Request | implementation_context.py | test_implementation_context.py | `2m3r` | |
+| 19 | Context Request | implementation_context.py | test_implementation_context.py | `2m3r` | **DONE** |
 | 20 | Batch Creation | batching.py | test_batching.py | `27rc` | |
 | 21 | Batch Execution | batching.py | test_batching.py | `hnr9` | |
 

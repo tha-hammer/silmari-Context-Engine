@@ -4,6 +4,39 @@
 
 Request and retrieve entries from central store for implementation context.
 
+## Exception Handling Guarantee
+
+**The context manager guarantees release even on exception.**
+
+The `request()` context manager uses a `finally` block to ensure entries are always released, regardless of whether the handler succeeds or raises an exception:
+
+```python
+@contextmanager
+def request(
+    self,
+    entry_ids: list[str],
+    skip_validation: bool = False,
+) -> Generator[ImplementationContext, None, None]:
+    """Context manager for requesting and auto-releasing entries.
+
+    Guarantees:
+    - Entries are marked in_use when context is entered
+    - Entries are ALWAYS released when context exits (success or exception)
+    - release_context() is called in finally block
+    """
+    result = self.request_context(entry_ids, skip_validation=skip_validation)
+    try:
+        yield result
+    finally:
+        # ALWAYS releases, even if handler raises exception
+        self.release_context(result.entry_ids)
+```
+
+This guarantee prevents context leaks:
+- If handler succeeds: entries released normally
+- If handler raises exception: entries still released before exception propagates
+- If request_context fails: no entries acquired, nothing to release
+
 ### Test Specification
 
 **Given**: Working context with search results
@@ -382,15 +415,15 @@ Consider adding entry locking for concurrent access scenarios.
 ## Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red): AttributeError for request_context
-- [ ] Test passes (Green): All 11 tests pass
-- [ ] `request_context()` retrieves full content
-- [ ] `request_context()` marks entries as in_use
-- [ ] `release_context()` clears in_use status
-- [ ] `release_context(entry_ids)` releases specific entries
-- [ ] Context manager auto-releases
-- [ ] Usage stats tracked correctly
+- [x] Test fails for right reason (Red): AttributeError for request_context
+- [x] Test passes (Green): All 12 tests pass (added test for exception release)
+- [x] `request_context()` retrieves full content
+- [x] `request_context()` marks entries as in_use
+- [x] `release_context()` clears in_use status
+- [x] `release_context(entry_ids)` releases specific entries
+- [x] Context manager auto-releases
+- [x] Usage stats tracked correctly
 
 **Manual:**
-- [ ] Request/release workflow matches RLM paper pattern
-- [ ] Stats useful for debugging context management
+- [x] Request/release workflow matches RLM paper pattern
+- [x] Stats useful for debugging context management
