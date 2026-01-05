@@ -76,7 +76,7 @@ No imports from existing `planning_pipeline/` code.
 |-------|----------|------|-----------|----------|--------|
 | 01 | EntryType Enum | models.py | test_models.py | `9e1g` | **DONE** |
 | 02 | ContextEntry Creation | models.py | test_models.py | `vl1r` | **DONE** |
-| 03 | ContextEntry Validation | models.py | test_models.py | `2xqn` | |
+| 03 | ContextEntry Validation | models.py | test_models.py | `2xqn` | **DONE** |
 | 04 | ContextEntry Serialization | models.py | test_models.py | `9wdr` | |
 | 05 | ContextEntry TTL | models.py | test_models.py | `nj1n` | |
 | 06 | ContextEntry Compression | models.py | test_models.py | `tj49` | |

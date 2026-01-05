@@ -203,3 +203,160 @@ class TestContextEntryCreation:
         )
 
         assert entry.searchable is False
+
+
+class TestContextEntryValidation:
+    """Behavior 3: ContextEntry validation in __post_init__."""
+
+    def test_empty_id_raises_error(self):
+        """Given empty id, when created, then raises ValueError."""
+        with pytest.raises(ValueError, match="id must not be empty"):
+            ContextEntry(
+                id="",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+            )
+
+    def test_whitespace_id_raises_error(self):
+        """Given whitespace-only id, when created, then raises ValueError."""
+        with pytest.raises(ValueError, match="id must not be empty"):
+            ContextEntry(
+                id="   ",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+            )
+
+    def test_empty_source_raises_error(self):
+        """Given empty source, when created, then raises ValueError."""
+        with pytest.raises(ValueError, match="source must not be empty"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="",
+                content="test",
+                summary="test",
+            )
+
+    def test_content_and_summary_both_none_raises_error(self):
+        """Given both content and summary None, when created, then raises ValueError."""
+        with pytest.raises(ValueError, match="content or summary must be provided"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content=None,
+                summary=None,
+            )
+
+    def test_content_only_is_valid(self):
+        """Given content but no summary, when created, then valid."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test content",
+            summary=None,
+        )
+        assert entry.content == "test content"
+        assert entry.summary is None
+
+    def test_summary_only_is_valid(self):
+        """Given summary but no content, when created, then valid (compressed state)."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content=None,
+            summary="test summary",
+        )
+        assert entry.content is None
+        assert entry.summary == "test summary"
+
+    def test_negative_ttl_raises_error(self):
+        """Given negative TTL, when created, then raises ValueError."""
+        with pytest.raises(ValueError, match="ttl must be non-negative"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+                ttl=-1,
+            )
+
+    def test_zero_ttl_is_valid(self):
+        """Given TTL of 0, when created, then valid (will expire on next turn)."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+            ttl=0,
+        )
+        assert entry.ttl == 0
+
+    def test_none_ttl_is_valid(self):
+        """Given TTL of None, when created, then valid (no expiry)."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+            ttl=None,
+        )
+        assert entry.ttl is None
+
+    def test_invalid_parent_id_type_raises_error(self):
+        """Given non-string parent_id, when created, then raises TypeError."""
+        with pytest.raises(TypeError, match="parent_id must be a string"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+                parent_id=123,  # type: ignore
+            )
+
+    def test_empty_parent_id_is_valid(self):
+        """Given empty string parent_id, when created, then treated as None."""
+        entry = ContextEntry(
+            id="ctx_001",
+            entry_type=EntryType.FILE,
+            source="test.py",
+            content="test",
+            summary="test",
+            parent_id="",
+        )
+        # Empty string should be normalized to None
+        assert entry.parent_id is None
+
+    def test_references_must_be_list_of_strings(self):
+        """Given references with non-string elements, when created, then raises TypeError."""
+        with pytest.raises(TypeError, match="references must be list of strings"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+                references=[123, 456],  # type: ignore
+            )
+
+    def test_derived_from_must_be_list_of_strings(self):
+        """Given derived_from with non-string elements, when created, then raises TypeError."""
+        with pytest.raises(TypeError, match="derived_from must be list of strings"):
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test",
+                summary="test",
+                derived_from=[123],  # type: ignore
+            )

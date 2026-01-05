@@ -104,3 +104,48 @@ class ContextEntry:
     ttl: Optional[int] = None
     parent_id: Optional[str] = None
     derived_from: list[str] = field(default_factory=list)
+
+    def __post_init__(self) -> None:
+        """Validate entry after initialization."""
+        self._validate_id()
+        self._validate_source()
+        self._validate_content_or_summary()
+        self._validate_ttl()
+        self._validate_parent_id()
+        self._validate_string_lists()
+
+    def _validate_id(self) -> None:
+        """Validate id is non-empty."""
+        if not self.id or not self.id.strip():
+            raise ValueError("id must not be empty")
+
+    def _validate_source(self) -> None:
+        """Validate source is non-empty."""
+        if not self.source or not self.source.strip():
+            raise ValueError("source must not be empty")
+
+    def _validate_content_or_summary(self) -> None:
+        """Validate at least one of content or summary is provided."""
+        if self.content is None and self.summary is None:
+            raise ValueError("At least one of content or summary must be provided")
+
+    def _validate_ttl(self) -> None:
+        """Validate TTL is non-negative if provided."""
+        if self.ttl is not None and self.ttl < 0:
+            raise ValueError("ttl must be non-negative")
+
+    def _validate_parent_id(self) -> None:
+        """Validate parent_id type and normalize empty strings to None."""
+        if self.parent_id is not None:
+            if not isinstance(self.parent_id, str):
+                raise TypeError("parent_id must be a string or None")
+            # Normalize empty string to None
+            if not self.parent_id.strip():
+                object.__setattr__(self, "parent_id", None)
+
+    def _validate_string_lists(self) -> None:
+        """Validate references and derived_from are lists of strings."""
+        if self.references and not all(isinstance(r, str) for r in self.references):
+            raise TypeError("references must be list of strings")
+        if self.derived_from and not all(isinstance(d, str) for d in self.derived_from):
+            raise TypeError("derived_from must be list of strings")
