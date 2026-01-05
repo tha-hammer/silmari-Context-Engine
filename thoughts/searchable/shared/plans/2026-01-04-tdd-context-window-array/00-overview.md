@@ -88,7 +88,7 @@ No imports from existing `planning_pipeline/` code.
 | 12 | Search Index Add | search_index.py | test_search.py | `xjv5` | **DONE** |
 | 13 | Search Query | search_index.py | test_search.py | `cym8` | **DONE** |
 | 14 | Search Returns Summaries | search_index.py | test_search.py | `qji6` | **DONE** |
-| 15 | Working Context Build | working_context.py | test_working_context.py | `emwg` | |
+| 15 | Working Context Build | working_context.py | test_working_context.py | `emwg` | **DONE** |
 | 16 | Working Context Search | working_context.py | test_working_context.py | `h2eo` | |
 | 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | |
 | 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py | `2dd4` | |

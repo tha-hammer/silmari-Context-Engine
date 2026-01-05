@@ -106,6 +106,7 @@ class ContextEntry:
     ttl: Optional[int] = None
     parent_id: Optional[str] = None
     derived_from: list[str] = field(default_factory=list)
+    priority: int = 0
 
     def __post_init__(self) -> None:
         """Validate entry after initialization."""
@@ -171,6 +172,7 @@ class ContextEntry:
             "ttl": self.ttl,
             "parent_id": self.parent_id,
             "derived_from": self.derived_from,
+            "priority": self.priority,
         }
 
     def decrement_ttl(self) -> None:
@@ -242,6 +244,7 @@ class ContextEntry:
             ttl=data.get("ttl"),
             parent_id=data.get("parent_id"),
             derived_from=data.get("derived_from", []),
+            priority=data.get("priority", 0),
         )
 
     def compress(self) -> None:
