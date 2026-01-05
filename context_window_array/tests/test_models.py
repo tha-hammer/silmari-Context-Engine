@@ -323,7 +323,7 @@ class TestContextEntryValidation:
                 source="test.py",
                 content="test",
                 summary="test",
-                parent_id=123,  # type: ignore
+                parent_id=123,
             )
 
     def test_empty_parent_id_is_valid(self):
@@ -348,7 +348,7 @@ class TestContextEntryValidation:
                 source="test.py",
                 content="test",
                 summary="test",
-                references=[123, 456],  # type: ignore
+                references=[123, 456],
             )
 
     def test_derived_from_must_be_list_of_strings(self):
@@ -360,7 +360,7 @@ class TestContextEntryValidation:
                 source="test.py",
                 content="test",
                 summary="test",
-                derived_from=[123],  # type: ignore
+                derived_from=[123],
             )
 
 
@@ -541,7 +541,9 @@ def context_entry_strategy(draw):
         "entry_type": draw(st.sampled_from(entry_types)),
         "source": draw(st.text(min_size=1, max_size=50).filter(lambda x: x.strip())),
         "content": draw(st.one_of(st.none(), st.text(min_size=1, max_size=100))),
-        "summary": draw(st.text(min_size=1, max_size=50)),  # Always have summary for valid entry
+        "summary": draw(
+            st.text(min_size=1, max_size=50)
+        ),  # Always have summary for valid entry
         "references": draw(st.lists(st.text(min_size=1, max_size=10), max_size=5)),
         "searchable": draw(st.booleans()),
         "compressed": draw(st.booleans()),
@@ -572,7 +574,9 @@ class TestContextEntryPropertyBased:
             searchable=data["searchable"],
             compressed=data["compressed"],
             ttl=data["ttl"],
-            parent_id=data["parent_id"] if data["parent_id"] and data["parent_id"].strip() else None,
+            parent_id=data["parent_id"]
+            if data["parent_id"] and data["parent_id"].strip()
+            else None,
             derived_from=data["derived_from"],
         )
 

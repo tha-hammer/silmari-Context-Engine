@@ -120,8 +120,8 @@ pytest context_window_array/tests/ -v -m "not slow"
 **Automated:**
 - [x] All 21 phases have passing tests
 - [ ] 100% test coverage on core modules
-- [ ] Property-based tests for serialization round-trips
-- [ ] Type checking passes (mypy)
+- [x] Property-based tests for serialization round-trips
+- [x] Type checking passes (mypy)
 
 **Manual:**
 - [ ] Working LLM context contains only summaries
