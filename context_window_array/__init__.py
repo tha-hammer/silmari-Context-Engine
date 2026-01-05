@@ -4,9 +4,21 @@ Provides addressable context management for separating working and
 implementation LLMs.
 """
 
-from context_window_array.exceptions import ContextCompressedError, ContextWindowArrayError
+from context_window_array.batching import (
+    TaskBatch,
+    TaskBatcher,
+    TaskSpec,
+)
+from context_window_array.exceptions import (
+    ContextCompressedError,
+    ContextWindowArrayError,
+)
 from context_window_array.models import ContextEntry, EntryType
-from context_window_array.search_index import VectorSearchIndex, SearchResult, StoreSearchResult
+from context_window_array.search_index import (
+    VectorSearchIndex,
+    SearchResult,
+    StoreSearchResult,
+)
 from context_window_array.store import CentralContextStore
 
 __all__ = [
@@ -18,4 +30,7 @@ __all__ = [
     "StoreSearchResult",
     "ContextCompressedError",
     "ContextWindowArrayError",
+    "TaskBatch",
+    "TaskBatcher",
+    "TaskSpec",
 ]

@@ -93,8 +93,8 @@ No imports from existing `planning_pipeline/` code.
 | 17 | Implementation Context Build | implementation_context.py | test_implementation_context.py | `nw9t` | **DONE** |
 | 18 | Entry Bounds Validation | implementation_context.py | test_implementation_context.py | `2dd4` | **DONE** |
 | 19 | Context Request | implementation_context.py | test_implementation_context.py | `2m3r` | **DONE** |
-| 20 | Batch Creation | batching.py | test_batching.py | `27rc` | |
-| 21 | Batch Execution | batching.py | test_batching.py | `hnr9` | |
+| 20 | Batch Creation | batching.py | test_batching.py | `27rc` | **DONE** |
+| 21 | Batch Execution | batching.py | test_batching.py | `hnr9` | **DONE** |
 
 > **Note**: Beads IDs are short-form. Full ID format: `silmari-Context-Engine-{id}`
 > Use `bd show {id}` to view details, `bd update {id} --status=in_progress` to claim work.
@@ -118,7 +118,7 @@ pytest context_window_array/tests/ -v -m "not slow"
 ## Success Criteria
 
 **Automated:**
-- [ ] All 21 phases have passing tests
+- [x] All 21 phases have passing tests
 - [ ] 100% test coverage on core modules
 - [ ] Property-based tests for serialization round-trips
 - [ ] Type checking passes (mypy)
