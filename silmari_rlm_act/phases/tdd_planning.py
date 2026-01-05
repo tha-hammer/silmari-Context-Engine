@@ -54,7 +54,7 @@ class TDDPlanningPhase:
         self.cwa = cwa
 
     def _load_hierarchy(self, hierarchy_path: str) -> RequirementHierarchy:
-        """Load requirement hierarchy from JSON.
+        """Load requirement hierarchy from JSON file.
 
         Args:
             hierarchy_path: Path to hierarchy JSON file
@@ -317,14 +317,14 @@ class TDDPlanningPhase:
 
     def execute(
         self,
-        hierarchy_path: str,
         plan_name: str,
+        hierarchy_path: str,
     ) -> PhaseResult:
         """Execute TDD planning phase.
 
         Args:
-            hierarchy_path: Path to hierarchy JSON
             plan_name: Name for the plan
+            hierarchy_path: Path to hierarchy JSON file on disk
 
         Returns:
             PhaseResult with plan artifacts
@@ -332,7 +332,7 @@ class TDDPlanningPhase:
         started_at = datetime.now()
 
         try:
-            # Load hierarchy
+            # Load hierarchy from file on disk
             hierarchy = self._load_hierarchy(hierarchy_path)
 
             # Generate plan document
@@ -401,8 +401,8 @@ class TDDPlanningPhase:
 
     def execute_with_checkpoint(
         self,
-        hierarchy_path: str,
         plan_name: str,
+        hierarchy_path: str,
         auto_approve: bool = False,
     ) -> PhaseResult:
         """Execute TDD planning phase with interactive checkpoint.
@@ -410,14 +410,17 @@ class TDDPlanningPhase:
         After planning completes, prompts user for action unless auto_approve is True.
 
         Args:
-            hierarchy_path: Path to hierarchy JSON
             plan_name: Name for the plan
+            hierarchy_path: Path to hierarchy JSON file on disk
             auto_approve: If True, skip user prompts
 
         Returns:
             PhaseResult with plan artifacts and user action
         """
-        result = self.execute(hierarchy_path, plan_name)
+        result = self.execute(
+            plan_name=plan_name,
+            hierarchy_path=hierarchy_path,
+        )
 
         # If failed or auto-approve, return immediately
         if result.status == PhaseStatus.FAILED or auto_approve:

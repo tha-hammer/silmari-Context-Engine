@@ -172,18 +172,29 @@ class RLMActPipeline:
             )
 
         elif phase_type == PhaseType.TDD_PLANNING:
-            # Get hierarchy path from previous phase
+            # Get hierarchy path from previous phase (file on disk)
             decomp_result = self.state.get_phase_result(PhaseType.DECOMPOSITION)
+            hierarchy_path = None
+
             if decomp_result and decomp_result.metadata.get("hierarchy_path"):
                 hierarchy_path = decomp_result.metadata["hierarchy_path"]
             else:
-                hierarchy_path = kwargs.get("hierarchy_path", "")
+                hierarchy_path = kwargs.get("hierarchy_path")
+
+            if not hierarchy_path:
+                return PhaseResult(
+                    phase_type=PhaseType.TDD_PLANNING,
+                    status=PhaseStatus.FAILED,
+                    errors=["No hierarchy_path found in decomposition metadata"],
+                    started_at=datetime.now(),
+                    completed_at=datetime.now(),
+                )
 
             plan_name = kwargs.get("plan_name", "feature")
 
             return self._tdd_planning_phase.execute_with_checkpoint(
-                hierarchy_path=hierarchy_path,
                 plan_name=plan_name,
+                hierarchy_path=hierarchy_path,
                 auto_approve=auto_approve,
             )
 

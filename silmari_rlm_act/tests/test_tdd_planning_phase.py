@@ -291,7 +291,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(str(hierarchy_path), "test-plan")
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
 
         assert isinstance(result, PhaseResult)
         assert result.phase_type == PhaseType.TDD_PLANNING
@@ -318,7 +318,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(str(hierarchy_path), "test-plan")
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
 
         assert len(result.artifacts) == 1
         assert "test-plan" in result.artifacts[0]
@@ -344,7 +344,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(str(hierarchy_path), "test-plan")
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
 
         assert "cwa_entry_id" in result.metadata
         assert "requirements_count" in result.metadata
@@ -355,7 +355,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute("nonexistent.json", "test-plan")
+        result = phase.execute(plan_name="test-plan", hierarchy_path="nonexistent.json")
 
         assert result.status == PhaseStatus.FAILED
         assert len(result.errors) > 0
@@ -369,7 +369,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(str(bad_file), "test-plan")
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(bad_file))
 
         assert result.status == PhaseStatus.FAILED
         assert len(result.errors) > 0
@@ -404,7 +404,9 @@ class TestInteractiveCheckpoint:
             mock_prompt.return_value = "continue"
 
             phase.execute_with_checkpoint(
-                str(hierarchy_path), "test-plan", auto_approve=False
+                plan_name="test-plan",
+                hierarchy_path=str(hierarchy_path),
+                auto_approve=False,
             )
 
         mock_prompt.assert_called_once()
@@ -433,7 +435,9 @@ class TestInteractiveCheckpoint:
             "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
         ) as mock_prompt:
             phase.execute_with_checkpoint(
-                str(hierarchy_path), "test-plan", auto_approve=True
+                plan_name="test-plan",
+                hierarchy_path=str(hierarchy_path),
+                auto_approve=True,
             )
 
         mock_prompt.assert_not_called()
@@ -464,7 +468,9 @@ class TestInteractiveCheckpoint:
             mock_prompt.return_value = "continue"
 
             result = phase.execute_with_checkpoint(
-                str(hierarchy_path), "test-plan", auto_approve=False
+                plan_name="test-plan",
+                hierarchy_path=str(hierarchy_path),
+                auto_approve=False,
             )
 
         assert result.metadata.get("user_action") == "continue"
@@ -495,7 +501,9 @@ class TestInteractiveCheckpoint:
             mock_prompt.return_value = "exit"
 
             result = phase.execute_with_checkpoint(
-                str(hierarchy_path), "test-plan", auto_approve=False
+                plan_name="test-plan",
+                hierarchy_path=str(hierarchy_path),
+                auto_approve=False,
             )
 
         assert result.metadata.get("user_exit") is True

@@ -152,8 +152,8 @@ class TestPhaseResult:
         assert result.phase_type == PhaseType.DECOMPOSITION
         assert result.status == PhaseStatus.COMPLETE
 
-    def test_includes_hierarchy_in_metadata(self, tmp_path: Path) -> None:
-        """Given successful decomposition, includes hierarchy in metadata."""
+    def test_includes_hierarchy_path_in_metadata(self, tmp_path: Path) -> None:
+        """Given successful decomposition, includes hierarchy_path to JSON file in metadata."""
         research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
         research_dir.mkdir(parents=True)
         research_file = research_dir / "2026-01-05-topic.md"
@@ -174,7 +174,11 @@ class TestPhaseResult:
 
             result = phase.execute(research_file)
 
-        assert "hierarchy" in result.metadata
+        # Hierarchy is now written to disk, not stored in-memory
+        assert "hierarchy_path" in result.metadata
+        hierarchy_path = Path(result.metadata["hierarchy_path"])
+        assert hierarchy_path.exists()
+        assert hierarchy_path.suffix == ".json"
         assert "requirements_count" in result.metadata
         assert result.metadata["requirements_count"] == 1
 

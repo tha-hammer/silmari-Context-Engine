@@ -5,6 +5,7 @@ which breaks research documents into testable requirement hierarchies using
 Claude Code and stores findings in the Context Window Array.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
@@ -168,6 +169,43 @@ class DecompositionPhase:
         """
         return hierarchy.to_dict()
 
+    def _save_hierarchy_to_disk(
+        self,
+        hierarchy: RequirementHierarchy,
+        research_path: Path,
+    ) -> Path:
+        """Save hierarchy to JSON file on disk.
+
+        Args:
+            hierarchy: Requirement hierarchy to save
+            research_path: Path to research document (used for naming)
+
+        Returns:
+            Path to saved hierarchy JSON file
+        """
+        # Determine output directory based on research path
+        # Use same directory structure as plans
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        plan_name = research_path.stem.replace("research-", "").replace("_", "-")
+
+        output_dir = (
+            self.project_path
+            / "thoughts"
+            / "searchable"
+            / "shared"
+            / "plans"
+            / f"{date_str}-tdd-{plan_name}"
+        )
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        hierarchy_path = output_dir / "requirement_hierarchy.json"
+        hierarchy_dict = self._serialize_hierarchy(hierarchy)
+
+        with open(hierarchy_path, "w", encoding="utf-8") as f:
+            json.dump(hierarchy_dict, f, indent=2)
+
+        return hierarchy_path
+
     def execute(
         self,
         research_path: Path,
@@ -220,6 +258,9 @@ class DecompositionPhase:
             hierarchy: RequirementHierarchy = result
             entry_ids = self._store_requirements_in_cwa(hierarchy)
 
+            # Save hierarchy to disk (not in-memory)
+            hierarchy_path = self._save_hierarchy_to_disk(hierarchy, research_path)
+
             # Calculate statistics
             node_count = self._count_nodes(hierarchy)
             parent_count = len(hierarchy.requirements)
@@ -227,13 +268,13 @@ class DecompositionPhase:
             return PhaseResult(
                 phase_type=PhaseType.DECOMPOSITION,
                 status=PhaseStatus.COMPLETE,
-                artifacts=[str(research_path)],
+                artifacts=[str(research_path), str(hierarchy_path)],
                 started_at=started_at,
                 completed_at=completed_at,
                 duration_seconds=duration,
                 metadata={
                     "cwa_entry_ids": entry_ids,
-                    "hierarchy": self._serialize_hierarchy(hierarchy),
+                    "hierarchy_path": str(hierarchy_path),
                     "requirements_count": parent_count,
                     "total_nodes": node_count,
                     "research_path": str(research_path),
