@@ -202,7 +202,7 @@ silmari-rlm-act/
 | 05 | Research Phase | 25 | **DONE** |
 | 06 | Decomposition Phase | 11 | **DONE** |
 | 07 | TDD Planning Phase | 21 | **DONE** |
-| 08 | Multi-Doc Phase | 8 | Pending |
+| 08 | Multi-Doc Phase | 17 | **DONE** |
 | 09 | Beads Sync Phase | 10 | Pending |
 | 10 | Implementation Phase | 12 | Pending |
 | 11 | Pipeline Orchestration | 15 | Pending |
