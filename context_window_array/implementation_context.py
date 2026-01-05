@@ -8,8 +8,12 @@ overwhelming the context window.
 from dataclasses import dataclass, field
 from typing import Optional
 
+from context_window_array.exceptions import EntryBoundsError
 from context_window_array.models import ContextEntry, EntryType
 from context_window_array.store import CentralContextStore
+
+
+DEFAULT_MAX_ENTRIES = 200
 
 
 @dataclass
@@ -18,6 +22,7 @@ class ImplementationEntryView:
 
     Contains full content (if not compressed).
     """
+
     id: str
     entry_type: EntryType
     source: str
@@ -35,6 +40,7 @@ class ImplementationContext:
 
     Contains full content for requested entries.
     """
+
     entries: list[ImplementationEntryView]
     entry_count: int
     total_tokens: int
@@ -46,15 +52,59 @@ class ImplementationLLMContext:
 
     Implementation LLMs need full content to perform detailed work
     like code writing, analysis, or debugging.
+
+    Entry bounds (<200 by default) ensure context windows stay focused.
     """
 
-    def __init__(self, store: CentralContextStore):
+    def __init__(
+        self,
+        store: CentralContextStore,
+        max_entries: int = DEFAULT_MAX_ENTRIES,
+    ):
         """Initialize with a context store.
 
         Args:
             store: The central context store
+            max_entries: Maximum entries allowed per build (default: 200)
         """
         self._store = store
+        self._max_entries = max_entries
+
+    def validate_bounds(self, entry_ids: list[str]) -> bool:
+        """Check if entry count is within bounds.
+
+        Args:
+            entry_ids: List of entry IDs to validate
+
+        Returns:
+            True if within bounds, False otherwise
+        """
+        return len(entry_ids) <= self._max_entries
+
+    def get_bounds_info(self) -> dict:
+        """Get information about entry bounds.
+
+        Returns:
+            Dictionary with max_entries and other limit info
+        """
+        return {
+            "max_entries": self._max_entries,
+            "default": self._max_entries == DEFAULT_MAX_ENTRIES,
+        }
+
+    def split_into_batches(self, entry_ids: list[str]) -> list[list[str]]:
+        """Split entry IDs into valid batches.
+
+        Args:
+            entry_ids: List of entry IDs to split
+
+        Returns:
+            List of batches, each within bounds
+        """
+        batches = []
+        for i in range(0, len(entry_ids), self._max_entries):
+            batches.append(entry_ids[i : i + self._max_entries])
+        return batches
 
     def _estimate_tokens(self, entry: ContextEntry) -> int:
         """Estimate token count for an entry.
@@ -83,6 +133,7 @@ class ImplementationLLMContext:
         self,
         entry_ids: list[str],
         decompress: bool = False,
+        skip_validation: bool = False,
     ) -> ImplementationContext:
         """Build context for an implementation LLM.
 
@@ -91,10 +142,21 @@ class ImplementationLLMContext:
         Args:
             entry_ids: IDs of entries to include
             decompress: If True, attempt to decompress entries
+            skip_validation: If True, skip bounds validation
 
         Returns:
             ImplementationContext with full entry views
+
+        Raises:
+            EntryBoundsError: If entry count exceeds max_entries
         """
+        # Validate bounds
+        if not skip_validation and not self.validate_bounds(entry_ids):
+            raise EntryBoundsError(
+                requested=len(entry_ids),
+                max_allowed=self._max_entries,
+            )
+
         entries = []
         total_tokens = 0
 

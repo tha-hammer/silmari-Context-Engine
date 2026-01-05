@@ -1,5 +1,8 @@
 """Tests for context_window_array.implementation_context module."""
 
+import pytest
+
+from context_window_array.exceptions import EntryBoundsError
 from context_window_array.models import ContextEntry, EntryType
 from context_window_array.store import CentralContextStore
 from context_window_array.implementation_context import (
@@ -13,20 +16,24 @@ class TestImplementationContextBuild:
     def test_build_returns_full_content(self):
         """Given store with entries, when build(entry_ids), then returns full content."""
         store = CentralContextStore()
-        store.add(ContextEntry(
-            id="ctx_001",
-            entry_type=EntryType.FILE,
-            source="auth.py",
-            content="def authenticate(user, password):\n    return verify(user, password)",
-            summary="Auth function",
-        ))
-        store.add(ContextEntry(
-            id="ctx_002",
-            entry_type=EntryType.FILE,
-            source="db.py",
-            content="def connect():\n    return psycopg2.connect()",
-            summary="DB connect",
-        ))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="auth.py",
+                content="def authenticate(user, password):\n    return verify(user, password)",
+                summary="Auth function",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="db.py",
+                content="def connect():\n    return psycopg2.connect()",
+                summary="DB connect",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001", "ctx_002"])
@@ -35,7 +42,10 @@ class TestImplementationContextBuild:
 
         # Should have full content
         entry1 = next(e for e in result.entries if e.id == "ctx_001")
-        assert entry1.content == "def authenticate(user, password):\n    return verify(user, password)"
+        assert (
+            entry1.content
+            == "def authenticate(user, password):\n    return verify(user, password)"
+        )
 
         entry2 = next(e for e in result.entries if e.id == "ctx_002")
         assert entry2.content == "def connect():\n    return psycopg2.connect()"
@@ -43,16 +53,18 @@ class TestImplementationContextBuild:
     def test_build_includes_all_metadata(self):
         """Given entry with metadata, when build(), then all metadata included."""
         store = CentralContextStore()
-        store.add(ContextEntry(
-            id="ctx_001",
-            entry_type=EntryType.FILE,
-            source="test.py",
-            content="test content",
-            summary="Test summary",
-            references=["ctx_000"],
-            parent_id="ctx_000",
-            priority=5,
-        ))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="test content",
+                summary="Test summary",
+                references=["ctx_000"],
+                parent_id="ctx_000",
+                priority=5,
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001"])
@@ -70,9 +82,33 @@ class TestImplementationContextBuild:
     def test_build_only_requested_entries(self):
         """Given multiple entries, when build(subset), then only subset returned."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b"))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001", "ctx_003"])
@@ -84,7 +120,15 @@ class TestImplementationContextBuild:
     def test_build_skips_nonexistent_entries(self):
         """Given nonexistent entry id, when build(), then skipped without error."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001", "ctx_nonexistent"])
@@ -95,7 +139,15 @@ class TestImplementationContextBuild:
     def test_build_empty_list_returns_empty(self):
         """Given empty entry list, when build([]), then returns empty context."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build([])
@@ -105,9 +157,33 @@ class TestImplementationContextBuild:
     def test_build_preserves_order(self):
         """Given entry ids, when build(), then order preserved."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b"))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_003", "ctx_001", "ctx_002"])
@@ -117,14 +193,16 @@ class TestImplementationContextBuild:
     def test_build_handles_compressed_entries(self):
         """Given compressed entry, when build(), then returns with summary only."""
         store = CentralContextStore()
-        store.add(ContextEntry(
-            id="ctx_001",
-            entry_type=EntryType.FILE,
-            source="test.py",
-            content=None,
-            summary="Compressed file summary",
-            compressed=True,
-        ))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content=None,
+                summary="Compressed file summary",
+                compressed=True,
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001"])
@@ -138,26 +216,36 @@ class TestImplementationContextBuild:
     def test_build_returns_context_object(self):
         """Given entries, when build(), then returns ImplementationContext object."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001"])
 
-        assert hasattr(result, 'entries')
-        assert hasattr(result, 'entry_count')
-        assert hasattr(result, 'total_tokens')
-        assert hasattr(result, 'entry_ids')
+        assert hasattr(result, "entries")
+        assert hasattr(result, "entry_count")
+        assert hasattr(result, "total_tokens")
+        assert hasattr(result, "entry_ids")
 
     def test_build_tracks_token_count(self):
         """Given entries, when build(), then tracks estimated tokens."""
         store = CentralContextStore()
-        store.add(ContextEntry(
-            id="ctx_001",
-            entry_type=EntryType.FILE,
-            source="test.py",
-            content="x" * 1000,
-            summary="Short",
-        ))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="test.py",
+                content="x" * 1000,
+                summary="Short",
+            )
+        )
 
         context = ImplementationLLMContext(store)
         result = context.build(["ctx_001"])
@@ -186,3 +274,201 @@ class TestImplementationContextBuild:
 
         # Note: Actual decompression would require storing original content
         # This test documents the expected interface
+
+
+class TestEntryBoundsValidation:
+    """Behavior 18: Entry bounds validation for implementation context."""
+
+    def test_build_exceeding_bounds_raises_error(self):
+        """Given >200 entries, when build(), then raises EntryBoundsError."""
+        store = CentralContextStore()
+        # Add 201 entries
+        for i in range(201):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store)
+        entry_ids = [f"ctx_{i:03d}" for i in range(201)]
+
+        with pytest.raises(EntryBoundsError) as exc_info:
+            context.build(entry_ids)
+
+        assert "201" in str(exc_info.value)
+        assert "200" in str(exc_info.value)
+
+    def test_build_at_bounds_succeeds(self):
+        """Given exactly 200 entries, when build(), then succeeds."""
+        store = CentralContextStore()
+        for i in range(200):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store)
+        entry_ids = [f"ctx_{i:03d}" for i in range(200)]
+
+        # Should not raise
+        result = context.build(entry_ids)
+        assert result.entry_count == 200
+
+    def test_build_under_bounds_succeeds(self):
+        """Given <200 entries, when build(), then succeeds."""
+        store = CentralContextStore()
+        for i in range(50):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store)
+        entry_ids = [f"ctx_{i:03d}" for i in range(50)]
+
+        result = context.build(entry_ids)
+        assert result.entry_count == 50
+
+    def test_validate_bounds_under_limit(self):
+        """Given <200 entries, when validate_bounds(), then returns True."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store)
+
+        entry_ids = [f"ctx_{i:03d}" for i in range(100)]
+        is_valid = context.validate_bounds(entry_ids)
+
+        assert is_valid is True
+
+    def test_validate_bounds_at_limit(self):
+        """Given exactly 200 entries, when validate_bounds(), then returns True."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store)
+
+        entry_ids = [f"ctx_{i:03d}" for i in range(200)]
+        is_valid = context.validate_bounds(entry_ids)
+
+        assert is_valid is True
+
+    def test_validate_bounds_over_limit(self):
+        """Given >200 entries, when validate_bounds(), then returns False."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store)
+
+        entry_ids = [f"ctx_{i:03d}" for i in range(201)]
+        is_valid = context.validate_bounds(entry_ids)
+
+        assert is_valid is False
+
+    def test_validate_bounds_empty_list(self):
+        """Given empty list, when validate_bounds(), then returns True."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store)
+
+        is_valid = context.validate_bounds([])
+        assert is_valid is True
+
+    def test_build_skip_validation_flag(self):
+        """Given >200 entries, when build(skip_validation=True), then succeeds."""
+        store = CentralContextStore()
+        for i in range(250):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store)
+        entry_ids = [f"ctx_{i:03d}" for i in range(250)]
+
+        # Should not raise with skip_validation
+        result = context.build(entry_ids, skip_validation=True)
+        assert result.entry_count == 250
+
+    def test_custom_max_entries(self):
+        """Given custom max_entries, when build with that limit exceeded, then raises."""
+        store = CentralContextStore()
+        for i in range(60):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store, max_entries=50)
+        entry_ids = [f"ctx_{i:03d}" for i in range(60)]
+
+        with pytest.raises(EntryBoundsError):
+            context.build(entry_ids)
+
+    def test_get_bounds_info(self):
+        """Given context, when get_bounds_info(), then returns limit info."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store, max_entries=150)
+
+        info = context.get_bounds_info()
+
+        assert info["max_entries"] == 150
+        assert "default" in info or info["max_entries"] == 150
+
+    def test_entry_bounds_error_message(self):
+        """Given bounds error, then message includes helpful info."""
+        store = CentralContextStore()
+        for i in range(210):
+            store.add(
+                ContextEntry(
+                    id=f"ctx_{i:03d}",
+                    entry_type=EntryType.FILE,
+                    source=f"file{i}.py",
+                    content=f"content {i}",
+                    summary=f"summary {i}",
+                )
+            )
+
+        context = ImplementationLLMContext(store)
+        entry_ids = [f"ctx_{i:03d}" for i in range(210)]
+
+        with pytest.raises(EntryBoundsError) as exc_info:
+            context.build(entry_ids)
+
+        error = exc_info.value
+        assert error.requested == 210
+        assert error.max_allowed == 200
+        assert "210" in str(error)
+        assert "200" in str(error)
+
+    def test_split_into_batches(self):
+        """Given many entries, when split_into_batches(), then creates valid batches."""
+        store = CentralContextStore()
+        context = ImplementationLLMContext(store, max_entries=50)
+
+        entry_ids = [f"ctx_{i:03d}" for i in range(120)]
+        batches = context.split_into_batches(entry_ids)
+
+        assert len(batches) == 3  # 50 + 50 + 20
+        assert len(batches[0]) == 50
+        assert len(batches[1]) == 50
+        assert len(batches[2]) == 20
+        assert all(context.validate_bounds(batch) for batch in batches)
