@@ -7,7 +7,7 @@ in an addressable array structure.
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any, Optional
 
 
 class EntryType(Enum):
@@ -149,3 +149,57 @@ class ContextEntry:
             raise TypeError("references must be list of strings")
         if self.derived_from and not all(isinstance(d, str) for d in self.derived_from):
             raise TypeError("derived_from must be list of strings")
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize entry to dictionary.
+
+        Returns:
+            Dictionary with all fields, datetime as ISO string, enum as string value.
+        """
+        return {
+            "id": self.id,
+            "entry_type": self.entry_type.value,
+            "source": self.source,
+            "content": self.content,
+            "summary": self.summary,
+            "created_at": self.created_at.isoformat(),
+            "references": self.references,
+            "searchable": self.searchable,
+            "compressed": self.compressed,
+            "ttl": self.ttl,
+            "parent_id": self.parent_id,
+            "derived_from": self.derived_from,
+        }
+
+    @classmethod
+    def from_dict(cls, data: dict[str, Any]) -> "ContextEntry":
+        """Deserialize entry from dictionary.
+
+        Args:
+            data: Dictionary with entry fields
+
+        Returns:
+            Reconstructed ContextEntry
+        """
+        # Parse created_at if present
+        created_at = None
+        if "created_at" in data and data["created_at"]:
+            created_at = datetime.fromisoformat(data["created_at"])
+
+        # Parse entry_type from string
+        entry_type = EntryType.from_string(data["entry_type"])
+
+        return cls(
+            id=data["id"],
+            entry_type=entry_type,
+            source=data["source"],
+            content=data.get("content"),
+            summary=data.get("summary"),
+            created_at=created_at if created_at else datetime.now(),
+            references=data.get("references", []),
+            searchable=data.get("searchable", True),
+            compressed=data.get("compressed", False),
+            ttl=data.get("ttl"),
+            parent_id=data.get("parent_id"),
+            derived_from=data.get("derived_from", []),
+        )
