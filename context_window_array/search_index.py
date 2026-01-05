@@ -4,12 +4,28 @@ This module provides a simple vector search implementation using
 TF-IDF-like term frequency vectors and cosine similarity.
 """
 
+from dataclasses import dataclass
 from typing import Optional
 import numpy as np
 from collections import Counter
 import re
 
-from context_window_array.models import ContextEntry
+from context_window_array.models import ContextEntry, EntryType
+
+
+@dataclass
+class SearchResult:
+    """Result from a search query.
+
+    Attributes:
+        entry_id: ID of the matching entry
+        score: Cosine similarity score (0-1)
+        entry_type: Type of the entry (for filtering)
+    """
+
+    entry_id: str
+    score: float
+    entry_type: EntryType
 
 
 class VectorSearchIndex:
@@ -27,6 +43,7 @@ class VectorSearchIndex:
     def __init__(self):
         """Initialize empty search index."""
         self._entry_texts: dict[str, str] = {}  # id -> text for indexing
+        self._entry_types: dict[str, EntryType] = {}  # id -> entry type for filtering
         self._vocabulary: set[str] = set()
         self._term_to_idx: dict[str, int] = {}
         self._vectors: dict[str, np.ndarray] = {}
@@ -102,6 +119,7 @@ class VectorSearchIndex:
 
         text = self._get_text_for_entry(entry)
         self._entry_texts[entry.id] = text
+        self._entry_types[entry.id] = entry.entry_type  # Store entry type
 
         # Add new terms to vocabulary
         new_terms = set(self._tokenize(text)) - self._vocabulary
@@ -126,6 +144,8 @@ class VectorSearchIndex:
         """
         if entry_id in self._entry_texts:
             del self._entry_texts[entry_id]
+        if entry_id in self._entry_types:
+            del self._entry_types[entry_id]
         if entry_id in self._vectors:
             del self._vectors[entry_id]
 
@@ -174,3 +194,65 @@ class VectorSearchIndex:
     def __len__(self) -> int:
         """Return number of indexed entries."""
         return len(self._entry_texts)
+
+    def search(
+        self,
+        query: str,
+        max_results: int = 10,
+        entry_types: Optional[list[EntryType]] = None,
+        min_score: float = 0.0,
+    ) -> list[SearchResult]:
+        """Search for entries matching the query.
+
+        Results are always ordered by score descending. This is a guaranteed
+        contract: higher similarity scores appear first. Callers should NOT
+        re-sort results.
+
+        Args:
+            query: Search query text
+            max_results: Maximum number of results to return
+            entry_types: Optional list of entry types to filter by
+            min_score: Minimum similarity score (0-1)
+
+        Returns:
+            List of SearchResult objects ranked by similarity score (descending)
+        """
+        if not query or not query.strip():
+            return []
+
+        if not self._vectors:
+            return []
+
+        # Ensure vectors are up to date
+        if self._needs_rebuild:
+            self._rebuild_vectors()
+
+        # Compute query vector
+        query_vector = self._compute_vector(query)
+        if np.linalg.norm(query_vector) == 0:
+            return []
+
+        # Compute similarities
+        results = []
+        for entry_id, entry_vector in self._vectors.items():
+            # Filter by entry type if specified
+            if entry_types and self._entry_types.get(entry_id) not in entry_types:
+                continue
+
+            # Cosine similarity (vectors are already normalized)
+            similarity = float(np.dot(query_vector, entry_vector))
+
+            if similarity >= min_score:
+                results.append(
+                    SearchResult(
+                        entry_id=entry_id,
+                        score=similarity,
+                        entry_type=self._entry_types[entry_id],
+                    )
+                )
+
+        # Sort by score descending (guaranteed contract)
+        results.sort(key=lambda r: r.score, reverse=True)
+
+        # Limit results
+        return results[:max_results]
