@@ -199,7 +199,7 @@ silmari-rlm-act/
 | 02 | Checkpoint Manager | 21 | **DONE** |
 | 03 | Interactive Prompts | 54 | **DONE** |
 | 04 | CWA Integration | 47 | **DONE** |
-| 05 | Research Phase | 8 | Pending |
+| 05 | Research Phase | 25 | **DONE** |
 | 06 | Decomposition Phase | 10 | Pending |
 | 07 | TDD Planning Phase | 8 | Pending |
 | 08 | Multi-Doc Phase | 8 | Pending |
