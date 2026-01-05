@@ -139,7 +139,7 @@ class TestLoopRunnerBackwardCompat:
     async def test_raises_without_plan_or_orchestrator(self):
         """Should raise error when neither plan_path nor orchestrator provided."""
         runner = LoopRunner()
-        with pytest.raises(ValueError, match="No plan_path provided"):
+        with pytest.raises(ValueError, match="No plan_path.*or orchestrator available"):
             await runner.run()
 
 
