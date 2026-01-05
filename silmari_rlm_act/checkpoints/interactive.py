@@ -47,6 +47,37 @@ def prompt_research_action() -> str:
         print(f"Invalid choice: '{response}'. Please enter C, R, S, or E.")
 
 
+def prompt_decomposition_action() -> str:
+    """Prompt user for decomposition checkpoint action.
+
+    Displays a menu for the user to choose what to do after
+    the decomposition phase completes.
+
+    Returns:
+        One of: 'continue', 'revise', 'restart', 'exit'
+    """
+    valid_actions = {
+        "c": "continue",
+        "r": "revise",
+        "s": "restart",
+        "e": "exit",
+        "": "continue",
+    }
+
+    while True:
+        print("\nWhat would you like to do?")
+        print("  [C]ontinue to TDD planning (default)")
+        print("  [R]evise decomposition with additional context")
+        print("  [S]tart over from research")
+        print("  [E]xit pipeline")
+
+        response = input("\nChoice [C/r/s/e]: ").strip().lower()
+
+        if response in valid_actions:
+            return valid_actions[response]
+        print(f"Invalid choice: '{response}'. Please enter C, R, S, or E.")
+
+
 def prompt_use_checkpoint(
     timestamp: str,
     phase: str,
