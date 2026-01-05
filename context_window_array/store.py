@@ -18,6 +18,12 @@ class CentralContextStore:
     def __init__(self):
         """Initialize empty context store."""
         self._entries: dict[str, ContextEntry] = {}
+        self._id_counter: int = 0
+
+    def _generate_id(self) -> str:
+        """Generate a unique entry ID."""
+        self._id_counter += 1
+        return f"ctx_{self._id_counter:06d}"
 
     def add(self, entry: ContextEntry) -> str:
         """Add an entry to the store.
@@ -204,3 +210,59 @@ class CentralContextStore:
             List of uncompressed entries
         """
         return [e for e in self._entries.values() if not e.compressed]
+
+    def add_command_result(
+        self,
+        command: str,
+        result: str,
+        summary: str,
+        source: str = "bash",
+        keep_command: bool = False,
+        ttl: Optional[int] = None,
+    ) -> str:
+        """Add a command result, optionally discarding the command.
+
+        This implements the command/result separation pattern from RLM:
+        commands can be removed from context while their results are retained.
+
+        Args:
+            command: The command that was executed
+            result: The output/result of the command
+            summary: Summary of the result for compressed view
+            source: Source identifier (default: "bash")
+            keep_command: If True, store command entry; if False, discard
+            ttl: Time-to-live for the result entry
+
+        Returns:
+            ID of the result entry
+        """
+        command_id = None
+
+        if keep_command:
+            # Create command entry (not searchable)
+            command_id = self._generate_id()
+            command_entry = ContextEntry(
+                id=command_id,
+                entry_type=EntryType.COMMAND,
+                source=source,
+                content=command,
+                summary=f"Executed: {command[:50]}..." if len(command) > 50 else f"Executed: {command}",
+                searchable=False,  # Commands not searchable
+            )
+            self.add(command_entry)
+
+        # Create result entry
+        result_id = self._generate_id()
+        result_entry = ContextEntry(
+            id=result_id,
+            entry_type=EntryType.COMMAND_RESULT,
+            source=source,
+            content=result,
+            summary=summary,
+            parent_id=command_id,
+            searchable=True,
+            ttl=ttl,
+        )
+        self.add(result_entry)
+
+        return result_id

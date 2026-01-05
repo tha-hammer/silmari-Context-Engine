@@ -526,3 +526,189 @@ class TestStoreCompression:
 
         assert len(uncompressed) == 2
         assert all(not e.compressed for e in uncompressed)
+
+
+class TestCommandResultSeparation:
+    """Behavior 10: Command/result separation pattern."""
+
+    def test_add_command_result_discards_command(self):
+        """Given command and result, when add_command_result(keep_command=False), then only result stored."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="grep -rn 'class' src/",
+            result="Found 50 matches:\n  src/main.py:10: class Main\n  ...",
+            summary="50 class definitions found",
+            keep_command=False,
+        )
+
+        # Result is stored
+        result_entry = store.get(result_id)
+        assert result_entry is not None
+        assert result_entry.entry_type == EntryType.COMMAND_RESULT
+        assert "50 matches" in result_entry.content
+        assert result_entry.summary == "50 class definitions found"
+
+        # No command entry exists (only 1 entry total)
+        assert len(store) == 1
+
+    def test_add_command_result_keeps_command(self):
+        """Given command and result, when add_command_result(keep_command=True), then both stored."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="grep -rn 'class' src/",
+            result="Found 50 matches:\n  src/main.py:10: class Main\n  ...",
+            summary="50 class definitions found",
+            keep_command=True,
+        )
+
+        # Both entries exist
+        assert len(store) == 2
+
+        # Result entry has parent_id pointing to command
+        result_entry = store.get(result_id)
+        assert result_entry is not None
+        assert result_entry.parent_id is not None
+
+        # Command entry exists
+        command_entry = store.get(result_entry.parent_id)
+        assert command_entry is not None
+        assert command_entry.entry_type == EntryType.COMMAND
+        assert command_entry.content == "grep -rn 'class' src/"
+
+    def test_add_command_result_returns_result_id(self):
+        """Given command and result, when add_command_result(), then returns result entry id."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="ls -la",
+            result="total 100\ndrwxr-xr-x ...",
+            summary="Directory listing",
+            keep_command=False,
+        )
+
+        assert result_id.startswith("ctx_")
+        assert store.contains(result_id)
+
+    def test_add_command_result_generates_unique_ids(self):
+        """Given multiple command results, when added, then unique IDs generated."""
+        store = CentralContextStore()
+
+        id1 = store.add_command_result(
+            command="cmd1",
+            result="result1",
+            summary="summary1",
+            keep_command=False,
+        )
+        id2 = store.add_command_result(
+            command="cmd2",
+            result="result2",
+            summary="summary2",
+            keep_command=False,
+        )
+
+        assert id1 != id2
+
+    def test_add_command_result_with_source(self):
+        """Given source parameter, when add_command_result(), then source set."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="npm test",
+            result="All tests passed",
+            summary="Tests passed",
+            source="npm",
+            keep_command=False,
+        )
+
+        result_entry = store.get(result_id)
+        assert result_entry.source == "npm"
+
+    def test_add_command_result_default_source(self):
+        """Given no source parameter, when add_command_result(), then source is 'bash'."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="echo hello",
+            result="hello",
+            summary="Echo output",
+            keep_command=False,
+        )
+
+        result_entry = store.get(result_id)
+        assert result_entry.source == "bash"
+
+    def test_add_command_result_command_not_searchable(self):
+        """Given keep_command=True, when add_command_result(), then command is not searchable."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="grep pattern file",
+            result="match found",
+            summary="1 match",
+            keep_command=True,
+        )
+
+        result_entry = store.get(result_id)
+        command_entry = store.get(result_entry.parent_id)
+
+        # Command should not be searchable (per research doc)
+        assert command_entry.searchable is False
+        # Result should be searchable
+        assert result_entry.searchable is True
+
+    def test_add_command_result_with_ttl(self):
+        """Given ttl parameter, when add_command_result(), then result has TTL."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="ls",
+            result="files",
+            summary="file list",
+            keep_command=False,
+            ttl=5,
+        )
+
+        result_entry = store.get(result_id)
+        assert result_entry.ttl == 5
+
+    def test_remove_command_keeps_result(self):
+        """Given command and result, when remove command, then result still accessible."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="grep pattern",
+            result="match",
+            summary="1 match",
+            keep_command=True,
+        )
+        result_entry = store.get(result_id)
+        command_id = result_entry.parent_id
+
+        # Remove command
+        store.remove(command_id)
+
+        # Result still exists and accessible
+        assert store.contains(result_id)
+        result_after = store.get(result_id)
+        assert result_after is not None
+        assert result_after.content == "match"
+
+    def test_compress_command_result_chain(self):
+        """Given command and result, when compress result, then result compressed."""
+        store = CentralContextStore()
+
+        result_id = store.add_command_result(
+            command="grep -rn 'def' src/",
+            result="Found 100 function definitions...",
+            summary="100 functions found",
+            keep_command=True,
+        )
+
+        # Compress result
+        store.compress(result_id)
+
+        result_entry = store.get(result_id)
+        assert result_entry.compressed is True
+        assert result_entry.summary == "100 functions found"
