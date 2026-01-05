@@ -266,3 +266,81 @@ class CentralContextStore:
         self.add(result_entry)
 
         return result_id
+
+    def process_ttl(self) -> int:
+        """Decrement TTL for all entries that have TTL set.
+
+        Returns:
+            Number of entries whose TTL was decremented
+        """
+        decremented = 0
+        for entry in self._entries.values():
+            if entry.ttl is not None and entry.ttl > 0:
+                entry.decrement_ttl()
+                decremented += 1
+        return decremented
+
+    def cleanup_expired(self) -> int:
+        """Remove all expired entries (TTL = 0).
+
+        Returns:
+            Number of entries removed
+        """
+        expired_ids = [e.id for e in self._entries.values() if e.is_expired()]
+        for entry_id in expired_ids:
+            del self._entries[entry_id]
+        return len(expired_ids)
+
+    def get_expired(self) -> list[ContextEntry]:
+        """Get all expired entries (TTL = 0).
+
+        Returns:
+            List of expired entries
+        """
+        return [e for e in self._entries.values() if e.is_expired()]
+
+    def get_expiring_soon(self, threshold: int = 2) -> list[ContextEntry]:
+        """Get entries that will expire soon.
+
+        Args:
+            threshold: TTL threshold (entries with TTL <= threshold)
+
+        Returns:
+            List of entries expiring soon
+        """
+        return [
+            e for e in self._entries.values()
+            if e.ttl is not None and e.ttl <= threshold
+        ]
+
+    def process_turn(self) -> dict[str, int]:
+        """Process a conversation turn: decrement TTLs and cleanup expired.
+
+        This should be called at the end of each conversation turn.
+
+        Returns:
+            Dictionary with 'decremented' and 'removed' counts
+        """
+        decremented = self.process_ttl()
+        removed = self.cleanup_expired()
+        return {"decremented": decremented, "removed": removed}
+
+    def extend_ttl(self, entry_id: str, additional: int) -> bool:
+        """Extend an entry's TTL.
+
+        Args:
+            entry_id: ID of entry to extend
+            additional: Number of turns to add to TTL
+
+        Returns:
+            True if entry found and TTL extended, False if not found
+        """
+        entry = self.get(entry_id)
+        if entry is None:
+            return False
+
+        if entry.ttl is None:
+            entry.set_ttl(additional)
+        else:
+            entry.set_ttl(entry.ttl + additional)
+        return True
