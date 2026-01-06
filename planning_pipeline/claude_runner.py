@@ -14,9 +14,10 @@ Usage:
     # Subprocess fallback for exact CLI compatibility
     result = run_claude_subprocess(prompt, stream_json=True)
 """
-
+from pathlib import Path
 import asyncio
 import json
+import os
 import subprocess
 import sys
 import time
@@ -120,9 +121,10 @@ def _emit_result(result_text: str, is_error: bool = False) -> None:
 async def _run_claude_async(
     prompt: str,
     tools: Optional[list[str]] = None,
-    timeout: int = 300,
+    timeout: int = 1300,
     stream: bool = True,
-    output_format: OutputFormat = "text"
+    output_format: OutputFormat = "text",
+    cwd: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Run Claude Code via Agent SDK with proper error handling.
 
@@ -133,6 +135,7 @@ async def _run_claude_async(
         stream: If True, pipe output to terminal in real-time
         output_format: Output format - "text" for human-readable or
                       "stream-json" for JSON events (repomirror compatible)
+        cwd: Working directory for Claude Code. Defaults to current directory.
 
     Returns:
         Dictionary with keys:
@@ -150,10 +153,15 @@ async def _run_claude_async(
     # Determine if using stream-json format
     use_stream_json = output_format == "stream-json" and stream
 
+    # Set max output tokens to allow longer responses (prevents truncation)
+    os.environ.setdefault("CLAUDE_CODE_MAX_OUTPUT_TOKENS", "128000")
+    project_path = cwd if cwd else Path.cwd()
+
     options = ClaudeAgentOptions(
         allowed_tools=tools if tools else [],
         permission_mode="bypassPermissions",
         max_turns=None,  # No limit on conversation turns
+        cwd=project_path,  # Working directory for Claude Code
     )
 
     try:
@@ -202,6 +210,10 @@ async def _run_claude_async(
             elif isinstance(message, ResultMessage):
                 elapsed = time.time() - start_time
 
+                # Debug logging for error diagnosis (silmari-Context-Engine-cv34)
+                if message.is_error:
+                    print(f"\n{Colors.RED}[DEBUG] ResultMessage error: is_error={message.is_error}, result={repr(message.result)}{Colors.RESET}")
+
                 # Use the result text, or join collected text chunks
                 output = message.result if message.result else "".join(text_chunks)
 
@@ -212,16 +224,26 @@ async def _run_claude_async(
                         sys.stdout.write(f"\n{Colors.GREEN}{Colors.BOLD}=== Complete ==={Colors.RESET}\n\n")
                         sys.stdout.flush()
 
+                # Fix: Handle None error from SDK (silmari-Context-Engine-cv34)
+                error_value = ""
+                if message.is_error:
+                    error_value = message.result or "Unknown SDK error (ResultMessage.result was None)"
+
                 result_data = {
                     "success": not message.is_error,
                     "output": output,
-                    "error": message.result if message.is_error else "",
+                    "error": error_value,
                     "elapsed": elapsed,
                 }
                 # Don't return - let the iterator finish naturally
 
     except Exception as e:
-        error_msg = str(e)
+        import traceback
+        error_msg = f"{type(e).__name__}: {e}"
+        # Log full traceback for debugging
+        tb = traceback.format_exc()
+        if "Fatal error" in str(e) or "exit code" in str(e):
+            error_msg = f"{error_msg}\nTraceback:\n{tb}"
 
     # Return stored result if we got one
     if result_data:
@@ -241,7 +263,8 @@ def run_claude_sync(
     tools: Optional[list[str]] = None,
     timeout: int = 300,
     stream: bool = True,
-    output_format: OutputFormat = "text"
+    output_format: OutputFormat = "text",
+    cwd: Optional[Path] = None,
 ) -> dict[str, Any]:
     """Run Claude Code via Agent SDK and return structured result.
 
@@ -254,6 +277,7 @@ def run_claude_sync(
         stream: If True, pipe output to terminal in real-time
         output_format: Output format - "text" for human-readable or
                       "stream-json" for JSON events (repomirror compatible)
+        cwd: Working directory for Claude Code. Defaults to current directory.
 
     Returns:
         Dictionary with keys:
@@ -263,7 +287,7 @@ def run_claude_sync(
         - elapsed: time in seconds
     """
     try:
-        return asyncio.run(_run_claude_async(prompt, tools, timeout, stream, output_format))
+        return asyncio.run(_run_claude_async(prompt, tools, timeout, stream, output_format, cwd))
     except Exception as e:
         return {
             "success": False,
@@ -281,8 +305,8 @@ def run_claude_subprocess(
 ) -> dict[str, Any]:
     """Run Claude Code via subprocess for exact CLI compatibility.
 
-    This fallback method uses the CLI directly with --output-format=stream-json
-    for tools that require piping to external processes like repomirror.
+    Uses the 'script' command to wrap the process in a PTY, enabling
+    real-time streaming output from the claude CLI.
 
     Usage:
         # Pipe to repomirror visualize
@@ -291,7 +315,7 @@ def run_claude_subprocess(
     Args:
         prompt: The prompt to send to Claude
         timeout: Maximum time in seconds to wait for response
-        stream_json: If True, use --output-format=stream-json
+        stream_json: If True, emit raw JSON lines to stdout for piping
         cwd: Working directory for the command
 
     Returns:
@@ -301,44 +325,33 @@ def run_claude_subprocess(
         - error: stderr or error message
         - elapsed: time in seconds
     """
-    import os
-    import select
-
-    cmd = [
-        "claude",
-        "--print",
-        "--verbose",
-        "--permission-mode", "bypassPermissions",
-        "--output-format", "stream-json" if stream_json else "text",
-        "-p", prompt
-    ]
+    import shlex
 
     start_time = time.time()
+
+    # Build the claude command
+    claude_cmd = (
+        f'claude --print --verbose --permission-mode bypassPermissions '
+        f'--output-format stream-json -p {shlex.quote(prompt)}'
+    )
+
+    # Use 'script' to wrap in a PTY for real-time streaming
+    # -q: quiet (no "Script started" messages)
+    # -c: command to run
+    # /dev/null: don't save transcript to file
+    cmd = ["script", "-q", "-c", claude_cmd, "/dev/null"]
 
     try:
         process = subprocess.Popen(
             cmd,
+            stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=False,
-            bufsize=0,
-            cwd=cwd
+            stderr=subprocess.STDOUT,
+            cwd=cwd,
         )
-
-        # Non-blocking read setup
-        import fcntl
-        if process.stdout is None or process.stderr is None:
-            raise RuntimeError("Process stdout/stderr not available")
-
-        flags = fcntl.fcntl(process.stdout.fileno(), fcntl.F_GETFL)
-        fcntl.fcntl(process.stdout.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
-
-        flags = fcntl.fcntl(process.stderr.fileno(), fcntl.F_GETFL)
-        fcntl.fcntl(process.stderr.fileno(), fcntl.F_SETFL, flags | os.O_NONBLOCK)
 
         line_buffer = b""
         text_chunks: list[str] = []
-        error_chunks: list[str] = []
         final_result = ""
 
         while True:
@@ -351,54 +364,102 @@ def run_claude_subprocess(
                     "elapsed": timeout
                 }
 
-            readable, _, _ = select.select(
-                [process.stdout, process.stderr], [], [], 0.1
-            )
+            # Read available data (blocking with small chunks)
+            try:
+                chunk = process.stdout.read1(4096)  # type: ignore
+            except AttributeError:
+                # Fallback for older Python
+                import select as sel
+                readable, _, _ = sel.select([process.stdout], [], [], 0.1)
+                if readable:
+                    chunk = process.stdout.read(4096)
+                else:
+                    chunk = b""
 
-            for stream in readable:
-                try:
-                    chunk = stream.read(4096)
-                    if chunk:
-                        if stream == process.stdout:
-                            line_buffer += chunk
+            if chunk:
+                line_buffer += chunk
 
-                            # Process and emit complete lines
-                            while b'\n' in line_buffer:
-                                line_bytes, line_buffer = line_buffer.split(b'\n', 1)
-                                line = line_bytes.decode('utf-8', errors='replace')
-                                if line.strip():
-                                    # Pass through to stdout for piping
-                                    sys.stdout.write(line + "\n")
+                # Process complete lines
+                while b'\n' in line_buffer:
+                    line_bytes, line_buffer = line_buffer.split(b'\n', 1)
+                    line = line_bytes.decode('utf-8', errors='replace').strip()
+
+                    # Skip empty lines and script noise
+                    if not line or line.startswith('Script '):
+                        continue
+
+                    if stream_json:
+                        # JSON mode: pass through raw JSON for piping
+                        sys.stdout.write(line + "\n")
+                        sys.stdout.flush()
+
+                    # Parse JSON to extract text
+                    try:
+                        data = json.loads(line)
+                        msg_type = data.get("type")
+
+                        if msg_type == "content_block_delta":
+                            delta = data.get("delta", {})
+                            if delta.get("type") == "text_delta":
+                                text = delta.get("text", "")
+                                if text and not stream_json:
+                                    sys.stdout.write(text)
                                     sys.stdout.flush()
+                                text_chunks.append(text)
+                        elif msg_type == "assistant":
+                            for content in data.get("message", {}).get("content", []):
+                                if content.get("type") == "text":
+                                    text = content.get("text", "")
+                                    if text and not stream_json:
+                                        sys.stdout.write(text)
+                                        sys.stdout.flush()
+                                    text_chunks.append(text)
+                        elif msg_type == "result":
+                            final_result = data.get("result", "")
+                    except json.JSONDecodeError:
+                        # Not JSON - could be script noise or other output
+                        if not stream_json and not line.startswith('{'):
+                            sys.stdout.write(line + "\n")
+                            sys.stdout.flush()
+                        text_chunks.append(line + "\n")
 
-                                    # Parse JSON to extract text for return value
-                                    try:
-                                        data = json.loads(line)
-                                        if data.get("type") == "assistant":
-                                            for content in data.get("message", {}).get("content", []):
-                                                if content.get("type") == "text":
-                                                    text_chunks.append(content.get("text", ""))
-                                        elif data.get("type") == "result":
-                                            final_result = data.get("result", "")
-                                    except json.JSONDecodeError:
-                                        pass
-                        else:
-                            error_chunks.append(chunk.decode('utf-8', errors='replace'))
-                except (IOError, BlockingIOError):
-                    pass
-
+            # Check if process exited
             if process.poll() is not None:
                 # Drain remaining output
-                try:
-                    remaining = process.stdout.read()
-                    if remaining:
-                        for line in remaining.decode('utf-8', errors='replace').split('\n'):
-                            if line.strip():
-                                sys.stdout.write(line + "\n")
-                                sys.stdout.flush()
-                except Exception:
-                    pass
+                remaining = process.stdout.read()
+                if remaining:
+                    line_buffer += remaining
+
+                # Process remaining buffer
+                for line in line_buffer.decode('utf-8', errors='replace').split('\n'):
+                    line = line.strip()
+                    if not line or line.startswith('Script '):
+                        continue
+                    if stream_json:
+                        sys.stdout.write(line + "\n")
+                        sys.stdout.flush()
+                    try:
+                        data = json.loads(line)
+                        if data.get("type") == "content_block_delta":
+                            delta = data.get("delta", {})
+                            if delta.get("type") == "text_delta":
+                                text = delta.get("text", "")
+                                if text and not stream_json:
+                                    sys.stdout.write(text)
+                                    sys.stdout.flush()
+                                text_chunks.append(text)
+                        elif data.get("type") == "result":
+                            final_result = data.get("result", "")
+                    except json.JSONDecodeError:
+                        if not stream_json and not line.startswith('{'):
+                            sys.stdout.write(line + "\n")
+                            sys.stdout.flush()
+                        text_chunks.append(line + "\n")
                 break
+
+            # Small sleep to prevent busy loop when no data
+            if not chunk:
+                time.sleep(0.05)
 
         elapsed = time.time() - start_time
         output = final_result if final_result else "".join(text_chunks)
@@ -406,7 +467,7 @@ def run_claude_subprocess(
         return {
             "success": process.returncode == 0,
             "output": output,
-            "error": "".join(error_chunks),
+            "error": "",
             "elapsed": elapsed
         }
 
@@ -414,7 +475,7 @@ def run_claude_subprocess(
         return {
             "success": False,
             "output": "",
-            "error": "claude command not found",
+            "error": "claude or script command not found",
             "elapsed": time.time() - start_time
         }
     except Exception as e:

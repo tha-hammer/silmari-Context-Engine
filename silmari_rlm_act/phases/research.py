@@ -80,7 +80,7 @@ class ResearchPhase:
         Returns:
             Dictionary with success, output, error, and elapsed keys
         """
-        return run_claude_sync(prompt=prompt, timeout=timeout, stream=True)
+        return run_claude_sync(prompt=prompt, timeout=timeout, stream=True, cwd=self.project_path)
 
     def _load_template(self) -> str:
         """Load research command template.
