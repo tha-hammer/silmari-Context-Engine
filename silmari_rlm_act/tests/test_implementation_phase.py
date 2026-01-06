@@ -43,19 +43,36 @@ def cwa() -> CWAIntegration:
     return CWAIntegration()
 
 
-class TestInjectBeadsIntoPlan:
-    """Test beads injection into plan content."""
+class TestBuildImplementationPrompt:
+    """Test prompt building for Claude."""
 
-    def test_injects_epic_id(
+    def test_includes_plan_path(
         self,
         tmp_path: Path,
         sample_plan: Path,
         cwa: CWAIntegration,
     ) -> None:
-        """Given epic ID, injects into plan."""
+        """Given plan path, includes it in prompt."""
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase._inject_beads_into_plan(
+        result = phase._build_implementation_prompt(
+            plan_path=sample_plan,
+            epic_id=None,
+            issue_ids=[],
+        )
+
+        assert str(sample_plan) in result
+
+    def test_includes_epic_id(
+        self,
+        tmp_path: Path,
+        sample_plan: Path,
+        cwa: CWAIntegration,
+    ) -> None:
+        """Given epic ID, includes in prompt."""
+        phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase._build_implementation_prompt(
             plan_path=sample_plan,
             epic_id="beads-epic-001",
             issue_ids=[],
@@ -64,16 +81,16 @@ class TestInjectBeadsIntoPlan:
         assert "beads-epic-001" in result
         assert "Epic" in result
 
-    def test_injects_issue_ids(
+    def test_includes_issue_ids(
         self,
         tmp_path: Path,
         sample_plan: Path,
         cwa: CWAIntegration,
     ) -> None:
-        """Given issue IDs, injects into plan."""
+        """Given issue IDs, includes in prompt."""
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase._inject_beads_into_plan(
+        result = phase._build_implementation_prompt(
             plan_path=sample_plan,
             epic_id=None,
             issue_ids=["beads-001", "beads-002", "beads-003"],
@@ -85,25 +102,6 @@ class TestInjectBeadsIntoPlan:
         assert "Phase 1:" in result
         assert "Phase 2:" in result
 
-    def test_preserves_original_content(
-        self,
-        tmp_path: Path,
-        sample_plan: Path,
-        cwa: CWAIntegration,
-    ) -> None:
-        """Given plan, preserves original content."""
-        phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
-
-        result = phase._inject_beads_into_plan(
-            plan_path=sample_plan,
-            epic_id=None,
-            issue_ids=[],
-        )
-
-        assert "User Authentication" in result
-        assert "## Overview" in result
-        assert "## Phases" in result
-
     def test_adds_beads_commands(
         self,
         tmp_path: Path,
@@ -113,7 +111,7 @@ class TestInjectBeadsIntoPlan:
         """Given plan, adds bd command reference."""
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase._inject_beads_into_plan(
+        result = phase._build_implementation_prompt(
             plan_path=sample_plan,
             epic_id=None,
             issue_ids=[],
@@ -122,6 +120,24 @@ class TestInjectBeadsIntoPlan:
         assert "bd ready" in result
         assert "bd close" in result
         assert "bd sync" in result
+
+    def test_instructs_to_read_plan(
+        self,
+        tmp_path: Path,
+        sample_plan: Path,
+        cwa: CWAIntegration,
+    ) -> None:
+        """Prompt instructs Claude to read the plan."""
+        phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase._build_implementation_prompt(
+            plan_path=sample_plan,
+            epic_id=None,
+            issue_ids=[],
+        )
+
+        assert "Read" in result
+        assert "plan" in result.lower()
 
 
 class TestInvokeClaude:

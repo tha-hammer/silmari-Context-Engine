@@ -54,26 +54,26 @@ class ImplementationPhase:
         self.project_path = Path(project_path)
         self.cwa = cwa
 
-    def _inject_beads_into_plan(
+    def _build_implementation_prompt(
         self,
         plan_path: Path,
         epic_id: Optional[str],
         issue_ids: list[str],
     ) -> str:
-        """Inject beads tracking info into plan content.
+        """Build prompt that tells Claude to read and implement the TDD plan.
 
         Args:
-            plan_path: Path to the TDD plan file
+            plan_path: Path to the TDD plan overview file
             epic_id: Optional beads epic ID
             issue_ids: List of beads issue IDs for phases
 
         Returns:
-            Plan content with beads info injected
+            Prompt instructing Claude to implement the plan
         """
-        plan_content = plan_path.read_text(encoding="utf-8")
+        prompt = f"""Implement the TDD plan at: {plan_path}
 
-        # Build beads section
-        beads_section = """
+Read the plan overview first, then find and implement the phase documents.
+
 ## Beads Tracking
 
 Use `bd` commands to track progress:
@@ -87,38 +87,29 @@ bd sync                     # Sync changes
 
 """
         if epic_id:
-            beads_section += f"**Epic**: `{epic_id}`\n\n"
+            prompt += f"**Epic**: `{epic_id}`\n\n"
 
         if issue_ids:
-            beads_section += "**Phase Issues**:\n"
+            prompt += "**Phase Issues**:\n"
             for i, issue_id in enumerate(issue_ids):
-                beads_section += f"- Phase {i + 1}: `{issue_id}`\n"
-            beads_section += "\n"
+                prompt += f"- Phase {i + 1}: `{issue_id}`\n"
+            prompt += "\n"
 
-        beads_section += """
+        prompt += """
 ## Implementation Instructions
 
-1. Read this plan carefully
-2. Implement the highest priority TASK using subagents
-3. Run all tests: `pytest` or `make test`
-4. Update this plan with progress
-5. Use `bd close <id>` when phase is complete
-6. Use `/clear` after closing an issue to start fresh
+1. Read the plan overview at the path above
+2. Find the phase documents in the same directory
+3. Implement the highest priority TASK using subagents
+4. Run all tests: `pytest` or `make test`
+5. Update the plan with progress
+6. Use `bd close <id>` when phase is complete
+7. Use `/clear` after closing an issue to start fresh
 
 **CRITICAL**: After ALL TESTS PASS and after each successful `bd close`,
 emit a /clear command to clear context for the next issue.
 """
-
-        # Inject after first heading or at start
-        lines = plan_content.split("\n")
-        inject_index = 0
-        for i, line in enumerate(lines):
-            if line.startswith("# "):
-                inject_index = i + 1
-                break
-
-        lines.insert(inject_index, beads_section)
-        return "\n".join(lines)
+        return prompt
 
     def _invoke_claude(self, prompt: str) -> dict[str, Any]:
         """Invoke Claude with plan as prompt.
@@ -240,11 +231,11 @@ emit a /clear command to clear context for the next issue.
     def execute(
         self,
         phase_paths: list[str],
-        mode: AutonomyMode,
+        mode: AutonomyMode,  # noqa: ARG002 - kept for API compatibility
         beads_issue_ids: Optional[list[str]] = None,
         beads_epic_id: Optional[str] = None,
         max_iterations: int = 100,
-        checkpoint: Optional[dict[str, Any]] = None,
+        checkpoint: Optional[dict[str, Any]] = None,  # noqa: ARG002 - kept for API compatibility
     ) -> PhaseResult:
         """Execute implementation via simple Claude loop.
 
@@ -259,6 +250,9 @@ emit a /clear command to clear context for the next issue.
         Returns:
             PhaseResult with implementation status
         """
+        # Suppress unused parameter warnings - kept for API compatibility
+        _ = mode, checkpoint
+
         started_at = datetime.now()
         errors: list[str] = []
         artifacts: list[str] = []
@@ -290,8 +284,8 @@ emit a /clear command to clear context for the next issue.
                 duration_seconds=0,
             )
 
-        # Inject beads info into plan
-        prompt = self._inject_beads_into_plan(plan_path, beads_epic_id, issue_ids)
+        # Build prompt with plan path - Claude will read the plan
+        prompt = self._build_implementation_prompt(plan_path, beads_epic_id, issue_ids)
 
         # Simple loop: invoke Claude, sleep, check completion
         iteration = 0
