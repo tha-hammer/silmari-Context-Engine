@@ -66,7 +66,7 @@ def prompt_decomposition_action() -> str:
 
     while True:
         print("\nWhat would you like to do?")
-        print("  [C]ontinue to TDD planning (default)")
+        print("  [C]ontinue to document generation (default)")
         print("  [R]evise decomposition with additional context")
         print("  [S]tart over from research")
         print("  [E]xit pipeline")

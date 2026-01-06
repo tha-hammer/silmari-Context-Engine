@@ -192,10 +192,12 @@ class RLMActPipeline:
 
             plan_name = kwargs.get("plan_name", "feature")
 
-            return self._tdd_planning_phase.execute_with_checkpoint(
+            # TDD planning and multi-doc are document generation phases that
+            # run automatically after decomposition is approved. No separate
+            # checkpoint needed - they just produce output files.
+            return self._tdd_planning_phase.execute(
                 plan_name=plan_name,
                 hierarchy_path=hierarchy_path,
-                auto_approve=auto_approve,
             )
 
         elif phase_type == PhaseType.MULTI_DOC:
