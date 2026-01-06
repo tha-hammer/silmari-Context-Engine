@@ -260,10 +260,16 @@ class RLMActPipeline:
             if beads_result and beads_result.metadata.get("phase_issue_ids"):
                 beads_issue_ids = beads_result.metadata["phase_issue_ids"]
 
+            # Get epic ID from beads sync or state
+            beads_epic_id = self.state.beads_epic_id
+            if beads_result and beads_result.metadata.get("epic_id"):
+                beads_epic_id = beads_result.metadata["epic_id"]
+
             return self._implementation_phase.execute(
                 phase_paths=phase_paths,
                 mode=self.state.autonomy_mode,
                 beads_issue_ids=beads_issue_ids,
+                beads_epic_id=beads_epic_id,
             )
 
         else:

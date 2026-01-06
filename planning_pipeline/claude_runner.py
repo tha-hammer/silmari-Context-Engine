@@ -23,15 +23,28 @@ import sys
 import time
 from typing import Any, Literal, Optional
 
-from claude_agent_sdk import query
-from claude_agent_sdk.types import (
-    ClaudeAgentOptions,
-    AssistantMessage,
-    ResultMessage,
-    TextBlock,
-    ToolUseBlock,
-    ToolResultBlock,
-)
+# Optional import - claude_agent_sdk may not be installed
+try:
+    from claude_agent_sdk import query
+    from claude_agent_sdk.types import (
+        ClaudeAgentOptions,
+        AssistantMessage,
+        ResultMessage,
+        TextBlock,
+        ToolUseBlock,
+        ToolResultBlock,
+    )
+    HAS_CLAUDE_SDK = True
+except ImportError:
+    HAS_CLAUDE_SDK = False
+    # Stub types for when SDK is not available
+    query = None  # type: ignore
+    ClaudeAgentOptions = None  # type: ignore
+    AssistantMessage = None  # type: ignore
+    ResultMessage = None  # type: ignore
+    TextBlock = None  # type: ignore
+    ToolUseBlock = None  # type: ignore
+    ToolResultBlock = None  # type: ignore
 
 # Type alias for output formats
 OutputFormat = Literal["text", "stream-json"]
@@ -144,6 +157,14 @@ async def _run_claude_async(
         - error: error message if any
         - elapsed: time in seconds
     """
+    if not HAS_CLAUDE_SDK:
+        return {
+            "success": False,
+            "output": "",
+            "error": "claude_agent_sdk not installed. Install with: pip install claude-agent-sdk",
+            "elapsed": 0,
+        }
+
     start_time = time.time()
     text_chunks: list[str] = []
     error_msg = ""
