@@ -14,6 +14,7 @@ import click
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import AutonomyMode
 from silmari_rlm_act.pipeline import RLMActPipeline
+from planning_pipeline.beads_controller import BeadsController
 
 
 @click.group()
@@ -31,8 +32,8 @@ def main() -> None:
 @click.option(
     "--question",
     "-q",
-    required=True,
-    help="Research question to start the pipeline",
+    default=None,
+    help="Research question to start the pipeline (required unless --resume)",
 )
 @click.option(
     "--project",
@@ -61,18 +62,31 @@ def main() -> None:
     default=False,
     help="Run in batch mode (pause between groups)",
 )
+@click.option(
+    "--resume",
+    "-r",
+    is_flag=True,
+    default=False,
+    help="Resume from last checkpoint instead of starting fresh",
+)
 def run(
-    question: str,
+    question: Optional[str],
     project: str,
     plan_name: str,
     autonomous: bool,
     batch: bool,
+    resume: bool,
 ) -> None:
     """Run the full RLM-Act pipeline.
 
     Starts from research phase and runs through implementation.
+    Use --resume to continue from a previous checkpoint.
     """
     project_path = Path(project).resolve()
+
+    # Validate: question is required unless resuming
+    if not resume and not question:
+        raise click.UsageError("--question is required unless using --resume")
 
     # Determine autonomy mode
     if autonomous:
@@ -82,26 +96,50 @@ def run(
     else:
         mode = AutonomyMode.CHECKPOINT
 
-    click.echo("Starting RLM-Act pipeline...")
-    click.echo(f"  Project: {project_path}")
-    click.echo(f"  Question: {question}")
-    click.echo(f"  Mode: {mode.value}")
-    click.echo()
-
     # Create CWA integration
     cwa = CWAIntegration()
 
-    # Create and run pipeline
+    # Create beads controller
+    beads = BeadsController(project_path)
+
+    # Create pipeline
     pipeline = RLMActPipeline(
         project_path=project_path,
         cwa=cwa,
         autonomy_mode=mode,
+        beads_controller=beads,
     )
 
-    result = pipeline.run(
-        research_question=question,
-        plan_name=plan_name,
-    )
+    # Handle resume mode
+    if resume:
+        if not pipeline.resume_from_checkpoint():
+            click.echo("No checkpoint found to resume from.")
+            click.echo("Use 'silmari-rlm-act run -q <question>' to start a new pipeline.")
+            sys.exit(1)
+
+        status = pipeline.get_status_summary()
+        click.echo("Resuming RLM-Act pipeline...")
+        click.echo(f"  Project: {project_path}")
+        click.echo(f"  Completed phases: {', '.join(status['phases_completed'])}")
+        click.echo(f"  Next phase: {status['next_phase']}")
+        click.echo(f"  Mode: {mode.value}")
+        click.echo()
+
+        result = pipeline.run(
+            research_question="",  # Not needed when resuming
+            plan_name=plan_name,
+        )
+    else:
+        click.echo("Starting RLM-Act pipeline...")
+        click.echo(f"  Project: {project_path}")
+        click.echo(f"  Question: {question}")
+        click.echo(f"  Mode: {mode.value}")
+        click.echo()
+
+        result = pipeline.run(
+            research_question=question,  # type: ignore[arg-type]
+            plan_name=plan_name,
+        )
 
     # Report result
     if result.is_complete:
@@ -140,14 +178,27 @@ def run(
     default=False,
     help="Continue in fully autonomous mode",
 )
-def resume(project: str, autonomous: bool) -> None:
+@click.option(
+    "--batch",
+    "-b",
+    is_flag=True,
+    default=False,
+    help="Continue in batch mode (pause between groups)",
+)
+def resume(project: str, autonomous: bool, batch: bool) -> None:
     """Resume pipeline from last checkpoint.
 
     Loads the most recent checkpoint and continues execution.
     """
     project_path = Path(project).resolve()
 
-    mode = AutonomyMode.FULLY_AUTONOMOUS if autonomous else AutonomyMode.CHECKPOINT
+    # Determine autonomy mode
+    if autonomous:
+        mode = AutonomyMode.FULLY_AUTONOMOUS
+    elif batch:
+        mode = AutonomyMode.BATCH
+    else:
+        mode = AutonomyMode.CHECKPOINT
 
     click.echo("Resuming RLM-Act pipeline...")
     click.echo(f"  Project: {project_path}")
@@ -156,11 +207,15 @@ def resume(project: str, autonomous: bool) -> None:
     # Create CWA integration
     cwa = CWAIntegration()
 
+    # Create beads controller
+    beads = BeadsController(project_path)
+
     # Create pipeline
     pipeline = RLMActPipeline(
         project_path=project_path,
         cwa=cwa,
         autonomy_mode=mode,
+        beads_controller=beads,
     )
 
     # Try to resume
@@ -215,10 +270,14 @@ def status(project: str) -> None:
     # Create CWA integration
     cwa = CWAIntegration()
 
+    # Create beads controller
+    beads = BeadsController(project_path)
+
     # Create pipeline
     pipeline = RLMActPipeline(
         project_path=project_path,
         cwa=cwa,
+        beads_controller=beads,
     )
 
     # Try to load checkpoint
