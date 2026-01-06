@@ -318,3 +318,189 @@ func (r *PipelineResult) GetStringSlice(key string) []string {
 	}
 	return nil
 }
+
+// ValidComplexities for Feature.
+var ValidComplexities = map[string]bool{
+	"high":   true,
+	"medium": true,
+	"low":    true,
+}
+
+// Feature represents a feature/issue for tracking in feature_list.json.
+// This matches the Python feature_list.json schema used by loop-runner.py and orchestrator.py.
+type Feature struct {
+	ID            string   `json:"id"`
+	Name          string   `json:"name"`
+	Description   string   `json:"description,omitempty"`
+	Priority      int      `json:"priority,omitempty"`
+	Category      string   `json:"category,omitempty"`
+	Passes        bool     `json:"passes"`
+	Blocked       bool     `json:"blocked,omitempty"`
+	BlockedReason string   `json:"blocked_reason,omitempty"`
+	BlockedBy     []string `json:"blocked_by,omitempty"`
+	BlockedAt     string   `json:"blocked_at,omitempty"`
+	Dependencies  []string `json:"dependencies,omitempty"`
+	Tests         []string `json:"tests,omitempty"`
+	Complexity    string   `json:"complexity,omitempty"`
+	NeedsReview   bool     `json:"needs_review,omitempty"`
+	QAOrigin      string   `json:"qa_origin,omitempty"`
+	Severity      string   `json:"severity,omitempty"`
+	SuggestedFix  string   `json:"suggested_fix,omitempty"`
+}
+
+// Validate checks that the Feature has valid values.
+func (f *Feature) Validate() error {
+	if f.ID == "" {
+		return errors.New("feature id cannot be empty")
+	}
+	if f.Name == "" {
+		return errors.New("feature name cannot be empty")
+	}
+	if f.Blocked && f.BlockedReason == "" {
+		return errors.New("blocked feature must have blocked_reason")
+	}
+	if f.Blocked && len(f.BlockedBy) == 0 {
+		return errors.New("blocked feature must have blocked_by")
+	}
+	if f.Complexity != "" && !ValidComplexities[f.Complexity] {
+		return fmt.Errorf("invalid complexity: %s (valid: high, medium, low)", f.Complexity)
+	}
+	if f.Passes && f.Blocked {
+		return errors.New("feature cannot be both passes=true and blocked=true")
+	}
+	// Check for self-reference in dependencies
+	for _, dep := range f.Dependencies {
+		if dep == f.ID {
+			return fmt.Errorf("feature %s cannot depend on itself", f.ID)
+		}
+	}
+	return nil
+}
+
+// ValidateWithFeatureList validates the feature and checks that dependency IDs exist.
+func (f *Feature) ValidateWithFeatureList(list *FeatureList) error {
+	if err := f.Validate(); err != nil {
+		return err
+	}
+	if list == nil {
+		return nil
+	}
+	// Check dependencies exist
+	for _, depID := range f.Dependencies {
+		if list.GetByID(depID) == nil {
+			return fmt.Errorf("dependency %s not found in feature list", depID)
+		}
+	}
+	// Check blocked_by references exist
+	for _, blockerID := range f.BlockedBy {
+		if list.GetByID(blockerID) == nil {
+			return fmt.Errorf("blocked_by reference %s not found in feature list", blockerID)
+		}
+	}
+	return nil
+}
+
+// FeatureList is a container for features from feature_list.json.
+type FeatureList struct {
+	Features []Feature `json:"features"`
+}
+
+// NewFeatureList creates a new empty feature list.
+func NewFeatureList() *FeatureList {
+	return &FeatureList{
+		Features: make([]Feature, 0),
+	}
+}
+
+// Add adds a feature to the list.
+func (fl *FeatureList) Add(feature Feature) {
+	fl.Features = append(fl.Features, feature)
+}
+
+// GetByID finds a feature by ID.
+func (fl *FeatureList) GetByID(id string) *Feature {
+	for i := range fl.Features {
+		if fl.Features[i].ID == id {
+			return &fl.Features[i]
+		}
+	}
+	return nil
+}
+
+// GetPending returns features that are not passes and not blocked.
+func (fl *FeatureList) GetPending() []Feature {
+	var pending []Feature
+	for _, f := range fl.Features {
+		if !f.Passes && !f.Blocked {
+			pending = append(pending, f)
+		}
+	}
+	return pending
+}
+
+// GetBlocked returns all blocked features.
+func (fl *FeatureList) GetBlocked() []Feature {
+	var blocked []Feature
+	for _, f := range fl.Features {
+		if f.Blocked {
+			blocked = append(blocked, f)
+		}
+	}
+	return blocked
+}
+
+// GetCompleted returns all completed (passes=true) features.
+func (fl *FeatureList) GetCompleted() []Feature {
+	var completed []Feature
+	for _, f := range fl.Features {
+		if f.Passes {
+			completed = append(completed, f)
+		}
+	}
+	return completed
+}
+
+// Stats returns feature list statistics.
+func (fl *FeatureList) Stats() map[string]int {
+	total := len(fl.Features)
+	completed := 0
+	blocked := 0
+	for _, f := range fl.Features {
+		if f.Passes {
+			completed++
+		}
+		if f.Blocked {
+			blocked++
+		}
+	}
+	return map[string]int{
+		"total":     total,
+		"completed": completed,
+		"remaining": total - completed,
+		"blocked":   blocked,
+	}
+}
+
+// ToJSON serializes the feature list to JSON.
+func (fl *FeatureList) ToJSON() ([]byte, error) {
+	return json.MarshalIndent(fl, "", "  ")
+}
+
+// FeatureListFromJSON deserializes a feature list from JSON.
+func FeatureListFromJSON(data []byte) (*FeatureList, error) {
+	fl := &FeatureList{}
+	if err := json.Unmarshal(data, fl); err != nil {
+		return nil, fmt.Errorf("failed to parse feature list JSON: %w", err)
+	}
+	return fl, nil
+}
+
+// Validate validates all features in the list.
+func (fl *FeatureList) Validate() error {
+	for i := range fl.Features {
+		if err := fl.Features[i].ValidateWithFeatureList(fl); err != nil {
+			return fmt.Errorf("feature %s: %w", fl.Features[i].ID, err)
+		}
+	}
+	return nil
+}

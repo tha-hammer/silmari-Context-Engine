@@ -479,3 +479,330 @@ func TestValidCategories(t *testing.T) {
 	}
 }
 
+func TestFeatureValidation(t *testing.T) {
+	tests := []struct {
+		name    string
+		feature Feature
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid feature",
+			feature: Feature{
+				ID:     "feat-001",
+				Name:   "Test Feature",
+				Passes: false,
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty id",
+			feature: Feature{
+				ID:     "",
+				Name:   "Test Feature",
+				Passes: false,
+			},
+			wantErr: true,
+			errMsg:  "id cannot be empty",
+		},
+		{
+			name: "empty name",
+			feature: Feature{
+				ID:     "feat-001",
+				Name:   "",
+				Passes: false,
+			},
+			wantErr: true,
+			errMsg:  "name cannot be empty",
+		},
+		{
+			name: "blocked without reason",
+			feature: Feature{
+				ID:        "feat-001",
+				Name:      "Test Feature",
+				Blocked:   true,
+				BlockedBy: []string{"feat-000"},
+			},
+			wantErr: true,
+			errMsg:  "blocked_reason",
+		},
+		{
+			name: "blocked without blocked_by",
+			feature: Feature{
+				ID:            "feat-001",
+				Name:          "Test Feature",
+				Blocked:       true,
+				BlockedReason: "Waiting for dependency",
+			},
+			wantErr: true,
+			errMsg:  "blocked_by",
+		},
+		{
+			name: "valid blocked feature",
+			feature: Feature{
+				ID:            "feat-001",
+				Name:          "Test Feature",
+				Blocked:       true,
+				BlockedReason: "Waiting for dependency",
+				BlockedBy:     []string{"feat-000"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid complexity",
+			feature: Feature{
+				ID:         "feat-001",
+				Name:       "Test Feature",
+				Complexity: "extreme",
+			},
+			wantErr: true,
+			errMsg:  "invalid complexity",
+		},
+		{
+			name: "valid complexity",
+			feature: Feature{
+				ID:         "feat-001",
+				Name:       "Test Feature",
+				Complexity: "high",
+			},
+			wantErr: false,
+		},
+		{
+			name: "passes and blocked",
+			feature: Feature{
+				ID:            "feat-001",
+				Name:          "Test Feature",
+				Passes:        true,
+				Blocked:       true,
+				BlockedReason: "reason",
+				BlockedBy:     []string{"other"},
+			},
+			wantErr: true,
+			errMsg:  "cannot be both passes=true and blocked=true",
+		},
+		{
+			name: "self dependency",
+			feature: Feature{
+				ID:           "feat-001",
+				Name:         "Test Feature",
+				Dependencies: []string{"feat-001"},
+			},
+			wantErr: true,
+			errMsg:  "cannot depend on itself",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.feature.Validate()
+			if tt.wantErr {
+				if err == nil {
+					t.Error("expected error but got nil")
+				} else if !strings.Contains(err.Error(), tt.errMsg) {
+					t.Errorf("expected error containing %q, got %q", tt.errMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
+}
+
+func TestFeatureListBasics(t *testing.T) {
+	fl := NewFeatureList()
+
+	if len(fl.Features) != 0 {
+		t.Errorf("new feature list should be empty: got %d", len(fl.Features))
+	}
+
+	// Add features
+	fl.Add(Feature{ID: "feat-001", Name: "Feature 1", Passes: false})
+	fl.Add(Feature{ID: "feat-002", Name: "Feature 2", Passes: true})
+	fl.Add(Feature{ID: "feat-003", Name: "Feature 3", Blocked: true, BlockedReason: "reason", BlockedBy: []string{"feat-001"}})
+
+	if len(fl.Features) != 3 {
+		t.Errorf("expected 3 features, got %d", len(fl.Features))
+	}
+
+	// Test GetByID
+	f := fl.GetByID("feat-002")
+	if f == nil {
+		t.Error("GetByID should find feat-002")
+	} else if f.Name != "Feature 2" {
+		t.Errorf("wrong feature name: %s", f.Name)
+	}
+
+	f = fl.GetByID("feat-999")
+	if f != nil {
+		t.Error("GetByID should return nil for non-existent ID")
+	}
+}
+
+func TestFeatureListFiltering(t *testing.T) {
+	fl := NewFeatureList()
+	fl.Add(Feature{ID: "feat-001", Name: "Feature 1", Passes: false})
+	fl.Add(Feature{ID: "feat-002", Name: "Feature 2", Passes: true})
+	fl.Add(Feature{ID: "feat-003", Name: "Feature 3", Passes: false, Blocked: true, BlockedReason: "reason", BlockedBy: []string{"feat-001"}})
+	fl.Add(Feature{ID: "feat-004", Name: "Feature 4", Passes: true})
+
+	// Test GetPending
+	pending := fl.GetPending()
+	if len(pending) != 1 {
+		t.Errorf("expected 1 pending, got %d", len(pending))
+	}
+	if pending[0].ID != "feat-001" {
+		t.Errorf("wrong pending feature: %s", pending[0].ID)
+	}
+
+	// Test GetBlocked
+	blocked := fl.GetBlocked()
+	if len(blocked) != 1 {
+		t.Errorf("expected 1 blocked, got %d", len(blocked))
+	}
+	if blocked[0].ID != "feat-003" {
+		t.Errorf("wrong blocked feature: %s", blocked[0].ID)
+	}
+
+	// Test GetCompleted
+	completed := fl.GetCompleted()
+	if len(completed) != 2 {
+		t.Errorf("expected 2 completed, got %d", len(completed))
+	}
+}
+
+func TestFeatureListStats(t *testing.T) {
+	fl := NewFeatureList()
+	fl.Add(Feature{ID: "feat-001", Name: "Feature 1", Passes: false})
+	fl.Add(Feature{ID: "feat-002", Name: "Feature 2", Passes: true})
+	fl.Add(Feature{ID: "feat-003", Name: "Feature 3", Passes: false, Blocked: true, BlockedReason: "reason", BlockedBy: []string{"feat-001"}})
+
+	stats := fl.Stats()
+	if stats["total"] != 3 {
+		t.Errorf("wrong total: %d", stats["total"])
+	}
+	if stats["completed"] != 1 {
+		t.Errorf("wrong completed: %d", stats["completed"])
+	}
+	if stats["remaining"] != 2 {
+		t.Errorf("wrong remaining: %d", stats["remaining"])
+	}
+	if stats["blocked"] != 1 {
+		t.Errorf("wrong blocked: %d", stats["blocked"])
+	}
+}
+
+func TestFeatureListJSON(t *testing.T) {
+	fl := NewFeatureList()
+	fl.Add(Feature{
+		ID:          "feat-001",
+		Name:        "Feature 1",
+		Description: "Test description",
+		Priority:    100,
+		Category:    "bugfix",
+		Passes:      false,
+		Complexity:  "high",
+	})
+	fl.Add(Feature{
+		ID:     "feat-002",
+		Name:   "Feature 2",
+		Passes: true,
+	})
+
+	// Serialize
+	data, err := fl.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON failed: %v", err)
+	}
+
+	// Verify JSON structure
+	jsonStr := string(data)
+	if !strings.Contains(jsonStr, `"features"`) {
+		t.Error("JSON should contain features key")
+	}
+	if !strings.Contains(jsonStr, `"feat-001"`) {
+		t.Error("JSON should contain feat-001")
+	}
+
+	// Deserialize
+	fl2, err := FeatureListFromJSON(data)
+	if err != nil {
+		t.Fatalf("FeatureListFromJSON failed: %v", err)
+	}
+
+	if len(fl2.Features) != 2 {
+		t.Errorf("wrong feature count after deserialize: %d", len(fl2.Features))
+	}
+
+	f := fl2.GetByID("feat-001")
+	if f == nil {
+		t.Error("should find feat-001 after deserialize")
+	} else {
+		if f.Description != "Test description" {
+			t.Errorf("wrong description: %s", f.Description)
+		}
+		if f.Priority != 100 {
+			t.Errorf("wrong priority: %d", f.Priority)
+		}
+		if f.Complexity != "high" {
+			t.Errorf("wrong complexity: %s", f.Complexity)
+		}
+	}
+}
+
+func TestFeatureListValidation(t *testing.T) {
+	// Valid list
+	fl := NewFeatureList()
+	fl.Add(Feature{ID: "feat-001", Name: "Feature 1", Dependencies: []string{"feat-002"}})
+	fl.Add(Feature{ID: "feat-002", Name: "Feature 2"})
+
+	err := fl.Validate()
+	if err != nil {
+		t.Errorf("valid list should not error: %v", err)
+	}
+
+	// Invalid: dependency not found
+	fl2 := NewFeatureList()
+	fl2.Add(Feature{ID: "feat-001", Name: "Feature 1", Dependencies: []string{"feat-999"}})
+
+	err = fl2.Validate()
+	if err == nil {
+		t.Error("should fail when dependency not found")
+	} else if !strings.Contains(err.Error(), "not found") {
+		t.Errorf("wrong error: %v", err)
+	}
+
+	// Invalid: blocked_by not found
+	fl3 := NewFeatureList()
+	fl3.Add(Feature{ID: "feat-001", Name: "Feature 1", Blocked: true, BlockedReason: "reason", BlockedBy: []string{"feat-999"}})
+
+	err = fl3.Validate()
+	if err == nil {
+		t.Error("should fail when blocked_by reference not found")
+	}
+}
+
+func TestEmptyFeatureListJSON(t *testing.T) {
+	fl := NewFeatureList()
+
+	data, err := fl.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON failed: %v", err)
+	}
+
+	// Should serialize as {"features": []} not null
+	if !strings.Contains(string(data), `"features": []`) {
+		t.Errorf("empty list should serialize as {\"features\": []}, got: %s", string(data))
+	}
+
+	// Round-trip
+	fl2, err := FeatureListFromJSON(data)
+	if err != nil {
+		t.Fatalf("FeatureListFromJSON failed: %v", err)
+	}
+	if fl2.Features == nil {
+		t.Error("Features should not be nil after deserialize")
+	}
+}
+
