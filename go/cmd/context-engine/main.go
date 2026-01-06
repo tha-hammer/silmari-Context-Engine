@@ -4,7 +4,7 @@ package main
 import (
 	"os"
 
-	"github.com/silmari/context-engine/internal/cli"
+	"github.com/silmari/context-engine/go/internal/cli"
 )
 
 func main() {
