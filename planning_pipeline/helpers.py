@@ -61,8 +61,8 @@ def extract_phase_files(output: str) -> list[str]:
     """Extract phase file paths from Claude output.
 
     Matches paths like:
-    - thoughts/shared/plans/2025-01-01-feat/00-overview.md
-    - thoughts/shared/plans/2025-01-01-feat/01-phase-1-name.md
+    - thoughts/searchable/plans/2025-01-01-feat/00-overview.md
+    - thoughts/searchable/plans/2025-01-01-feat/01-phase-1-name.md
     """
     if not output:
         return []
@@ -78,8 +78,8 @@ def resolve_file_path(
     """Resolve a file path from various input formats.
 
     Accepts:
-    - Absolute paths: /home/user/project/thoughts/shared/research/file.md
-    - Relative paths: thoughts/shared/research/file.md
+    - Absolute paths: /home/user/project/thoughts/searchable/research/file.md
+    - Relative paths: thoughts/searchable/research/file.md
     - Just filename: 2026-01-02-my-research.md
     - Partial filename: my-research.md (fuzzy match)
 

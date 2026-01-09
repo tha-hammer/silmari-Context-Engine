@@ -16,6 +16,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
+from planning_pipeline.claude_runner import run_claude_subprocess
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import AutonomyMode, PhaseResult, PhaseStatus, PhaseType
 
@@ -114,51 +115,20 @@ emit a /clear command to clear context for the next issue.
     def _invoke_claude(self, prompt: str) -> dict[str, Any]:
         """Invoke Claude with plan as prompt.
 
+        Uses run_claude_subprocess for real-time streaming output to terminal.
+
         Args:
             prompt: The full prompt (plan content with beads)
 
         Returns:
-            Dict with success, output, error
+            Dict with success, output, error, elapsed
         """
-        cmd = [
-            "claude",
-            "-p", prompt,
-            "--dangerously-skip-permissions",
-        ]
-
-        try:
-            result = subprocess.run(
-                cmd,
-                cwd=str(self.project_path),
-                capture_output=True,
-                text=True,
-                timeout=self.CLAUDE_TIMEOUT,
-            )
-
-            return {
-                "success": result.returncode == 0,
-                "output": result.stdout,
-                "error": result.stderr,
-            }
-
-        except subprocess.TimeoutExpired:
-            return {
-                "success": False,
-                "output": "",
-                "error": f"Claude timed out after {self.CLAUDE_TIMEOUT}s",
-            }
-        except FileNotFoundError:
-            return {
-                "success": False,
-                "output": "",
-                "error": "claude command not found",
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "output": "",
-                "error": str(e),
-            }
+        return run_claude_subprocess(
+            prompt,
+            timeout=self.CLAUDE_TIMEOUT,
+            stream_json=False,  # Text mode for human-readable output
+            cwd=str(self.project_path),
+        )
 
     def _check_completion(self, issue_ids: list[str]) -> bool:
         """Check if all beads issues are closed.
@@ -295,13 +265,11 @@ emit a /clear command to clear context for the next issue.
             print(f"IMPLEMENTATION LOOP - Iteration {iteration}")
             print(f"{'=' * 60}\n")
 
-            # Invoke Claude with plan
+            # Invoke Claude with plan (output streams directly to terminal)
             result = self._invoke_claude(prompt)
 
-            if result["output"]:
-                print(result["output"])
-            if result["error"]:
-                print(f"STDERR: {result['error']}")
+            if not result["success"]:
+                print(f"Claude invocation failed: {result.get('error', 'unknown error')}")
 
             # Sleep between iterations
             print(f"\n{'=' * 25} LOOP {'=' * 25}\n")

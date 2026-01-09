@@ -199,7 +199,8 @@ def display_result(result: dict) -> None:
             print(f"\nPipeline stopped by user at: {result['stopped_at']}")
         elif result.get("failed_at"):
             step = result["failed_at"]
-            error = result.get("steps", {}).get(step, {}).get("error", "Unknown error")
+            # Fix: Use 'or' to handle None values (silmari-Context-Engine-cv34)
+            error = result.get("steps", {}).get(step, {}).get("error") or result.get("error") or "Unknown error"
             print(f"\nFailed at step: {step}")
             print(f"Error: {error}")
         else:

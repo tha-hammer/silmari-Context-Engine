@@ -173,9 +173,33 @@ class TestStoreAddGet:
     def test_get_by_type_filters_correctly(self):
         """Given store with mixed types, when get_by_type(FILE), then returns only files."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.COMMAND, source="bash", content="b", summary="b"))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.COMMAND,
+                source="bash",
+                content="b",
+                summary="b",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+            )
+        )
 
         files = store.get_by_type(EntryType.FILE)
 
@@ -185,7 +209,15 @@ class TestStoreAddGet:
     def test_get_by_type_empty_result(self):
         """Given store without matching type, when get_by_type(), then returns empty list."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
 
         commands = store.get_by_type(EntryType.COMMAND)
 
@@ -505,9 +537,35 @@ class TestStoreCompression:
     def test_get_compressed_entries(self):
         """Given store with mixed entries, when get_compressed(), then returns only compressed."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content=None, summary="b", compressed=True))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content=None, summary="c", compressed=True))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content=None,
+                summary="b",
+                compressed=True,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content=None,
+                summary="c",
+                compressed=True,
+            )
+        )
 
         compressed = store.get_compressed()
 
@@ -517,9 +575,34 @@ class TestStoreCompression:
     def test_get_uncompressed_entries(self):
         """Given store with mixed entries, when get_uncompressed(), then returns only uncompressed."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a"))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content=None, summary="b", compressed=True))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c"))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content=None,
+                summary="b",
+                compressed=True,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+            )
+        )
 
         uncompressed = store.get_uncompressed()
 
@@ -719,9 +802,36 @@ class TestStoreTTLProcessing:
     def test_process_ttl_decrements_all(self):
         """Given store with TTL entries, when process_ttl(), then all TTLs decremented."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=5))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=3))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c", ttl=1))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=5,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=3,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+                ttl=1,
+            )
+        )
 
         store.process_ttl()
 
@@ -732,8 +842,26 @@ class TestStoreTTLProcessing:
     def test_process_ttl_skips_none_ttl(self):
         """Given entry with ttl=None, when process_ttl(), then ttl stays None."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=None))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=5))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=None,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=5,
+            )
+        )
 
         store.process_ttl()
 
@@ -743,7 +871,16 @@ class TestStoreTTLProcessing:
     def test_process_ttl_zero_stays_zero(self):
         """Given entry with ttl=0, when process_ttl(), then ttl stays 0."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=0))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=0,
+            )
+        )
 
         store.process_ttl()
 
@@ -752,9 +889,36 @@ class TestStoreTTLProcessing:
     def test_cleanup_expired_removes_zero_ttl(self):
         """Given entries with ttl=0, when cleanup_expired(), then they are removed."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=0))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=5))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c", ttl=0))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=0,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=5,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+                ttl=0,
+            )
+        )
 
         removed = store.cleanup_expired()
 
@@ -767,8 +931,26 @@ class TestStoreTTLProcessing:
     def test_cleanup_expired_keeps_none_ttl(self):
         """Given entry with ttl=None, when cleanup_expired(), then entry kept."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=None))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=0))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=None,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=0,
+            )
+        )
 
         removed = store.cleanup_expired()
 
@@ -779,8 +961,26 @@ class TestStoreTTLProcessing:
     def test_cleanup_expired_returns_zero_when_none_expired(self):
         """Given no expired entries, when cleanup_expired(), then returns 0."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=5))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=None))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=5,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=None,
+            )
+        )
 
         removed = store.cleanup_expired()
 
@@ -790,9 +990,36 @@ class TestStoreTTLProcessing:
     def test_get_expired_entries(self):
         """Given store with mixed TTL entries, when get_expired(), then returns expired."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=0))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=5))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c", ttl=0))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=0,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=5,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+                ttl=0,
+            )
+        )
 
         expired = store.get_expired()
 
@@ -802,10 +1029,46 @@ class TestStoreTTLProcessing:
     def test_get_expiring_soon(self):
         """Given store with entries, when get_expiring_soon(threshold=2), then returns entries with ttl <= 2."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=1))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=2))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c", ttl=5))
-        store.add(ContextEntry(id="ctx_004", entry_type=EntryType.FILE, source="d.py", content="d", summary="d", ttl=None))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=1,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=2,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+                ttl=5,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_004",
+                entry_type=EntryType.FILE,
+                source="d.py",
+                content="d",
+                summary="d",
+                ttl=None,
+            )
+        )
 
         expiring = store.get_expiring_soon(threshold=2)
 
@@ -816,9 +1079,36 @@ class TestStoreTTLProcessing:
     def test_process_turn_combines_ttl_and_cleanup(self):
         """Given store, when process_turn(), then TTLs decremented and expired cleaned."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=1))
-        store.add(ContextEntry(id="ctx_002", entry_type=EntryType.FILE, source="b.py", content="b", summary="b", ttl=2))
-        store.add(ContextEntry(id="ctx_003", entry_type=EntryType.FILE, source="c.py", content="c", summary="c", ttl=None))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=1,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_002",
+                entry_type=EntryType.FILE,
+                source="b.py",
+                content="b",
+                summary="b",
+                ttl=2,
+            )
+        )
+        store.add(
+            ContextEntry(
+                id="ctx_003",
+                entry_type=EntryType.FILE,
+                source="c.py",
+                content="c",
+                summary="c",
+                ttl=None,
+            )
+        )
 
         result = store.process_turn()
 
@@ -835,7 +1125,16 @@ class TestStoreTTLProcessing:
     def test_extend_ttl(self):
         """Given entry with TTL, when extend_ttl(id, 5), then TTL increased."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=3))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=3,
+            )
+        )
 
         result = store.extend_ttl("ctx_001", 5)
 
@@ -853,7 +1152,16 @@ class TestStoreTTLProcessing:
     def test_extend_ttl_with_none_ttl_sets_ttl(self):
         """Given entry with ttl=None, when extend_ttl(id, 5), then TTL set to 5."""
         store = CentralContextStore()
-        store.add(ContextEntry(id="ctx_001", entry_type=EntryType.FILE, source="a.py", content="a", summary="a", ttl=None))
+        store.add(
+            ContextEntry(
+                id="ctx_001",
+                entry_type=EntryType.FILE,
+                source="a.py",
+                content="a",
+                summary="a",
+                ttl=None,
+            )
+        )
 
         result = store.extend_ttl("ctx_001", 5)
 

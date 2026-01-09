@@ -213,7 +213,7 @@ func StepRequirementDecomposition(projectPath, researchPath string) *Requirement
 	}
 
 	// Use decomposition function
-	hierarchy, decompositionErr := DecomposeRequirements(content, nil, nil, nil)
+	hierarchy, decompositionErr := DecomposeRequirements(content, projectPath, nil, nil, nil)
 	if decompositionErr != nil {
 		result.Success = false
 		result.Error = decompositionErr.Message

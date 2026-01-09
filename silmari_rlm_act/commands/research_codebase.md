@@ -88,19 +88,19 @@ After completing research:
    - Use thoughts/ findings as supplementary historical context
    - Connect findings across different components
    - Include specific file paths and line numbers for reference
-   - Verify all thoughts/ paths are correct (e.g., thoughts/maceo/ not thoughts/shared/ for personal files)
+   - Verify all thoughts/ paths are correct (e.g., thoughts/maceo/ not thoughts/searchable/ for personal files)
    - Highlight patterns, connections, and architectural decisions
    - Answer the user's specific questions with concrete evidence
 
 5. **Gather metadata for the research document:**
    - Run the `silmari-oracle metadata` script to generate all relevant metadata
-   - Filename: `{project_path}/thoughts/searchable/research/YYYY-MM-DD-description.md`
-     - Format: `YYYY-MM-DD-ENG-XXXX-description.md` where:
+   - Filename: `{project_path}/thoughts/searchable/research/YYYY-MM-DD-HH-MM-description.md`
+     - Format: `YYYY-MM-DD-HH-MM-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
        - description is a brief kebab-case description of the research topic
      - Examples:
-       - With ticket: `2025-01-08-ENG-1478-parent-child-tracking.md`
-       - Without ticket: `2025-01-08-authentication-flow.md`
+       - With ticket: `2025-01-08-HH-MM-ENG-1478-parent-child-tracking.md`
+       - Without ticket: `2025-01-08-HH-MMauthentication-flow.md`
 
 6. **Generate research document:**
    - Use the metadata gathered in step 5
@@ -215,7 +215,7 @@ After completing research:
   - Always document paths by removing ONLY "searchable/" - preserve all other subdirectories
   - Examples of correct transformations:
     - `thoughts/searchable/maceo/old_stuff/notes.md` → `thoughts/maceo/old_stuff/notes.md`
-    - `thoughts/searchable/shared/prs/123.md` → `thoughts/shared/prs/123.md`
+    - `thoughts/searchable/shared/prs/123.md` → `thoughts/searchable/prs/123.md`
     - `thoughts/searchable/global/shared/templates.md` → `thoughts/global/shared/templates.md`
   - NEVER change maceo/ to shared/ or vice versa - preserve the exact directory structure
   - This ensures paths are correct for editing and navigation

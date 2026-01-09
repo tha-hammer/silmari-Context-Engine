@@ -52,11 +52,15 @@ class TestDecomposeRequirements:
         assert isinstance(result, DecompositionError)
         assert result.error_code == DecompositionErrorCode.EMPTY_CONTENT
 
-    def test_baml_api_error_returns_structured_error(self, patch_baml_client):
-        """BAML exceptions should be caught and wrapped."""
-        patch_baml_client.ProcessGate1InitialExtractionPrompt.side_effect = Exception(
-            "API rate limit"
-        )
+    def test_agent_sdk_error_returns_structured_error(self, patch_baml_client):
+        """Agent SDK failures should be caught and wrapped."""
+        # Configure mock to return a failed response
+        patch_baml_client.return_value = {
+            "success": False,
+            "output": "",
+            "error": "API rate limit exceeded",
+            "elapsed": 0.5
+        }
 
         result = decompose_requirements("Some research content")
 
@@ -510,8 +514,14 @@ class TestGenerateFunctionIdFromDescription:
         assert "." in child.children[0].function_id
 
 
+@pytest.mark.skip(reason="3-tier hierarchy was BAML-specific; agent SDK uses 2-tier")
 class TestThreeTierHierarchy:
-    """Tests for 3-tier hierarchy: parent -> sub_process -> implementation."""
+    """Tests for 3-tier hierarchy: parent -> sub_process -> implementation.
+
+    NOTE: These tests are skipped because the 3-tier hierarchy was specific to
+    the BAML implementation. The new agent SDK implementation uses a simpler
+    2-tier hierarchy (parent -> subprocesses).
+    """
 
     def test_implementation_details_become_children(self, patch_baml_client):
         """Given BAML returns multiple impl details, when decomposed, then 3-tier."""

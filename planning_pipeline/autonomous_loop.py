@@ -504,7 +504,7 @@ class LoopRunner:
 
         Args:
             plan_path: Path to a single plan file. Used for single-phase execution.
-            plan_dir: Directory containing plan phase files (e.g., "thoughts/shared/plans").
+            plan_dir: Directory containing plan phase files (e.g., "thoughts/searchable/plans").
             plan_prefix: Prefix for plan files to iterate through.
             current_phase: Initial phase to execute (optional).
             orchestrator: IntegratedOrchestrator for advanced features (optional).

@@ -127,7 +127,7 @@ def mock_baml_subprocess_details():
 
 @pytest.fixture
 def mock_baml_client(mock_baml_initial_extraction, mock_baml_subprocess_details):
-    """Complete mock of BAML client for unit tests."""
+    """Complete mock of BAML client for unit tests (legacy)."""
     mock_b = MagicMock()
     mock_b.ProcessGate1InitialExtractionPrompt.return_value = mock_baml_initial_extraction
     mock_b.ProcessGate1SubprocessDetailsPrompt.return_value = mock_baml_subprocess_details
@@ -135,12 +135,33 @@ def mock_baml_client(mock_baml_initial_extraction, mock_baml_subprocess_details)
 
 
 @pytest.fixture
-def patch_baml_client(mock_baml_client):
-    """Context manager to patch BAML client import."""
-    with patch.dict("sys.modules", {"baml_client": MagicMock(b=mock_baml_client)}):
-        with patch("planning_pipeline.decomposition.b", mock_baml_client):
-            with patch("planning_pipeline.decomposition.BAML_AVAILABLE", True):
-                yield mock_baml_client
+def mock_claude_sdk_response():
+    """Mock response from run_claude_sync for requirement extraction."""
+    return {
+        "success": True,
+        "output": """{
+    "requirements": [
+        {
+            "description": "User Authentication System",
+            "sub_processes": [
+                "Login flow implementation",
+                "Session management",
+                "Password recovery"
+            ]
+        }
+    ]
+}""",
+        "error": "",
+        "elapsed": 1.5
+    }
+
+
+@pytest.fixture
+def patch_baml_client(mock_claude_sdk_response):
+    """Context manager to patch run_claude_sync for decomposition tests."""
+    with patch("planning_pipeline.decomposition.run_claude_sync") as mock_run:
+        mock_run.return_value = mock_claude_sdk_response
+        yield mock_run
 
 
 @pytest.fixture
@@ -157,7 +178,7 @@ def sample_research_output():
 
     I've analyzed the codebase and created a research document.
 
-    Created: thoughts/shared/research/2025-01-01-test-research.md
+    Created: thoughts/searchable/research/2025-01-01-test-research.md
 
     The document contains findings about the project structure.
 
@@ -173,7 +194,7 @@ def sample_plan_output():
     return """
     Planning complete!
 
-    Plan written to thoughts/shared/plans/2025-01-01-feature/00-overview.md
+    Plan written to thoughts/searchable/plans/2025-01-01-feature/00-overview.md
 
     The plan includes 3 phases for implementation.
     """
@@ -184,7 +205,7 @@ def sample_phase_output():
     """Sample Claude output containing phase file paths."""
     return """
     Created phase files:
-    - thoughts/shared/plans/2025-01-01-feature/01-phase-1-setup.md
-    - thoughts/shared/plans/2025-01-01-feature/02-phase-2-impl.md
-    - thoughts/shared/plans/2025-01-01-feature/03-phase-3-test.md
+    - thoughts/searchable/plans/2025-01-01-feature/01-phase-1-setup.md
+    - thoughts/searchable/plans/2025-01-01-feature/02-phase-2-impl.md
+    - thoughts/searchable/plans/2025-01-01-feature/03-phase-3-test.md
     """

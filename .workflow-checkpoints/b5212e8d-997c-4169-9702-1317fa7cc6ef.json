@@ -1,0 +1,14 @@
+{
+  "id": "b5212e8d-997c-4169-9702-1317fa7cc6ef",
+  "phase": "research-failed",
+  "timestamp": "2026-01-04T18:06:18.448875Z",
+  "state_snapshot": {
+    "phase": "Research",
+    "context_usage": 0.0,
+    "artifacts": [],
+    "errors": [
+      "Credit balance is too low"
+    ]
+  },
+  "git_commit": "0304fb2453c5b0dc26c3c95ade67cabe4aa35a5d"
+}

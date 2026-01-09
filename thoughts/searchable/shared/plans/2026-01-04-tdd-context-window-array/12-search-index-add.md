@@ -4,6 +4,43 @@
 
 Implement vector search index with numpy cosine similarity for adding entries.
 
+## Integration with CentralContextStore
+
+VectorSearchIndex is internally composed by CentralContextStore. This ensures consistent state between the store and its search index:
+
+```python
+class CentralContextStore:
+    """Central store for all context entries.
+
+    Owns and manages VectorSearchIndex internally for search operations.
+    """
+
+    def __init__(self):
+        self._entries: dict[str, ContextEntry] = {}
+        self._search_index = VectorSearchIndex()  # Internal composition
+
+    def add(self, entry: ContextEntry) -> str:
+        """Add entry to store and search index."""
+        self._entries[entry.id] = entry
+        self._search_index.add(entry)  # Delegate to internal index
+        return entry.id
+
+    def remove(self, entry_id: str) -> None:
+        """Remove entry from store and search index."""
+        if entry_id in self._entries:
+            del self._entries[entry_id]
+            self._search_index.remove(entry_id)
+
+    def search(self, query: str, **kwargs) -> list[StoreSearchResult]:
+        """Search via internal index."""
+        return self._search_index.search(query, **kwargs)
+```
+
+**Key Design Decision**: VectorSearchIndex is NOT passed in from outside. CentralContextStore creates and owns it, ensuring:
+- Atomic add/remove operations across store and index
+- No inconsistent state between store entries and indexed entries
+- Single source of truth for entry management
+
 ### Test Specification
 
 **Given**: Entry with content

@@ -4,6 +4,20 @@
 
 Implement search query using cosine similarity to find relevant entries.
 
+## Ordering Guarantee
+
+**Search results are always returned ordered by score descending.**
+
+This is a guaranteed contract of the search interface:
+- Results with higher similarity scores appear first
+- When scores are equal, order is stable (by insertion order)
+- Callers should NOT re-sort results; the search method handles ordering
+
+This guarantee allows callers to:
+- Take the first N results knowing they are the most relevant
+- Iterate results in relevance order without additional processing
+- Rely on consistent ordering for caching and testing
+
 ### Test Specification
 
 **Given**: Indexed entries

@@ -1,0 +1,2337 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must port Python orchestrator files (orchestrator.py and planning_orchestrator.py) to Rust",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_001",
+      "description": "The system must analyze the architecture of the existing Python implementation before porting",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must provide Rust crate recommendations for equivalent functionality to Python libraries",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must document implementation patterns and best practices for the Rust port",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_004",
+      "description": "The system must define project structure and module organization for the Rust implementation",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must provide a porting strategy and roadmap with clear phases",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_006",
+      "description": "The orchestrator must handle 1,963 lines of subprocess-based CLI orchestration code",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_007",
+      "description": "The system must manage feature tracking functionality from the Python implementation",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_008",
+      "description": "The system must support session logging as implemented in the Python version",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_009",
+      "description": "The system must integrate with Claude Code as the Python implementation does",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_010",
+      "description": "The system must use clap v4.5+ with derive macros for CLI argument parsing",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_011",
+      "description": "The system must use duct crate for shell-like subprocess pipelines",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_012",
+      "description": "The system must use serde and serde_json for JSON handling",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_013",
+      "description": "The system must use anyhow for error handling in applications",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_014",
+      "description": "The system must use inquire or dialoguer for interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_015",
+      "description": "The system must use owo-colors for terminal color output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_016",
+      "description": "The system must use config crate and dotenv for configuration management",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_017",
+      "description": "The system must use tracing or log with env_logger for logging",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_018",
+      "description": "The system must use assert_cmd and assert_fs for CLI integration testing",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_019",
+      "description": "The orchestrator.py port must handle 1,367 lines of autonomous project builder code",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_020",
+      "description": "The orchestrator.py port must support feature complexity detection",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_021",
+      "description": "The orchestrator.py port must support MCP setup functionality",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_022",
+      "description": "The orchestrator.py port must support session orchestration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_023",
+      "description": "The orchestrator.py port must support git integration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_024",
+      "description": "The orchestrator.py port must support QA test generation",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_025",
+      "description": "The planning_orchestrator.py port must handle 596 lines of planning pipeline code",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_026",
+      "description": "The planning_orchestrator.py port must support resume and checkpoint functionality",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_027",
+      "description": "The planning_orchestrator.py port must support interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_028",
+      "description": "The planning_orchestrator.py port must support beads integration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_029",
+      "description": "The planning_orchestrator.py port must support multi-step pipeline execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_030",
+      "description": "The system must define ProjectInfo struct with name, path, stack, description, model, mcp_preset, and include_qa fields",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_031",
+      "description": "The system must define Feature struct with id, name, description, category, priority, dependencies, tests, passes, blocked, and complexity fields",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_032",
+      "description": "The system must define ClaudeResult struct with success, output, error, elapsed, and returncode fields",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_033",
+      "description": "The system must support HARNESS_PATH configuration from CONTEXT_ENGINE_PATH environment variable",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_034",
+      "description": "The system must support DEFAULT_MODEL configuration with 'sonnet' or 'opus' options",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_035",
+      "description": "The system must enforce MAX_SESSIONS limit of 100 for safety",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_036",
+      "description": "The system must enforce SESSION_TIMEOUT of 3600 seconds",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_037",
+      "description": "The system must support RETRY_DELAY of 5 seconds for failed operations",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_038",
+      "description": "The system must support global DEBUG flag via CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_039",
+      "description": "The system must load and parse feature_list.json files",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_040",
+      "description": "The system must save feature_list.json files with proper formatting",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_041",
+      "description": "The system must implement feature complexity detection algorithm from lines 39-101 of orchestrator.py",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_042",
+      "description": "The system must detect high complexity features based on security, crypto, and encryption keywords",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_043",
+      "description": "The system must support dependency-aware feature selection",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_044",
+      "description": "The system must verify all feature dependencies are met before selection",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_045",
+      "description": "The system must sync features with git history",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_046",
+      "description": "The system must query git history to determine if features are already implemented",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_047",
+      "description": "The system must run claude CLI commands with subprocess execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_048",
+      "description": "The system must support captured output mode for claude execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_049",
+      "description": "The system must support interactive TTY mode for claude execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_050",
+      "description": "The system must pass --permission-mode bypassPermissions to claude CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_051",
+      "description": "The system must pass --output-format text to claude CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_052",
+      "description": "The system must measure elapsed time for claude command execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_053",
+      "description": "The system must capture stdout and stderr from subprocess execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_054",
+      "description": "The system must handle non-zero exit codes as errors",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_055",
+      "description": "The system must support timeout for subprocess execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_056",
+      "description": "The system must log sessions in JSON format",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_057",
+      "description": "The system must log sessions in text format",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_058",
+      "description": "The system must track consecutive failures during orchestration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_059",
+      "description": "The system must implement main orchestration loop from lines 1171-1245 of orchestrator.py",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_060",
+      "description": "The system must display progress updates during orchestration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_061",
+      "description": "The system must render progress bars",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_062",
+      "description": "The system must support ANSI color codes for terminal output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_063",
+      "description": "The system must provide color helper functions for status output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_064",
+      "description": "The system must parse command-line arguments for orchestrator CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_065",
+      "description": "The system must parse command-line arguments for planning orchestrator CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_066",
+      "description": "The system must support --project argument for project path specification",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_067",
+      "description": "The system must support --model argument with 'sonnet' or 'opus' options",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_068",
+      "description": "The system must support --auto-approve flag for non-interactive mode",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_069",
+      "description": "The system must support --resume flag for resuming interrupted pipelines",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_070",
+      "description": "The system must support --resume-step argument for specifying resume point",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_071",
+      "description": "The system must support resume steps: planning, requirement_decomposition, phase_decomposition",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_072",
+      "description": "The system must support interactive project setup wizard",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_073",
+      "description": "The system must support interactive MCP setup flow",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_074",
+      "description": "The system must collect multi-line prompt input from users",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_075",
+      "description": "The system must support interactive menu selection for file discovery",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_076",
+      "description": "The system must support interactive confirmation prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_077",
+      "description": "The system must detect checkpoints in planning pipeline execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_078",
+      "description": "The system must prompt for cleanup of previous checkpoints",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_079",
+      "description": "The system must discover planning pipeline files in project directory",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_080",
+      "description": "The system must execute planning pipeline from specified step",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_081",
+      "description": "The system must integrate with beads issue tracker CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_082",
+      "description": "The system must parse beads JSON output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_083",
+      "description": "The system must create issues via beads CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_084",
+      "description": "The system must update issues via beads CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_085",
+      "description": "The system must list issues via beads CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_086",
+      "description": "The system must handle Ctrl+C gracefully in interactive mode",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_087",
+      "description": "The system must validate all required arguments before execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_088",
+      "description": "The system must check for prerequisite tools (claude, bd, git, bash)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_089",
+      "description": "The system must use which command to verify tool availability",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_090",
+      "description": "The system must organize code into cli module for CLI handling",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_091",
+      "description": "The system must organize code into orchestrator module for orchestration logic",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_092",
+      "description": "The system must organize code into planning module for planning pipeline",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_093",
+      "description": "The system must organize code into runners module for subprocess execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_094",
+      "description": "The system must organize code into output module for terminal output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_095",
+      "description": "The system must provide types.rs for core type definitions",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_096",
+      "description": "The system must provide error.rs for error type definitions",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_097",
+      "description": "The system must provide lib.rs for library exports",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_098",
+      "description": "The system must provide main.rs for CLI entry point and dispatch",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_099",
+      "description": "The system must implement Phase 1 (Core Types & Configuration) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_100",
+      "description": "The system must implement Phase 2 (Feature Management) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_101",
+      "description": "The system must implement Phase 3 (Subprocess Runners) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_102",
+      "description": "The system must implement Phase 4 (Session Orchestration) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_103",
+      "description": "The system must implement Phase 5 (Planning Pipeline Integration) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_104",
+      "description": "The system must implement Phase 6 (Interactive Prompts) in 0.5 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_105",
+      "description": "The system must implement Phase 7 (Testing & Documentation) in 1 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_106",
+      "description": "The system must implement Phase 8 (Performance & Polish) in 0.5 day",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_107",
+      "description": "The system must complete all phases within 7 days total",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_108",
+      "description": "The system must define core structs in types.rs during Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_109",
+      "description": "The system must implement config.rs with constants during Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_110",
+      "description": "The system must set up error.rs with anyhow integration during Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_111",
+      "description": "The system must create Cargo.toml with dependencies during Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_112",
+      "description": "The system must implement basic CLI skeleton in main.rs during Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_113",
+      "description": "The system must implement load_features function during Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_114",
+      "description": "The system must implement save_features function during Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_115",
+      "description": "The system must implement get_next_feature function during Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_116",
+      "description": "The system must implement detect_complexity function during Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_117",
+      "description": "The system must implement git history sync during Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_118",
+      "description": "The system must implement run_claude function during Phase 3",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_119",
+      "description": "The system must implement run_claude_interactive function during Phase 3",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_120",
+      "description": "The system must implement beads CLI wrappers during Phase 3",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_121",
+      "description": "The system must implement git CLI wrappers during Phase 3",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_122",
+      "description": "The system must implement timeout support during Phase 3",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_123",
+      "description": "The system must implement log_session function during Phase 4",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_124",
+      "description": "The system must implement orchestrate_implementation function during Phase 4",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_125",
+      "description": "The system must implement progress bar rendering during Phase 4",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_126",
+      "description": "The system must implement color output helpers during Phase 4",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_127",
+      "description": "The system must implement planning CLI argument parsing during Phase 5",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_128",
+      "description": "The system must implement resume flow during Phase 5",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_129",
+      "description": "The system must implement checkpoint detection during Phase 5",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_130",
+      "description": "The system must implement file discovery during Phase 5",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_131",
+      "description": "The system must implement planning pipeline wrapper during Phase 5",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_132",
+      "description": "The system must replace all input() calls with inquire during Phase 6",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_133",
+      "description": "The system must implement project setup wizard during Phase 6",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_134",
+      "description": "The system must implement MCP setup prompts during Phase 6",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_135",
+      "description": "The system must implement menu selections during Phase 6",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_136",
+      "description": "The system must implement confirmation prompts during Phase 6",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_137",
+      "description": "The system must implement integration tests with assert_cmd during Phase 7",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_138",
+      "description": "The system must implement unit tests for complexity detection during Phase 7",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_139",
+      "description": "The system must implement unit tests for feature dependency resolution during Phase 7",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_140",
+      "description": "The system must implement unit tests for JSON parsing during Phase 7",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_141",
+      "description": "The system must write documentation during Phase 7",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_142",
+      "description": "The system must profile subprocess execution during Phase 8",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_143",
+      "description": "The system must add progress bars with indicatif during Phase 8",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_144",
+      "description": "The system must implement parallel subprocess execution during Phase 8",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_145",
+      "description": "The system must add shell completion generation during Phase 8",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_146",
+      "description": "The system must optimize binary size during Phase 8",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_147",
+      "description": "The system must achieve test coverage greater than 80%",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_148",
+      "description": "The system must match or exceed Python implementation performance",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_149",
+      "description": "The system must keep binary size under 20 MB",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_150",
+      "description": "The system must keep memory usage under 50 MB RSS",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_151",
+      "description": "The system must compile in under 2 minutes for clean builds",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_152",
+      "description": "The system must document all public APIs",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_153",
+      "description": "The system must support --help flag with all options",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_154",
+      "description": "The system must load and parse feature_list.json from test fixtures",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_155",
+      "description": "The system must produce same complexity detection results as Python for test features",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_156",
+      "description": "The system must execute claude command and capture output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_157",
+      "description": "The system must create session logs with correct format",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_158",
+      "description": "The system must work with interactive prompts in terminal",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_159",
+      "description": "The system must run on Linux platform",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_160",
+      "description": "The system must run on macOS platform",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_161",
+      "description": "The system must run on Windows platform",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_162",
+      "description": "The system must use standard library for path handling",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_163",
+      "description": "The system must use chrono for date and time handling",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_164",
+      "description": "The system must use regex crate for pattern matching",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_165",
+      "description": "The system must support thiserror for library error types",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_166",
+      "description": "The system must support pico-args as alternative to clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_167",
+      "description": "The system must support simd-json as alternative to serde_json",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_168",
+      "description": "The system must support colored as alternative to owo-colors",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_169",
+      "description": "The system must support dialoguer as alternative to inquire",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_170",
+      "description": "The system must support log with env_logger as alternative to tracing",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_171",
+      "description": "The system must support envconfig as alternative to config crate",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_172",
+      "description": "The system must support std::process::Command as alternative to duct",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_173",
+      "description": "The system must support tokio::process for async subprocess management",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_174",
+      "description": "The system must provide migration guide from Python implementation",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_175",
+      "description": "The system must keep Python implementation running in parallel during development",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_176",
+      "description": "The system must use Python as integration test oracle for output comparison",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_177",
+      "description": "The system must support incremental migration starting with orchestrator.py",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_178",
+      "description": "The system must support incremental migration followed by planning_orchestrator.py",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_179",
+      "description": "The system must handle Python bridge for planning_pipeline in Phase 1",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_180",
+      "description": "The system must port planning_pipeline to pure Rust in Phase 2",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_181",
+      "description": "The system must support single binary with subcommands for orchestrator and planning",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_182",
+      "description": "The system must support separate binaries for orchestrator and planning if needed",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_183",
+      "description": "The system must use TOML format for configuration",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_184",
+      "description": "The system must provide better type safety than Python dict-based approach",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_185",
+      "description": "The system must eliminate silent bare except patterns from Python",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_186",
+      "description": "The system must provide semantic error traces with context",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_187",
+      "description": "The system must support zero-cost abstractions for performance",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_188",
+      "description": "The system must compile to native machine code for speed",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_189",
+      "description": "The system must support automatic NO_COLOR environment variable",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_190",
+      "description": "The system must support automatic FORCE_COLOR environment variable",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_191",
+      "description": "The system must detect TTY for automatic color output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_192",
+      "description": "The system must provide zero boilerplate JSON serialization with serde",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_193",
+      "description": "The system must provide compile-time type checking for JSON",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_194",
+      "description": "The system must support shell-like pipelines with duct operator",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_195",
+      "description": "The system must provide automatic error handling for non-zero exit codes",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_196",
+      "description": "The system must support cross-platform subprocess reliability",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_197",
+      "description": "The system must support IO redirection in subprocess execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_198",
+      "description": "The system must provide feature-rich interactive prompts with autocomplete",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_199",
+      "description": "The system must provide validation in interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_200",
+      "description": "The system must provide theming support in interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_201",
+      "description": "The system must support multi-select in interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_202",
+      "description": "The system must support date pickers in interactive prompts",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_203",
+      "description": "The system must provide zero-allocation color output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_204",
+      "description": "The system must provide zero-dependency color output",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_205",
+      "description": "The system must support structured logging with tracing",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_206",
+      "description": "The system must support async-aware logging with tracing",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_207",
+      "description": "The system must support simple logging with log and env_logger",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_208",
+      "description": "The system must provide industry-standard JSON library with serde",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_209",
+      "description": "The system must provide massive ecosystem support with serde",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_210",
+      "description": "The system must provide de-facto standard CLI framework with clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_211",
+      "description": "The system must provide automatic help generation with clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_212",
+      "description": "The system must provide subcommand support with clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_213",
+      "description": "The system must provide validation support with clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_214",
+      "description": "The system must provide auto-completion support with clap",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_215",
+      "description": "The system must provide perfect error handling for applications with anyhow",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_216",
+      "description": "The system must provide context-rich error messages with anyhow",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_217",
+      "description": "The system must provide dynamic error types with anyhow",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_218",
+      "description": "The system must provide comprehensive date/time handling with chrono",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_219",
+      "description": "The system must provide pattern matching with regex",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_220",
+      "description": "The system must provide similar API to Python pathlib with PathBuf",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_221",
+      "description": "The system must provide ergonomic error propagation with ? operator",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_222",
+      "description": "The system must provide proper error propagation instead of dict returns",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_223",
+      "description": "The system must validate approach after Phase 2 completion",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_224",
+      "description": "The system must validate performance after Phase 4 completion",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_225",
+      "description": "The system must validate test coverage after Phase 6 completion",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_226",
+      "description": "The system must continue to Phase 3 if Phase 2 JSON parsing works",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_227",
+      "description": "The system must continue to Phase 5 if Phase 4 orchestration works",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_228",
+      "description": "The system must proceed to polish if Phase 6 tests pass",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_229",
+      "description": "The system must re-evaluate approach if Phase 2 has significant issues",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_230",
+      "description": "The system must consider async rewrite if Phase 4 has performance issues",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    },
+    {
+      "id": "REQ_231",
+      "description": "The system must extend timeline if Phase 6 has major gaps",
+      "type": "parent",
+      "parent_id": null,
+      "children": [],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": []
+    }
+  ],
+  "metadata": {
+    "source": "baml_decomposition",
+    "research_length": 37140,
+    "decomposition_stats": {
+      "requirements_found": 232,
+      "subprocesses_expanded": 0,
+      "total_nodes": 232,
+      "extraction_time_ms": 68172,
+      "expansion_time_ms": 1
+    },
+    "source_research": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/research/2026-01-04-rust-orchestrator-port-research.md",
+    "decomposed_at": "2026-01-04T12:53:49.097619"
+  }
+}

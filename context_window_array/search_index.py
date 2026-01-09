@@ -82,7 +82,7 @@ class VectorSearchIndex:
     def _tokenize(self, text: str) -> list[str]:
         """Tokenize text into lowercase words."""
         # Simple tokenization: split on non-alphanumeric, lowercase
-        words = re.findall(r'\b[a-zA-Z_][a-zA-Z0-9_]*\b', text.lower())
+        words = re.findall(r"\b[a-zA-Z_][a-zA-Z0-9_]*\b", text.lower())
         return words
 
     def _get_text_for_entry(self, entry: ContextEntry) -> str:
@@ -97,7 +97,9 @@ class VectorSearchIndex:
         self._vocabulary = set()
         for text in self._entry_texts.values():
             self._vocabulary.update(self._tokenize(text))
-        self._term_to_idx = {term: idx for idx, term in enumerate(sorted(self._vocabulary))}
+        self._term_to_idx = {
+            term: idx for idx, term in enumerate(sorted(self._vocabulary))
+        }
         self._needs_rebuild = False
 
     def _compute_vector(self, text: str) -> np.ndarray:
@@ -155,7 +157,9 @@ class VectorSearchIndex:
         new_terms = set(self._tokenize(text)) - self._vocabulary
         if new_terms:
             self._vocabulary.update(new_terms)
-            self._term_to_idx = {term: idx for idx, term in enumerate(sorted(self._vocabulary))}
+            self._term_to_idx = {
+                term: idx for idx, term in enumerate(sorted(self._vocabulary))
+            }
             self._needs_rebuild = True
 
         # Compute vector (will use current vocabulary)
@@ -194,7 +198,9 @@ class VectorSearchIndex:
             new_terms = set(self._tokenize(text)) - self._vocabulary
             if new_terms:
                 self._vocabulary.update(new_terms)
-                self._term_to_idx = {term: idx for idx, term in enumerate(sorted(self._vocabulary))}
+                self._term_to_idx = {
+                    term: idx for idx, term in enumerate(sorted(self._vocabulary))
+                }
                 self._rebuild_vectors()
             else:
                 self._vectors[entry.id] = self._compute_vector(text)

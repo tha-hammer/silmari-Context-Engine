@@ -5,7 +5,7 @@ from pathlib import Path
 from planning_pipeline import step_planning, step_phase_decomposition, step_beads_integration
 
 project_path = Path.cwd()
-research_path = "/thoughts/shared/research/2026-01-01-baml-integration-research.md"  # Update this
+research_path = "/thoughts/searchable/research/2026-01-01-baml-integration-research.md"  # Update this
 
 # Step 1: Planning
 plan = step_planning(project_path, research_path)

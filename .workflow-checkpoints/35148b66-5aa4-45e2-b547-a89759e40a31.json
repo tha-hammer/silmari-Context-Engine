@@ -1,0 +1,14 @@
+{
+  "id": "35148b66-5aa4-45e2-b547-a89759e40a31",
+  "phase": "planning-failed",
+  "timestamp": "2026-01-04T15:40:45.655745Z",
+  "state_snapshot": {
+    "phase": "Planning",
+    "context_usage": 0.0,
+    "artifacts": [
+      "/tmp/pytest-of-maceo/pytest-91/test_returns_result_dict0/research.md"
+    ],
+    "errors": []
+  },
+  "git_commit": "c1fe360959f7eb5a40074e8e0c831955e7a382be"
+}

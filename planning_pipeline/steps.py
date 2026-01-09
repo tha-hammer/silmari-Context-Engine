@@ -62,8 +62,8 @@ def step_research(project_path: Path, research_prompt: str) -> dict[str, Any]:
     # Rejoin and replace date placeholder in filename section
     research_instructions = "\n".join(lines)
     research_instructions = research_instructions.replace(
-        "Filename: `thoughts/shared/research/YYYY-MM-DD-description.md`",
-        f"Filename: `thoughts/shared/research/{date_str}-pipeline-research.md` (or `{date_str}-description.md` if ticket exists)"
+        "Filename: `thoughts/searchable/research/YYYY-MM-DD-description.md`",
+        f"Filename: `thoughts/searchable/research/{date_str}-pipeline-research.md` (or `{date_str}-description.md` if ticket exists)"
     )
 
     prompt = f"""{research_instructions}
@@ -73,7 +73,8 @@ After creating the document, output the path.
 
     result = run_claude_sync(
         prompt=prompt,
-        timeout=1200  # 20 minutes for research phase
+        timeout=1200,  # 20 minutes for research phase
+        stream=True,   # Stream output to terminal
     )
 
     if not result["success"]:
@@ -88,7 +89,7 @@ After creating the document, output the path.
             "success": False,
             "error": "Research completed but no research file path found in output. "
                      "Claude may not have created a file, or the path pattern was not recognized. "
-                     "Check that the project has a thoughts/shared/research/ directory.",
+                     "Check that the project has a thoughts/searchable/research/ directory.",
             "output": result["output"],
             "open_questions": open_questions
         }
@@ -166,8 +167,8 @@ def step_planning(
     # Rejoin and replace date placeholder in filename section
     planning_instructions = "\n".join(lines)
     planning_instructions = planning_instructions.replace(
-        "`thoughts/shared/plans/YYYY-MM-DD-tdd-description.md`",
-        f"`thoughts/shared/plans/{date_str}-plan.md`"
+        "`thoughts/searchable/plans/YYYY-MM-DD-tdd-description.md`",
+        f"`thoughts/searchable/plans/{date_str}-plan.md`"
     )
     planning_instructions = planning_instructions.replace(
         "- Format: `YYYY-MM-DD-tdd-description.md`",
@@ -184,11 +185,13 @@ Output the plan file path when complete.
     for attempt in range(max_retries):
         result = run_claude_sync(
             prompt=prompt,
-            timeout=1200  # 20 minutes for planning phase
+            timeout=1200,  # 20 minutes for planning phase
+            stream=True,   # Stream output to terminal
         )
 
         if not result["success"]:
-            return {"success": False, "error": result.get("error", "Planning failed")}
+            # Fix: Use 'or' to handle None values (silmari-Context-Engine-cv34)
+            return {"success": False, "error": result.get("error") or "Planning failed"}
 
         plan_path = extract_file_path(result["output"], "plan")
 
@@ -292,7 +295,8 @@ After creating all files, list the created file paths.
 
     result = run_claude_sync(
         prompt=prompt,
-        timeout=1200  # 20 minutes for phase decomposition
+        timeout=1200,  # 20 minutes for phase decomposition
+        stream=True,   # Stream output to terminal
     )
 
     if not result["success"]:
@@ -491,7 +495,7 @@ Edit the file at {overview_file} with these additions.
 Only add the beads information, do not change the existing plan content.
 """
 
-    result = run_claude_sync(prompt=prompt, timeout=120)
+    result = run_claude_sync(prompt=prompt, timeout=120, stream=True)
     return result["success"]
 
 
@@ -550,7 +554,7 @@ Edit the file at {phase_file} with these additions.
 Only add the tracking information, do not change the existing phase content.
 """
 
-    result = run_claude_sync(prompt=prompt, timeout=120)
+    result = run_claude_sync(prompt=prompt, timeout=120, stream=True)
     return result["success"]
 
 

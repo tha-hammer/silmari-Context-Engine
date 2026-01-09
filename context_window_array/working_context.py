@@ -18,6 +18,7 @@ class ContextEntryView:
 
     Contains all metadata but content is None (summary only).
     """
+
     id: str
     entry_type: EntryType
     source: str
@@ -35,6 +36,7 @@ class SearchResultView:
 
     Contains summary view plus similarity score.
     """
+
     id: str
     entry_type: EntryType
     source: str
@@ -52,6 +54,7 @@ class WorkingContext:
 
     Contains summary views of entries, not full content.
     """
+
     entries: list[ContextEntryView]
     total_count: int
     summary_tokens: int

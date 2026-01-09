@@ -57,7 +57,7 @@ def step_requirement_decomposition(
         project_path: Root project path (Path object or string).
         research_path: Path to research document (relative to project_path).
         output_dir: Optional custom output directory. Defaults to
-            {project}/thoughts/shared/plans/{date}-requirements/
+            {project}/thoughts/searchable/plans/{date}-requirements/
         progress: Optional callback for CLI progress updates.
 
     Returns:
@@ -87,7 +87,7 @@ def step_requirement_decomposition(
     # Resolve research file path - try multiple locations
     # 1. If absolute path, use directly
     # 2. Try as relative to project
-    # 3. Try searchable variant (thoughts/searchable/shared vs thoughts/shared)
+    # 3. Try searchable variant (thoughts/searchable/shared vs thoughts/searchable)
     research_file = None
 
     if Path(research_path).is_absolute():
@@ -98,10 +98,10 @@ def step_requirement_decomposition(
         if candidate.exists():
             research_file = candidate
         else:
-            # Try searchable variant: thoughts/shared/X -> thoughts/searchable/shared/X
-            if research_path.startswith("thoughts/shared/"):
+            # Try searchable variant: thoughts/searchable/X -> thoughts/searchable/shared/X
+            if research_path.startswith("thoughts/searchable/"):
                 searchable_path = research_path.replace(
-                    "thoughts/shared/", "thoughts/searchable/shared/", 1
+                    "thoughts/searchable/", "thoughts/searchable/shared/", 1
                 )
                 candidate = project_path / searchable_path
                 if candidate.exists():

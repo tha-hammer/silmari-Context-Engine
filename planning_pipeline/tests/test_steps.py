@@ -43,8 +43,8 @@ class TestBeadsIntegration:
         """Given phase files list and epic title, creates beads issues."""
         # Mock phase files (don't need real files for beads)
         phase_files = [
-            "thoughts/shared/plans/2025-01-01-test/01-phase-1-setup.md",
-            "thoughts/shared/plans/2025-01-01-test/02-phase-2-impl.md",
+            "thoughts/searchable/plans/2025-01-01-test/01-phase-1-setup.md",
+            "thoughts/searchable/plans/2025-01-01-test/02-phase-2-impl.md",
         ]
 
         result = step_beads_integration(
@@ -68,9 +68,9 @@ class TestBeadsIntegration:
     def test_creates_dependencies_between_phases(self, project_path, cleanup_issues, beads_controller):
         """Given multiple phase files, creates proper dependencies."""
         phase_files = [
-            "thoughts/shared/plans/2025-01-01-test/01-first.md",
-            "thoughts/shared/plans/2025-01-01-test/02-second.md",
-            "thoughts/shared/plans/2025-01-01-test/03-third.md",
+            "thoughts/searchable/plans/2025-01-01-test/01-first.md",
+            "thoughts/searchable/plans/2025-01-01-test/02-second.md",
+            "thoughts/searchable/plans/2025-01-01-test/03-third.md",
         ]
 
         result = step_beads_integration(

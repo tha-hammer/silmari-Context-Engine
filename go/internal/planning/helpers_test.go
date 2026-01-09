@@ -21,9 +21,9 @@ func TestExtractFilePath(t *testing.T) {
 		},
 		{
 			name:     "plans file",
-			text:     "Plan saved to thoughts/shared/plans/2026-01-01-feature/00-overview.md successfully",
+			text:     "Plan saved to thoughts/searchable/plans/2026-01-01-feature/00-overview.md successfully",
 			fileType: "plans",
-			want:     "thoughts/shared/plans/2026-01-01-feature/00-overview.md",
+			want:     "thoughts/searchable/plans/2026-01-01-feature/00-overview.md",
 		},
 		{
 			name:     "no match",
@@ -117,7 +117,7 @@ func TestExtractPhaseFiles(t *testing.T) {
 	}
 
 	// Check deduplication
-	text2 := `thoughts/shared/plans/test/01-phase.md appears twice: thoughts/shared/plans/test/01-phase.md`
+	text2 := `thoughts/searchable/plans/test/01-phase.md appears twice: thoughts/searchable/plans/test/01-phase.md`
 	files2 := ExtractPhaseFiles(text2)
 	if len(files2) != 1 {
 		t.Errorf("expected 1 file after dedup, got %d", len(files2))

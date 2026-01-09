@@ -286,9 +286,9 @@ class TestPhaseIssueCreation:
         from planning_pipeline.beads_controller import BeadsController
 
         phase_files = [
-            "thoughts/shared/plans/2026-01-01-feature-01-setup.md",
-            "thoughts/shared/plans/2026-01-01-feature-02-core.md",
-            "thoughts/shared/plans/2026-01-01-feature-03-ui.md",
+            "thoughts/searchable/plans/2026-01-01-feature-01-setup.md",
+            "thoughts/searchable/plans/2026-01-01-feature-02-core.md",
+            "thoughts/searchable/plans/2026-01-01-feature-03-ui.md",
         ]
 
         created_issues = []
@@ -315,8 +315,8 @@ class TestPhaseIssueCreation:
         from planning_pipeline.beads_controller import BeadsController
 
         phase_files = [
-            "thoughts/shared/plans/2026-01-01-feature-00-overview.md",
-            "thoughts/shared/plans/2026-01-01-feature-01-setup.md",
+            "thoughts/searchable/plans/2026-01-01-feature-00-overview.md",
+            "thoughts/searchable/plans/2026-01-01-feature-01-setup.md",
         ]
 
         created_issues = []

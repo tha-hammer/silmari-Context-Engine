@@ -1,0 +1,11 @@
+{
+  "languages": [
+    "Go",
+    "Python"
+  ],
+  "frameworks": [],
+  "testing_frameworks": [],
+  "build_systems": [
+    "Go Modules"
+  ]
+}

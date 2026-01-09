@@ -21,6 +21,7 @@ from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
 from planning_pipeline.decomposition import (
     DecompositionConfig,
     DecompositionError,
+    SaveCallback,
     decompose_requirements,
 )
 from planning_pipeline.models import RequirementHierarchy, RequirementNode
@@ -185,7 +186,7 @@ class DecompositionPhase:
         """
         # Determine output directory based on research path
         # Use same directory structure as plans
-        date_str = datetime.now().strftime("%Y-%m-%d")
+        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M")
         plan_name = research_path.stem.replace("research-", "").replace("_", "-")
 
         output_dir = (
@@ -205,6 +206,28 @@ class DecompositionPhase:
             json.dump(hierarchy_dict, f, indent=2)
 
         return hierarchy_path
+
+    def _create_incremental_save_callback(
+        self,
+        research_path: Path,
+    ) -> SaveCallback:
+        """Create a callback for incremental hierarchy saving.
+
+        This callback is invoked after each requirement is processed during
+        decomposition. It saves the current state of the hierarchy to disk,
+        ensuring progress is not lost if the process crashes mid-loop.
+
+        Args:
+            research_path: Path to research document (used for output naming)
+
+        Returns:
+            SaveCallback function that saves hierarchy to disk
+        """
+        def save_hierarchy_incrementally(hierarchy: RequirementHierarchy) -> None:
+            """Save current hierarchy state to disk."""
+            self._save_hierarchy_to_disk(hierarchy, research_path)
+
+        return save_hierarchy_incrementally
 
     def execute(
         self,
@@ -230,10 +253,14 @@ class DecompositionPhase:
             if additional_context:
                 research_content = f"{research_content}\n\nAdditional Context:\n{additional_context}"
 
+            # Create incremental save callback for crash recovery
+            save_callback = self._create_incremental_save_callback(research_path)
+
             # Decompose requirements using existing infrastructure
             result = decompose_requirements(
                 research_content=research_content,
                 config=self.config,
+                save_callback=save_callback,
             )
 
             completed_at = datetime.now()

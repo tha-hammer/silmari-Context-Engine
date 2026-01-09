@@ -1,0 +1,244 @@
+{
+  "id": "78a7b725-a6c6-4fd3-baa9-688d2afc2b4e",
+  "phase": "beads_sync-failed",
+  "timestamp": "2026-01-05T19:15:32.833513Z",
+  "state": {
+    "project_path": "/home/maceo/Dev/silmari-Context-Engine",
+    "autonomy_mode": "checkpoint",
+    "current_phase": "beads_sync",
+    "phase_results": {
+      "research": {
+        "phase_type": "research",
+        "status": "complete",
+        "artifacts": [
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/research/2026-01-05-python-to-go-port-research.md"
+        ],
+        "errors": [],
+        "started_at": "2026-01-05T19:02:21.295161",
+        "completed_at": "2026-01-05T19:02:49.432213",
+        "duration_seconds": 27.678494691848755,
+        "metadata": {
+          "cwa_entry_id": "research_0001",
+          "open_questions": [],
+          "output": "The research document already exists and is marked as **complete**. This is comprehensive research about porting the Python Context Engine to a Go binary for `/usr/local` installation.\n\nLet me provide you with a summary of the existing research findings:\n\n---\n\n## \ud83d\udccb Research Summary: Python to Go Binary Port\n\n```\n\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510\n\u2502            SILMARI CONTEXT ENGINE - GO PORT RESEARCH                        \u2502\n\u2502            Status: COMPLETE                    Date: 2026-01-05             \u2502\n\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518\n```\n\n### \ud83c\udfaf Key Findings\n\n| Aspect | Details |\n|--------|---------|\n| **Application Size** | ~13,000+ lines of Python |\n| **Main Entry Points** | `orchestrator.py` (1,367 lines), `loop-runner.py` (1,382 lines) |\n| **Core Module** | `planning_pipeline/` with 18 files |\n| **Estimated Effort** | ~4-6 weeks for Go port |\n\n### \ud83d\udce6 Dependency Mapping\n\n| Python | Go Equivalent |\n|--------|---------------|\n| `subprocess` | `os/exec` |\n| `argparse` | `cobra` |\n| `dataclasses` | Go structs with validation |\n| `asyncio` | Goroutines + channels |\n| `json` | `encoding/json` |\n| `pytest + hypothesis` | `testing` + `gopter/rapid` |\n\n### \ud83d\udd27 Installation Strategy\n\nThe document provides a complete **Makefile** pattern for:\n- Building to `bin/` directory\n- Installing to `/usr/local/bin` (or `~/.local/bin` for user installs)\n- Cross-compilation for macOS, Linux, and Windows\n\n### \ud83d\udcca Port Priority Matrix\n\n```\n\u2554\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2566\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2566\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2557\n\u2551 Target Language   \u2551 Planning Status   \u2551 Estimated Effort              \u2551\n\u2560\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256c\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u256c\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2563\n\u2551 TypeScript        \u2551 \ud83d\udfe2 Complete plan  \u2551 15 weeks (full port)          \u2551\n\u2551 Rust              \u2551 \ud83d\udfe2 Complete plan  \u2551 7 days (orchestrator only)    \u2551\n\u2551 Go                \u2551 \ud83d\udd34 This research  \u2551 ~4-6 weeks (estimated)        \u2551\n\u255a\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2569\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u255d\n```\n\n### \u2753 Open Questions Identified\n\n1. **Claude SDK for Go** - Need HTTP client or wait for official SDK\n2. **BAML Integration** - REST API vs code generation\n3. **Property-Based Testing** - `gopter` vs `rapid`\n4. **Async Streaming** - Goroutines + channels pattern for Claude output\n5. **Priority** - Where Go fits among TypeScript/Rust ports\n\n---\n\nResearch saved to: thoughts/searchable/research/2026-01-05-python-to-go-port-research.md",
+          "user_action": "continue"
+        }
+      },
+      "decomposition": {
+        "phase_type": "decomposition",
+        "status": "complete",
+        "artifacts": [
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/research/2026-01-05-python-to-go-port-research.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-2026-01-05-python-to-go-port-research/requirement_hierarchy.json"
+        ],
+        "errors": [],
+        "started_at": "2026-01-05T19:03:42.722672",
+        "completed_at": "2026-01-05T19:13:51.733837",
+        "duration_seconds": 609.011165,
+        "metadata": {
+          "cwa_entry_ids": [
+            "req_0002",
+            "req_0003",
+            "req_0004",
+            "req_0005",
+            "req_0006",
+            "req_0007",
+            "req_0008",
+            "req_0009",
+            "req_0010",
+            "req_0011",
+            "req_0012",
+            "req_0013",
+            "req_0014",
+            "req_0015",
+            "req_0016",
+            "req_0017",
+            "req_0018",
+            "req_0019",
+            "req_0020",
+            "req_0021",
+            "req_0022",
+            "req_0023",
+            "req_0024",
+            "req_0025",
+            "req_0026",
+            "req_0027",
+            "req_0028",
+            "req_0029",
+            "req_0030",
+            "req_0031",
+            "req_0032",
+            "req_0033",
+            "req_0034",
+            "req_0035",
+            "req_0036",
+            "req_0037",
+            "req_0038",
+            "req_0039",
+            "req_0040",
+            "req_0041",
+            "req_0042",
+            "req_0043",
+            "req_0044",
+            "req_0045",
+            "req_0046",
+            "req_0047",
+            "req_0048",
+            "req_0049",
+            "req_0050",
+            "req_0051",
+            "req_0052"
+          ],
+          "hierarchy_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-2026-01-05-python-to-go-port-research/requirement_hierarchy.json",
+          "requirements_count": 7,
+          "total_nodes": 51,
+          "research_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/research/2026-01-05-python-to-go-port-research.md",
+          "user_action": "continue"
+        }
+      },
+      "tdd_planning": {
+        "phase_type": "tdd_planning",
+        "status": "complete",
+        "artifacts": [
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature.md"
+        ],
+        "errors": [],
+        "started_at": "2026-01-05T19:15:29.240620",
+        "completed_at": "2026-01-05T19:15:29.244312",
+        "duration_seconds": 0.003692,
+        "metadata": {
+          "cwa_entry_id": "plan_0053",
+          "requirements_count": 7,
+          "plan_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature.md",
+          "hierarchy_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-2026-01-05-python-to-go-port-research/requirement_hierarchy.json",
+          "user_action": "continue"
+        }
+      },
+      "multi_doc": {
+        "phase_type": "multi_doc",
+        "status": "complete",
+        "artifacts": [
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/00-overview.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/01-the-system-must-rewrite-core-python-logic-in-go-in.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/02-the-system-must-replace-python-patterns-with-go-eq.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/03-the-system-must-maintain-external-cli-tool-integra.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/04-the-system-must-port-all-18-planning-pipeline-modu.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/05-the-system-must-implement-go-data-structures-match.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/06-the-system-must-support-cross-compilation-and-inst.md",
+          "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature/07-the-system-must-implement-cli-commands-matching-ex.md"
+        ],
+        "errors": [],
+        "started_at": "2026-01-05T19:15:32.771883",
+        "completed_at": "2026-01-05T19:15:32.829134",
+        "duration_seconds": 0.057251,
+        "metadata": {
+          "document_count": 8,
+          "output_dir": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature",
+          "cwa_entry_ids": [
+            "plan_0054",
+            "plan_0055",
+            "plan_0056",
+            "plan_0057",
+            "plan_0058",
+            "plan_0059",
+            "plan_0060",
+            "plan_0061"
+          ],
+          "plan_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-feature.md",
+          "hierarchy_path": "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/shared/plans/2026-01-05-tdd-2026-01-05-python-to-go-port-research/requirement_hierarchy.json"
+        }
+      },
+      "beads_sync": {
+        "phase_type": "beads_sync",
+        "status": "failed",
+        "artifacts": [],
+        "errors": [
+          "No beads controller configured"
+        ],
+        "started_at": null,
+        "completed_at": null,
+        "duration_seconds": null,
+        "metadata": {}
+      }
+    },
+    "context_entry_ids": {
+      "research": [
+        "research_0001"
+      ],
+      "decomposition": [
+        "req_0002",
+        "req_0003",
+        "req_0004",
+        "req_0005",
+        "req_0006",
+        "req_0007",
+        "req_0008",
+        "req_0009",
+        "req_0010",
+        "req_0011",
+        "req_0012",
+        "req_0013",
+        "req_0014",
+        "req_0015",
+        "req_0016",
+        "req_0017",
+        "req_0018",
+        "req_0019",
+        "req_0020",
+        "req_0021",
+        "req_0022",
+        "req_0023",
+        "req_0024",
+        "req_0025",
+        "req_0026",
+        "req_0027",
+        "req_0028",
+        "req_0029",
+        "req_0030",
+        "req_0031",
+        "req_0032",
+        "req_0033",
+        "req_0034",
+        "req_0035",
+        "req_0036",
+        "req_0037",
+        "req_0038",
+        "req_0039",
+        "req_0040",
+        "req_0041",
+        "req_0042",
+        "req_0043",
+        "req_0044",
+        "req_0045",
+        "req_0046",
+        "req_0047",
+        "req_0048",
+        "req_0049",
+        "req_0050",
+        "req_0051",
+        "req_0052"
+      ],
+      "tdd_planning": [
+        "plan_0053"
+      ],
+      "multi_doc": [
+        "plan_0054",
+        "plan_0055",
+        "plan_0056",
+        "plan_0057",
+        "plan_0058",
+        "plan_0059",
+        "plan_0060",
+        "plan_0061"
+      ]
+    },
+    "started_at": "2026-01-05T19:02:21.295130",
+    "checkpoint_id": null,
+    "beads_epic_id": null,
+    "metadata": {}
+  },
+  "errors": [
+    "No beads controller configured"
+  ],
+  "git_commit": "988349fbadd2f49367a09f79f0d81b7c529c3fca"
+}

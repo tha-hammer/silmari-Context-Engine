@@ -371,7 +371,7 @@ function ProcessGate1InitialExtractionPrompt(
   analysis_framework: string,
   user_confirmation: bool
 ) -> InitialExtractionResponse {
-  client HaikuWithOllamaFallback
+  client EnvironmentOllama  // Using local Ollama when API credits exhausted
   prompt #"
 You are an expert software requirements analyst. Your task is to extract EVERY requirement from the scope text. DO NOT summarize. Extract individual requirements from EVERY section.
 
@@ -582,7 +582,7 @@ function ProcessGate1SubprocessDetailsPrompt(
   scope_text: string,
   user_confirmation: bool
 ) -> SubprocessDetailsResponse {
-  client EnvironmentOllama
+  client EnvironmentOllama  // Using local Ollama when API credits exhausted
   prompt #"
 You are an expert software analyst. Expand each requirement into specific implementation requirements.
 The software developer needs to know what detailed requirements are needed to implement this requirement for this project.

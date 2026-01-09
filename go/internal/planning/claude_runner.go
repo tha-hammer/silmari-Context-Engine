@@ -19,7 +19,8 @@ type ClaudeResult struct {
 
 // RunClaudeSync runs Claude synchronously via the CLI.
 // If stream is true, output is printed to stdout as it arrives.
-func RunClaudeSync(prompt string, timeoutSecs int, stream bool) *ClaudeResult {
+// The cwd parameter sets the working directory for Claude execution.
+func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *ClaudeResult {
 	result := &ClaudeResult{Success: true}
 
 	// Create context with timeout
@@ -34,6 +35,7 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool) *ClaudeResult {
 	args = append(args, "-p", prompt)
 
 	cmd := exec.CommandContext(ctx, "claude", args...)
+	cmd.Dir = cwd // Set working directory
 
 	if stream {
 		// Stream output to stdout and capture it
@@ -118,7 +120,7 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool) *ClaudeResult {
 }
 
 // RunClaudeWithFile runs Claude with a file as input context.
-func RunClaudeWithFile(prompt, filePath string, timeoutSecs int, stream bool) *ClaudeResult {
+func RunClaudeWithFile(prompt, filePath string, timeoutSecs int, stream bool, cwd string) *ClaudeResult {
 	// Read file content
 	content, err := os.ReadFile(filePath)
 	if err != nil {
@@ -130,7 +132,7 @@ func RunClaudeWithFile(prompt, filePath string, timeoutSecs int, stream bool) *C
 
 	// Combine file content with prompt
 	fullPrompt := fmt.Sprintf("File content from %s:\n```\n%s\n```\n\n%s", filePath, string(content), prompt)
-	return RunClaudeSync(fullPrompt, timeoutSecs, stream)
+	return RunClaudeSync(fullPrompt, timeoutSecs, stream, cwd)
 }
 
 // RunClaudeConversation runs a multi-turn conversation with Claude.
@@ -140,7 +142,7 @@ type ConversationMessage struct {
 }
 
 // RunClaudeConversation runs Claude with conversation history.
-func RunClaudeConversation(messages []ConversationMessage, timeoutSecs int, stream bool) *ClaudeResult {
+func RunClaudeConversation(messages []ConversationMessage, timeoutSecs int, stream bool, cwd string) *ClaudeResult {
 	// Build conversation prompt
 	var promptBuilder strings.Builder
 	for _, msg := range messages {
@@ -153,7 +155,7 @@ func RunClaudeConversation(messages []ConversationMessage, timeoutSecs int, stre
 		promptBuilder.WriteString("\n\n")
 	}
 
-	return RunClaudeSync(promptBuilder.String(), timeoutSecs, stream)
+	return RunClaudeSync(promptBuilder.String(), timeoutSecs, stream, cwd)
 }
 
 // ClaudeAvailable checks if the Claude CLI is available.

@@ -13,17 +13,17 @@ class TestExtractFilePath:
         """Given output with research path, returns the path."""
         output = """
         Research complete!
-        Created: thoughts/shared/research/2025-01-01-test-research.md
+        Created: thoughts/searchable/research/2025-01-01-test-research.md
         See the document for details.
         """
         result = extract_file_path(output, "research")
-        assert result == "thoughts/shared/research/2025-01-01-test-research.md"
+        assert result == "thoughts/searchable/research/2025-01-01-test-research.md"
 
     def test_extracts_plan_path(self):
         """Given output with plan path, returns the path."""
-        output = "Plan written to thoughts/shared/plans/2025-01-01-feature/00-overview.md"
+        output = "Plan written to thoughts/searchable/plans/2025-01-01-feature/00-overview.md"
         result = extract_file_path(output, "plan")
-        assert result == "thoughts/shared/plans/2025-01-01-feature/00-overview.md"
+        assert result == "thoughts/searchable/plans/2025-01-01-feature/00-overview.md"
 
     def test_returns_none_when_no_match(self):
         """Given output without matching path, returns None."""
@@ -39,17 +39,17 @@ class TestExtractFilePath:
     def test_extracts_first_match_when_multiple(self):
         """Given output with multiple paths, returns first match."""
         output = """
-        Created thoughts/shared/research/2025-01-01-first-research.md
-        Also created thoughts/shared/research/2025-01-01-second-research.md
+        Created thoughts/searchable/research/2025-01-01-first-research.md
+        Also created thoughts/searchable/research/2025-01-01-second-research.md
         """
         result = extract_file_path(output, "research")
-        assert result == "thoughts/shared/research/2025-01-01-first-research.md"
+        assert result == "thoughts/searchable/research/2025-01-01-first-research.md"
 
     def test_handles_phase_file_type(self):
         """Given output with phase file, extracts it."""
-        output = "Created thoughts/shared/plans/2025-01-01-feat/01-phase-1-setup.md"
+        output = "Created thoughts/searchable/plans/2025-01-01-feat/01-phase-1-setup.md"
         result = extract_file_path(output, "phase")
-        assert result == "thoughts/shared/plans/2025-01-01-feat/01-phase-1-setup.md"
+        assert result == "thoughts/searchable/plans/2025-01-01-feat/01-phase-1-setup.md"
 
 
 # Import for Behavior 2
@@ -137,9 +137,9 @@ class TestExtractPhaseFiles:
         """Given output with phase files, returns list of paths."""
         output = """
         Created phase files:
-        - thoughts/shared/plans/2025-01-01-feature/01-phase-1-setup.md
-        - thoughts/shared/plans/2025-01-01-feature/02-phase-2-impl.md
-        - thoughts/shared/plans/2025-01-01-feature/03-phase-3-test.md
+        - thoughts/searchable/plans/2025-01-01-feature/01-phase-1-setup.md
+        - thoughts/searchable/plans/2025-01-01-feature/02-phase-2-impl.md
+        - thoughts/searchable/plans/2025-01-01-feature/03-phase-3-test.md
         """
         result = extract_phase_files(output)
         assert len(result) == 3
@@ -154,7 +154,7 @@ class TestExtractPhaseFiles:
 
     def test_extracts_overview_file(self):
         """Given output with overview file, extracts it."""
-        output = "Created thoughts/shared/plans/2025-01-01-feat/00-overview.md"
+        output = "Created thoughts/searchable/plans/2025-01-01-feat/00-overview.md"
         result = extract_phase_files(output)
         assert len(result) == 1
 
@@ -243,8 +243,8 @@ class TestDiscoverThoughtsFiles:
         assert "plan" in result[0].name
 
     def test_prefers_shared_over_searchable(self, temp_project):
-        """Prefers thoughts/shared over thoughts/searchable/shared."""
-        # Create thoughts/shared/research (higher priority)
+        """Prefers thoughts/searchable over thoughts/searchable/shared."""
+        # Create thoughts/searchable/research (higher priority)
         shared_dir = temp_project / "thoughts" / "shared" / "research"
         shared_dir.mkdir(parents=True)
         today = datetime.now().strftime('%Y-%m-%d')

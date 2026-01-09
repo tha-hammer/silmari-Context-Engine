@@ -6,7 +6,7 @@ You are tasked with writing a handoff document to hand off your work to another 
 ## Process
 ### 1. Filepath & Metadata
 Use the following information to understand how to create your document:
-    - create your file under `thoughts/shared/handoffs/ENG-XXXX/YYYY-MM-DD_HH-MM-SS_ENG-ZZZZ_description.md`, where:
+    - create your file under `thoughts/searchable/handoffs/ENG-XXXX/YYYY-MM-DD_HH-MM-SS_ENG-ZZZZ_description.md`, where:
         - YYYY-MM-DD is today's date
         - HH-MM-SS is the hours, minutes and seconds based on the current time, in 24-hour format (i.e. use `13:00` for `1:00 pm`)
         - ENG-XXXX is the ticket number (replace with `general` if no ticket)
@@ -87,7 +87,7 @@ for example (between <example_response></example_response> XML tags - do NOT inc
 Handoff created and synced! You can resume from this handoff in a new session with the following command:
 
 ```bash
-/resume_handoff thoughts/shared/handoffs/ENG-2166/2025-01-08_13-44-55_ENG-2166_create-context-compaction.md
+/resume_handoff thoughts/searchable/handoffs/ENG-2166/2025-01-08_13-44-55_ENG-2166_create-context-compaction.md
 ```
 </example_response>
 

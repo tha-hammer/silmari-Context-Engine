@@ -46,7 +46,7 @@ class ResearchPhase:
     RESEARCH_PATH_PATTERNS = [
         r"thoughts/searchable/shared/research/[\w\-\.]+\.md",
         r"thoughts/searchable/research/[\w\-\.]+\.md",
-        r"thoughts/shared/research/[\w\-\.]+\.md",
+        r"thoughts/searchable/research/[\w\-\.]+\.md",
         r"/[\w/\-\.]+/thoughts/[\w/\-\.]+research[\w/\-\.]+\.md",
     ]
 

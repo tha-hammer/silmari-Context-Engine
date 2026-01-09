@@ -4,6 +4,45 @@
 
 Execute task batches with proper context management and result collection.
 
+## Context Lifecycle Integration
+
+BatchExecutor uses ImplementationLLMContext's context manager for proper context lifecycle management:
+
+```python
+def execute_batch(self, batch: TaskBatch, handler: BatchHandler) -> BatchResult:
+    """Execute batch with automatic context management.
+
+    Uses the request() context manager from Phase 19 to ensure:
+    - Context is acquired before handler execution
+    - Context is ALWAYS released after handler completes (success or failure)
+    - No context leaks even on exceptions
+    """
+    entry_ids = list(batch.unique_entry_ids)
+
+    # Context manager handles request + release lifecycle
+    with self.impl_context.request(entry_ids) as ctx:
+        # Handler receives full content context
+        task_results = handler(ctx, batch.tasks)
+        return BatchResult(
+            batch_id=batch.batch_id,
+            task_results=task_results,
+            entry_count=ctx.entry_count,
+            total_tokens=ctx.total_tokens,
+        )
+    # Context automatically released here (even on exception)
+```
+
+**Key Integration Points**:
+1. `impl_context.request()` acquires entries and marks them in_use
+2. Handler receives `ImplementationContext` with full content
+3. On exit (success or exception), entries are automatically released
+4. `impl_context.is_in_use()` returns False after batch completes
+
+This pattern ensures the RLM paper workflow:
+- Working LLM searches → selects entries
+- Implementation LLM requests context → processes tasks → releases context
+- Context returned to pool for next batch
+
 ### Test Specification
 
 **Given**: Task batch

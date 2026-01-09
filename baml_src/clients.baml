@@ -29,10 +29,30 @@ client<llm> EnvironmentAnthropic {
 client<llm> EnvironmentOllama {
   provider "openai-generic"
   options {
-    model env.OLLAMA_MODEL
+    model gemma3:latest
+    base_url "http://localhost:11434/v1"
+    temperature 0.3
+    max_tokens 32015
+  }
+}
+
+// Hardcoded Ollama client for when API credits are exhausted
+// Uses qwen2.5-coder:14b which is available locally
+client<llm> OllamaQwen {
+  provider "openai-generic"
+  options {
+    model "qwen2.5-coder:14b"
     base_url "http://localhost:11434/v1"
     temperature 0.5
     max_tokens 32015
+  }
+}
+
+// Ollama-only fallback that doesn't require any API keys
+client<llm> OllamaOnlyFallback {
+  provider fallback
+  options {
+    strategy [OllamaQwen]
   }
 }
 
@@ -114,6 +134,15 @@ client<llm> HaikuWithOllamaFallback {
   provider fallback
   options {
     strategy [CustomHaiku, EnvironmentOllama]
+  }
+}
+
+// Ollama with Haiku fallback for requirement decomposition
+// Tries Claude Haiku first (high accuracy), falls back to local Ollama if API fails
+client<llm> OllamaWithHaikuFallback {
+  provider fallback
+  options {
+    strategy [EnvironmentOllama, CustomHaiku]
   }
 }
 

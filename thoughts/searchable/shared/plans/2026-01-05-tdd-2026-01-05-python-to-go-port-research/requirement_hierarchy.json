@@ -1,0 +1,2398 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must rewrite core Python logic in Go including subprocess management, JSON handling, and CLI parsing for a complete language port",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Port subprocess management from Python subprocess module to Go os/exec package, implementing command execution with timeout support, working directory control, environment variable handling, and both synchronous and streaming output capture",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Go struct CommandResult mirrors Python dict with success, output, and error fields",
+            "Timeout support via context.WithTimeout with configurable duration up to 1 hour (3600 seconds)",
+            "Working directory (cwd) parameter maps to cmd.Dir in Go",
+            "capture_output=True maps to cmd.Output() or cmd.CombinedOutput()",
+            "text=True behavior is default in Go (string output)",
+            "Streaming output via subprocess.Popen maps to cmd.StdoutPipe() with goroutine readers",
+            "Environment variable inheritance via cmd.Env = append(os.Environ(), custom...)",
+            "Return code access via cmd.ProcessState.ExitCode()",
+            "Handle all 60+ subprocess.run calls identified in codebase",
+            "Handle subprocess.Popen streaming pattern from claude_runner.py",
+            "Support shell=True equivalent via exec.Command('bash', '-c', command)",
+            "Error handling differentiates timeout, exit code, and execution errors"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create internal/runner/subprocess.go with CommandRunner interface",
+              "Implement SyncCommand struct for subprocess.run equivalent",
+              "Implement AsyncCommand struct for subprocess.Popen equivalent with streaming",
+              "Create CommandResult struct with Success bool, Output string, Error string, ExitCode int",
+              "Implement RunWithTimeout(ctx context.Context, cmd string, args []string, opts CommandOptions) (*CommandResult, error)",
+              "Implement StartStreaming(cmd string, args []string, opts CommandOptions) (*StreamingCommand, error)",
+              "Create StreamingCommand with stdout/stderr channels for line-by-line reading",
+              "Implement Wait() method for streaming commands to collect final result"
+            ],
+            "middleware": [
+              "Context propagation for timeout and cancellation",
+              "Error wrapping with exec.ExitError type assertions",
+              "Logging middleware for command execution tracing"
+            ],
+            "shared": [
+              "CommandOptions struct with Dir, Env, Timeout, CaptureOutput fields",
+              "CommandResult struct matching Python dict return pattern",
+              "StreamingReader interface for stdout/stderr handling",
+              "Constants for default timeout (2 minutes) and max timeout (1 hour)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "SubprocessRunner.executeCommand",
+          "related_concepts": [
+            "os/exec.Command",
+            "context.WithTimeout",
+            "exec.CommandContext",
+            "io.Pipe",
+            "bufio.Scanner",
+            "goroutines",
+            "channels",
+            "subprocess.run equivalent",
+            "subprocess.Popen equivalent"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Convert JSON parsing/serialization from Python json module to Go encoding/json, implementing struct marshaling with proper field tags, custom type handling, and file I/O operations",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "All dataclass models from planning_pipeline/models.py have Go struct equivalents with json tags",
+            "RequirementNode struct includes all 11 fields with proper json tag annotations",
+            "Feature struct matches feature_list.json schema with optional fields using omitempty",
+            "json.load(f) pattern maps to json.NewDecoder(file).Decode(&target)",
+            "json.dump(data, f, indent=2) maps to json.MarshalIndent with 2-space indent",
+            "json.loads(string) maps to json.Unmarshal([]byte(string), &target)",
+            "json.dumps(object, indent=2) maps to json.MarshalIndent(object, '', '  ')",
+            "Handle 80+ JSON operations identified across codebase",
+            "Support ensure_ascii=False behavior (Go encoding/json handles UTF-8 natively)",
+            "Pointer types for optional fields (Optional[str] maps to *string)",
+            "Slice types for list fields (list[str] maps to []string)",
+            "Nested struct types for complex objects (ImplementationComponents)",
+            "Custom time.Time marshaling for datetime fields"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create internal/models/feature.go with Feature and FeatureList structs",
+              "Create internal/models/requirement.go with RequirementNode, RequirementHierarchy structs",
+              "Create internal/models/session.go with Session tracking structs",
+              "Implement Validate() methods on structs for post-deserialization validation",
+              "Create internal/util/json.go with helper functions for common patterns",
+              "Implement LoadJSON[T](path string) (*T, error) generic helper",
+              "Implement SaveJSON[T](path string, data T, indent bool) error generic helper",
+              "Handle malformed JSON with descriptive error messages"
+            ],
+            "middleware": [],
+            "shared": [
+              "Feature struct with json tags for all 14 fields from feature_list.json schema",
+              "FeatureList struct with Features []Feature field",
+              "RequirementNode struct with recursive Children []RequirementNode",
+              "ImplementationComponents struct for nested implementation field",
+              "TestableProperty struct for testable_properties array",
+              "TechStack struct for tech_stack.json output",
+              "FileGroups struct for file_groups.json output",
+              "Constants for JSON indent spacing and file permissions"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "JSONHandler.serializeDeserialize",
+          "related_concepts": [
+            "encoding/json",
+            "json.Marshal",
+            "json.Unmarshal",
+            "json.MarshalIndent",
+            "struct tags",
+            "omitempty",
+            "json.Decoder",
+            "json.Encoder",
+            "custom UnmarshalJSON",
+            "custom MarshalJSON"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Transform CLI argument parsing from Python argparse to Go cobra framework, implementing multi-command CLI with flags, subcommands, validation, and help text generation",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "orchestrator.py 11 arguments map to cobra flags with same short/long names",
+            "loop-runner.py 10 arguments map to cobra flags preserving behavior",
+            "mcp-setup.py 6 arguments map to cobra flags for MCP configuration",
+            "Positional arguments (project path) handled via cobra Args",
+            "type=Path arguments validate path existence or create as needed",
+            "action='store_true' maps to BoolVar flags",
+            "choices=[...] maps to custom validation functions",
+            "default values preserved from Python implementation",
+            "Mutually exclusive flags (--project vs --new) handled with PreRunE validation",
+            "Help text matches original argparse descriptions",
+            "Short flags (-p, -m, -c, -s, -d, -i, -n, -l, -o) preserved",
+            "Subcommands for orchestrator, loop-runner, mcp-setup if building unified binary",
+            "Environment variable binding for CONTEXT_ENGINE_PATH equivalent",
+            "Version flag injection at build time via ldflags"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create cmd/orchestrator/main.go with cobra root command",
+              "Create cmd/loop-runner/main.go with cobra root command",
+              "Create internal/cli/flags.go with shared flag definitions",
+              "Implement rootCmd with Use, Short, Long, Run, PreRunE fields",
+              "Define StringVarP for --project/-p, --model/-m, --mcp-preset flags",
+              "Define IntVar for --max-sessions flag with default 100",
+              "Define BoolVarP for --continue/-c, --status/-s, --debug/-d, --interactive/-i flags",
+              "Define BoolVar for --with-qa, --skip-review, --validate, --show-blocked, --metrics flags",
+              "Define StringVar for --new, --unblock flags",
+              "Implement validateMCPPreset() for choices validation",
+              "Implement validateProjectPath() for path existence checks",
+              "Add completion command for bash/zsh/fish shell completion"
+            ],
+            "middleware": [
+              "PreRunE hook for flag validation and mutual exclusivity",
+              "PersistentPreRun for global initialization (logging, config)",
+              "PostRun for cleanup operations"
+            ],
+            "shared": [
+              "Constants for DEFAULT_MODEL ('sonnet'), MAX_SESSIONS (100)",
+              "MCP_PRESETS slice for valid preset values",
+              "AppConfig struct populated from flags",
+              "Version variable for build-time injection"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLIParser.parseArguments",
+          "related_concepts": [
+            "github.com/spf13/cobra",
+            "github.com/spf13/pflag",
+            "rootCmd",
+            "subcommands",
+            "persistent flags",
+            "local flags",
+            "flag validation",
+            "completion",
+            "version command"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.4",
+          "description": "Migrate file system path operations from Python pathlib.Path to Go path/filepath, implementing cross-platform path manipulation, file existence checks, directory traversal, and path resolution",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Path(path).expanduser() maps to os.UserHomeDir() + string replacement",
+            "Path(path).resolve() maps to filepath.Abs()",
+            "Path(path).exists() maps to os.Stat() error check",
+            "Path(path).is_file() maps to os.Stat() + !IsDir()",
+            "Path(path).is_dir() maps to os.Stat() + IsDir()",
+            "Path(path).mkdir(parents=True) maps to os.MkdirAll()",
+            "Path(path).read_text() maps to os.ReadFile() + string conversion",
+            "Path(path).write_text(content) maps to os.WriteFile() with 0644 permissions",
+            "Path(path).parent maps to filepath.Dir()",
+            "Path(path).name maps to filepath.Base()",
+            "Path(path).stem maps to custom function stripping extension",
+            "Path(path).suffix maps to filepath.Ext()",
+            "Path(path) / 'subpath' maps to filepath.Join()",
+            "Handle 150+ pathlib operations identified across codebase",
+            "Cross-platform path separator handling (os.PathSeparator)",
+            "Symlink resolution via filepath.EvalSymlinks()"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create internal/util/path.go with path utility functions",
+              "Implement ExpandUser(path string) string for ~ expansion",
+              "Implement Resolve(path string) (string, error) for absolute path resolution",
+              "Implement Exists(path string) bool for path existence check",
+              "Implement IsFile(path string) bool for file type check",
+              "Implement IsDir(path string) bool for directory type check",
+              "Implement MkdirAll(path string) error wrapper with default permissions",
+              "Implement ReadText(path string) (string, error) for file reading",
+              "Implement WriteText(path string, content string) error for file writing",
+              "Implement Stem(path string) string for filename without extension",
+              "Implement Join(parts ...string) string wrapper for filepath.Join",
+              "Implement WalkDir(root string, fn WalkFunc) error for directory traversal"
+            ],
+            "middleware": [],
+            "shared": [
+              "PathInfo struct with Path, Exists, IsDir, IsFile, Parent, Name, Stem, Ext fields",
+              "Default file permissions constant (0644)",
+              "Default directory permissions constant (0755)",
+              "WalkFunc type definition for directory traversal callbacks",
+              "PathError custom error type with path context"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PathOperations.handleFilesystem",
+          "related_concepts": [
+            "path/filepath",
+            "os.Stat",
+            "os.MkdirAll",
+            "filepath.Join",
+            "filepath.Abs",
+            "filepath.Clean",
+            "filepath.Dir",
+            "filepath.Base",
+            "filepath.Ext",
+            "os.ReadFile",
+            "os.WriteFile",
+            "filepath.Walk",
+            "filepath.Glob"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The system must replace Python data patterns with Go equivalents including dataclasses to structs, enums to const/iota, and asyncio to goroutines",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Rewrite the RequirementHierarchy dataclass to a Go struct with JSON tags for serialization and validation methods. Implement the `Validate` function to perform post-init validation.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "The RequirementHierarchy struct is defined with appropriate JSON tags.",
+            "The `Validate` function is implemented and performs post-init validation based on the `Type` field.",
+            "The `Validate` function returns an error if the `Type` field is invalid.",
+            "The `Validate` function passes unit tests with various `Type` values."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement the `Validate` function in the `RequirementNode` struct.",
+              "Create unit tests for the `Validate` function."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the `RequirementNode` struct with JSON tags.",
+              "Define the `Validate` function with appropriate error handling."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "port_requirement_hierarchy_to_go",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "JSON serialization",
+            "Go structs",
+            "Validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.1.1",
+          "description": "Replace Python data patterns (dataclasses, enums, asyncio) with their Go equivalents (structs, const/iota, goroutines).",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python dataclasses are replaced with Go structs.",
+            "Python enums are replaced with Go `const` and `iota`.",
+            "Python `asyncio` is replaced with Go goroutines and channels.",
+            "The code compiles and runs without errors.",
+            "The functionality is equivalent to the original Python code."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Replace all dataclasses with Go structs.",
+              "Replace Python enums with Go `const` and `iota`.",
+              "Replace Python `asyncio` with Go goroutines and channels."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the data models in Go.",
+              "Implement the necessary concurrency primitives."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_python_data_patterns_with_go",
+          "related_concepts": [
+            "Data patterns",
+            "Go structs",
+            "JSON serialization",
+            "Goroutines",
+            "Channels"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.1.2",
+          "description": "Replace the Python Claude Agent SDK with a custom HTTP client or SDK for interacting with the Claude API.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "The custom HTTP client or SDK can successfully authenticate with the Claude API.",
+            "The custom HTTP client or SDK can send requests to the Claude API.",
+            "The custom HTTP client or SDK can receive responses from the Claude API.",
+            "The custom HTTP client or SDK can handle errors from the Claude API."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement the custom HTTP client or SDK.",
+              "Implement the necessary authentication logic.",
+              "Implement the logic for sending requests to the Claude API.",
+              "Implement the logic for handling responses from the Claude API."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the API endpoint URLs.",
+              "Define the necessary authentication credentials."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "port_claude_agent_sdk",
+          "related_concepts": [
+            "Claude API",
+            "HTTP client",
+            "SDK",
+            "API integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Rewrite Python enums to Go const declarations with iota. This involves iterating through all Python enums and generating equivalent Go const declarations using the `iota` keyword to assign unique integer values to each constant.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python enums have a corresponding Go const declaration.",
+            "Each Go const declaration uses the `iota` keyword to assign unique integer values.",
+            "The integer values assigned to each Go const declaration are unique across all enums.",
+            "The generated Go code compiles and runs without errors.",
+            "The Go code accurately represents the functionality of the original Python enums."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "A script or tool to automatically convert Python enums to Go const declarations.",
+              "A mechanism to manage and track the conversion process."
+            ],
+            "middleware": [],
+            "shared": [
+              "A mapping between Python enums and Go const declarations.",
+              "A logging mechanism to track the conversion process."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "convert_enums_to_const_iota",
+          "related_concepts": [
+            "enum",
+            "const",
+            "iota",
+            "Go data types",
+            "integer constants"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2.1",
+          "description": "Replace Python dataclasses with Go structs. This involves defining Go structs with appropriate fields and validation methods to mimic the functionality of Python dataclasses.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python dataclasses have a corresponding Go struct.",
+            "The Go struct has fields that accurately represent the data contained in the Python dataclass.",
+            "The Go struct includes validation methods to ensure data integrity.",
+            "The Go struct compiles and runs without errors.",
+            "The Go struct accurately represents the functionality of the Python dataclass."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "A script or tool to automatically convert Python dataclasses to Go structs.",
+              "A mechanism to manage and track the conversion process."
+            ],
+            "middleware": [],
+            "shared": [
+              "A mapping between Python dataclasses and Go structs.",
+              "A logging mechanism to track the conversion process."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_dataclasses_with_structs",
+          "related_concepts": [
+            "dataclass",
+            "struct",
+            "Go data types",
+            "validation",
+            "Go data modeling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2.2",
+          "description": "Rewrite Python asyncio code to use Go goroutines and channels for asynchronous operations. This involves replacing the `asyncio` library with equivalent Go constructs.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python asyncio code has a corresponding Go implementation using goroutines and channels.",
+            "The Go implementation accurately replicates the functionality of the original Python asyncio code.",
+            "The Go implementation handles concurrency correctly.",
+            "The Go implementation avoids race conditions and deadlocks.",
+            "The Go implementation compiles and runs without errors."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "A script or tool to automatically convert Python asyncio code to Go goroutines and channels.",
+              "A mechanism to manage and track the conversion process."
+            ],
+            "middleware": [],
+            "shared": [
+              "A mapping between Python asyncio code and Go goroutines and channels.",
+              "A logging mechanism to track the conversion process."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "convert_asyncio_to_goroutines",
+          "related_concepts": [
+            "asyncio",
+            "goroutine",
+            "channel",
+            "Go concurrency",
+            "Go data types"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Rewrite all asynchronous operations currently using `asyncio` with equivalent Go goroutines and channels. This includes managing concurrency, handling events, and ensuring proper synchronization.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All `asyncio` calls have been replaced with equivalent Go goroutines and channels.",
+            "Concurrent execution of tasks is managed correctly using channels for communication and synchronization.",
+            "No deadlocks or race conditions occur during concurrent execution.",
+            "Performance benchmarks demonstrate comparable or improved performance compared to the original `asyncio` implementation."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a goroutine pool to manage and reuse goroutines.",
+              "Utilize channels for communication between goroutines.",
+              "Implement a mechanism for handling errors and exceptions in goroutines."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a common interface for asynchronous operations.",
+              "Create a library for managing goroutines and channels."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_asyncio_with_goroutines",
+          "related_concepts": [
+            "goroutines",
+            "channels",
+            "concurrency",
+            "event loop",
+            "synchronization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3.1",
+          "description": "Replace Python dataclasses with Go structs. This involves defining data structures with appropriate fields and validation methods.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python dataclasses have been replaced with equivalent Go structs.",
+            "Data models are accurately represented in Go.",
+            "Validation logic is implemented within the Go structs (or in separate validation functions).",
+            "Data integrity is maintained across the system."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Define Go structs to represent the data models.",
+              "Implement validation methods within the structs (or in separate validation functions)."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a common data model interface."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_dataclasses_with_structs",
+          "related_concepts": [
+            "structs",
+            "fields",
+            "validation",
+            "data modeling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3.2",
+          "description": "Replace Python enums with Go `const` and `iota` to define enumerated values.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python enums have been replaced with equivalent Go `const` and `iota` definitions.",
+            "Enumerated values are accurately represented in Go.",
+            "The code is readable and maintainable."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Define Go constants using `const` and `iota` to represent the enumerated values."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a common enumeration interface."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_enums_with_const_iota",
+          "related_concepts": [
+            "enums",
+            "const",
+            "iota",
+            "enumerated values"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3.3",
+          "description": "Replace Python's `subprocess` module with Go's `os/exec` package for executing external commands.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python `subprocess` calls have been replaced with equivalent Go `os/exec` calls.",
+            "External commands are executed correctly.",
+            "Error handling is implemented for external command execution."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Use `os/exec` to execute external commands."
+            ],
+            "middleware": [],
+            "shared": []
+          },
+          "testable_properties": [],
+          "function_id": "replace_subprocess_with_os_exec",
+          "related_concepts": [
+            "subprocess",
+            "os/exec",
+            "external commands",
+            "process management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Replace Python typing hints with native Go static typing. This involves analyzing the Python code to identify type hints and translating them into equivalent Go type declarations.  Ensure all type definitions are explicitly declared in Go.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python type hints have been replaced with equivalent Go type declarations.",
+            "The Go code compiles without type errors.",
+            "The Go code adheres to Go's type system conventions."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a code analysis tool to identify type hints in Python.",
+              "Create a Go code generator to automatically translate type hints.",
+              "Develop a Go code review process to ensure type consistency."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a Go type system convention.",
+              "Create a Go type system library."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "migrate_typing_hints",
+          "related_concepts": [
+            "Go static typing",
+            "type definitions",
+            "type inference"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4.1",
+          "description": "Replace Python's subprocess management with Go's goroutines and channels.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python subprocess management code has been replaced with Go's goroutines and channels.",
+            "The Go code correctly manages concurrent subprocesses.",
+            "The Go code handles subprocess errors gracefully."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Refactor Python's subprocess management code to use Go's goroutines.",
+              "Implement a channel-based communication mechanism between goroutines.",
+              "Add error handling for subprocess failures."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a Go concurrency library.",
+              "Create a Go concurrency tutorial."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "migrate_subprocess_management",
+          "related_concepts": [
+            "goroutines",
+            "channels",
+            "concurrency",
+            "asynchronous programming"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4.2",
+          "description": "Replace Python's argparse with a Go CLI argument parsing library (e.g., Cobra).",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python argparse code has been replaced with a Go CLI argument parsing library (Cobra recommended).",
+            "The Go CLI application accepts and processes command-line arguments correctly.",
+            "The Go CLI application provides a user-friendly command-line interface."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Choose a Go CLI argument parsing library (Cobra recommended).",
+              "Implement the Go CLI application using the chosen library.",
+              "Test the Go CLI application with various command-line arguments."
+            ],
+            "middleware": [],
+            "shared": [
+              "Create a Go CLI application tutorial."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "migrate_argparse_to_cobra",
+          "related_concepts": [
+            "CLI argument parsing",
+            "Cobra",
+            "urfave/cli",
+            "pflag"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5",
+          "description": "Rewrite all `RequirementNode` dataclasses in Python to equivalent Go structs.  Implement validation methods within the structs using `const` and `iota` for enum-like behavior.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All `RequirementNode` dataclasses in Python have been replaced with equivalent Go structs.",
+            "Each Go struct includes validation methods using `const` and `iota` to mimic Python enums.",
+            "Validation methods correctly enforce constraints defined in the original Python dataclasses."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Go struct definition for RequirementNode",
+              "Validation methods using const/iota"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_dataclasses_with_structs",
+          "related_concepts": [
+            "data modeling",
+            "structs",
+            "const",
+            "iota",
+            "validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5.1",
+          "description": "Replace Python's `collections.deque` with Go slices.  This involves adapting the code to use slices for queue-like operations.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "All instances of `collections.deque` in Python have been replaced with Go slices.",
+            "The code correctly utilizes slice operations (append, pop, etc.) to achieve the same functionality as `deque`.",
+            "Performance testing demonstrates that the slice-based implementation is equivalent or better than the `deque` implementation."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Go slice type definition",
+              "Code modifications to utilize slices instead of deque"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "replace_collections_deque_with_slices",
+          "related_concepts": [
+            "queue",
+            "slices",
+            "data structures",
+            "performance"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5.2",
+          "description": "Convert the Python Feature list JSON schema to a Go struct. This involves defining the structure and data types to match the JSON schema.",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "A Go struct has been defined that accurately represents the Python Feature list JSON schema.",
+            "The data types in the Go struct match the corresponding data types in the JSON schema.",
+            "The Go struct is well-documented and easy to understand."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Go struct definition for Feature",
+              "Data type mappings between JSON and Go"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "convert_json_schema_to_go_struct",
+          "related_concepts": [
+            "JSON schema",
+            "structs",
+            "data modeling",
+            "Go data types"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must maintain external integrations with Claude CLI, git, and beads CLI tools via os/exec subprocess calls",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Implement Claude CLI wrapper using Go os/exec package with configurable timeout support, streaming output capture, and structured result handling for autonomous Claude Code sessions",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Execute Claude CLI commands with configurable timeout (default 1 hour, max configurable)",
+            "Support all Claude CLI flags: --print, --model, --permission-mode, --output-format",
+            "Capture stdout, stderr, and exit code in structured CommandResult",
+            "Implement context.WithTimeout for graceful cancellation",
+            "Support streaming output via io.Pipe or bufio.Scanner for real-time progress",
+            "Handle permission-mode 'bypassPermissions' for autonomous operation",
+            "Support model selection (sonnet/opus) via configuration",
+            "Return structured JSON response matching Python equivalent format",
+            "Implement retry logic with exponential backoff for transient failures",
+            "Log command execution details in debug mode",
+            "Handle working directory specification via cmd.Dir",
+            "Support environment variable passthrough to subprocess"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "ClaudeRunner struct with Execute, ExecuteWithStreaming, and ExecuteAsync methods",
+              "CommandResult struct with Success, Output, Error, ExitCode, Duration fields",
+              "ClaudeConfig struct for model, timeout, permissionMode, outputFormat settings",
+              "runClaudeCode function matching Python signature (projectPath, prompt, model)",
+              "Streaming reader using goroutine and channel for real-time output",
+              "Context-aware execution with context.WithTimeout wrapping exec.CommandContext",
+              "Error classification for timeout, permission, and execution failures"
+            ],
+            "middleware": [
+              "Timeout middleware with configurable duration",
+              "Retry middleware with exponential backoff (max 3 retries)",
+              "Logging middleware for debug output of commands and responses"
+            ],
+            "shared": [
+              "CommandResult struct in internal/models/command.go",
+              "ClaudeConfig struct in internal/models/config.go",
+              "Constants for default timeout (3600s), supported models, permission modes",
+              "Error types: ErrTimeout, ErrExecutionFailed, ErrPermissionDenied"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "runner.ClaudeRunner.Execute",
+          "related_concepts": [
+            "subprocess management",
+            "timeout handling",
+            "streaming output",
+            "command execution",
+            "context cancellation",
+            "Claude CLI integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Create comprehensive git integration for version control operations supporting status checks, commits, branching, and history analysis used throughout the orchestrator and loop-runner",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Execute git status to check working tree state",
+            "Execute git add with file path or '.' for all changes",
+            "Execute git commit with message and optional co-author support",
+            "Execute git log with configurable format and count",
+            "Execute git branch operations (create, list, switch, delete)",
+            "Execute git diff for staged and unstaged changes",
+            "Execute git describe --tags for version information",
+            "Parse git output into structured Go types",
+            "Support git operations in specified working directory",
+            "Handle non-zero exit codes with meaningful error messages",
+            "Support checking if directory is a git repository",
+            "Execute git rev-parse for commit hash retrieval",
+            "Support git remote operations for repository metadata"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "GitRunner struct with repository path and configuration",
+              "Status() method returning GitStatus struct with staged, unstaged, untracked files",
+              "Add(paths ...string) method for staging files",
+              "Commit(message string, opts CommitOptions) method with co-author support",
+              "Log(count int, format string) method returning []GitLogEntry",
+              "Branch operations: CreateBranch, ListBranches, SwitchBranch, DeleteBranch",
+              "Diff(staged bool) method returning file diff information",
+              "GetVersion() method using git describe --tags",
+              "IsRepository() method to verify git directory",
+              "GetCurrentCommit() method returning commit hash",
+              "GetRemoteURL() method for repository metadata"
+            ],
+            "middleware": [
+              "Repository validation middleware ensuring git directory exists",
+              "Error translation middleware for git-specific error codes"
+            ],
+            "shared": [
+              "GitStatus struct with Staged, Unstaged, Untracked []string fields",
+              "GitLogEntry struct with Hash, Author, Date, Message fields",
+              "CommitOptions struct with CoAuthor, NoVerify, Amend fields",
+              "BranchInfo struct with Name, Current, Remote fields",
+              "Constants for common git commands and flags",
+              "Error types: ErrNotRepository, ErrNoCommits, ErrBranchExists"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "runner.GitRunner.Operations",
+          "related_concepts": [
+            "version control",
+            "git operations",
+            "subprocess execution",
+            "branch management",
+            "commit history",
+            "working tree status"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Build beads CLI wrapper as a public Go package (pkg/beads) for issue tracking integration, providing a reusable API for creating, querying, and managing beads across projects",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Create public package at pkg/beads/client.go for external reuse",
+            "Execute 'bd' (beads) CLI commands via os/exec",
+            "Support bead creation with title, description, tags, and metadata",
+            "Support bead querying by ID, status, tags, or search terms",
+            "Support bead status updates (open, in-progress, closed, blocked)",
+            "Parse bead JSON output into structured Bead type",
+            "Support listing beads with filtering options",
+            "Support bead relationship management (blocked-by, related-to)",
+            "Handle beads CLI not installed error gracefully",
+            "Provide CheckInstalled() method to verify beads CLI availability",
+            "Support workspace/project-specific bead operations",
+            "Implement NewClient(workspacePath string) constructor pattern"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Client struct with workspacePath and execPath configuration",
+              "NewClient(workspacePath string) constructor with CLI detection",
+              "Create(title, description string, opts CreateOptions) method returning *Bead",
+              "Get(id string) method returning *Bead",
+              "List(filter ListFilter) method returning []Bead",
+              "Update(id string, updates BeadUpdate) method",
+              "SetStatus(id string, status BeadStatus) method",
+              "AddRelation(id, relatedID string, relationType string) method",
+              "Search(query string) method returning []Bead",
+              "CheckInstalled() method returning (string, error) for version/availability"
+            ],
+            "middleware": [
+              "CLI availability check on client initialization",
+              "Workspace validation ensuring beads directory exists"
+            ],
+            "shared": [
+              "Bead struct with ID, Title, Description, Status, Tags, CreatedAt, UpdatedAt fields",
+              "BeadStatus enum: StatusOpen, StatusInProgress, StatusClosed, StatusBlocked",
+              "CreateOptions struct with Tags, Priority, BlockedBy, RelatedTo fields",
+              "ListFilter struct with Status, Tags, Search, Limit fields",
+              "BeadUpdate struct for partial updates",
+              "Error types: ErrBeadsCLINotFound, ErrBeadNotFound, ErrInvalidStatus"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "pkg.beads.Client.Operations",
+          "related_concepts": [
+            "beads CLI",
+            "issue tracking",
+            "public package",
+            "CLI wrapper",
+            "subprocess execution",
+            "JSON parsing"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Support build tools integration for cargo (Rust), npm (Node.js), pytest (Python), go test (Go), and make commands with unified execution interface and result parsing",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Execute cargo build/test/run commands for Rust projects",
+            "Execute npm install/build/test/run commands for Node.js projects",
+            "Execute pytest commands with configurable arguments for Python projects",
+            "Execute go test/build commands for Go projects",
+            "Execute make targets with optional arguments",
+            "Parse test output to extract pass/fail counts where possible",
+            "Support working directory specification for all tools",
+            "Capture combined stdout/stderr with proper ordering",
+            "Support timeout configuration per build tool type",
+            "Detect project type from manifest files (Cargo.toml, package.json, pyproject.toml, go.mod, Makefile)",
+            "Return unified BuildResult with success, output, duration, and parsed metrics",
+            "Support environment variable injection for build commands",
+            "Handle tool not installed errors with helpful messages",
+            "Support verbose/quiet output modes"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "BuildToolRunner struct with projectPath and detected project type",
+              "NewBuildToolRunner(projectPath string) constructor with auto-detection",
+              "DetectProjectType() method returning []ProjectType for multi-language projects",
+              "RunCargo(subcommand string, args ...string) method for Rust",
+              "RunNpm(subcommand string, args ...string) method for Node.js",
+              "RunPytest(args ...string) method for Python",
+              "RunGoTest(args ...string) method for Go",
+              "RunMake(target string, args ...string) method for Makefiles",
+              "RunGeneric(tool string, args ...string) method for custom tools",
+              "ParseTestResults(output string, toolType ProjectType) method returning TestMetrics"
+            ],
+            "middleware": [
+              "Tool availability validation before execution",
+              "Project type detection from manifest files",
+              "Timeout enforcement with context cancellation"
+            ],
+            "shared": [
+              "ProjectType enum: ProjectTypeCargo, ProjectTypeNpm, ProjectTypePython, ProjectTypeGo, ProjectTypeMake",
+              "BuildResult struct with Success, Output, Duration, ExitCode, Metrics fields",
+              "TestMetrics struct with Passed, Failed, Skipped, Total, Coverage fields",
+              "BuildConfig struct with Timeout, Verbose, Environment map fields",
+              "Constants for default timeouts per tool type",
+              "Error types: ErrToolNotFound, ErrBuildFailed, ErrTestFailed, ErrTimeout",
+              "ManifestFiles map for project type detection (Cargo.toml -> Cargo, etc.)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "runner.BuildToolRunner.Execute",
+          "related_concepts": [
+            "build tools",
+            "test runners",
+            "multi-language support",
+            "subprocess execution",
+            "result parsing",
+            "exit code handling"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must support cross-compilation for multiple target platforms including macOS Intel, macOS Apple Silicon, Linux x86-64, Linux ARM64, and Windows",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Build context-engine binary for macOS Intel (x86-64) architecture using Go cross-compilation with GOOS=darwin and GOARCH=amd64 environment variables",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Binary compiles successfully with GOOS=darwin GOARCH=amd64 environment variables set",
+            "Output binary is named context-engine-darwin-amd64 following naming convention",
+            "Binary file format is Mach-O 64-bit x86_64 executable (verified via `file` command)",
+            "Binary runs correctly on macOS Intel machines (10.13 High Sierra or later)",
+            "Binary size is reasonable (under 50MB for full application)",
+            "CGO_ENABLED=0 produces fully static binary with no external C dependencies",
+            "Version information is embedded via -ldflags at build time",
+            "Build completes within acceptable time (under 2 minutes)",
+            "Build process is idempotent and reproducible"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement build command: GOOS=darwin GOARCH=amd64 go build -o bin/context-engine-darwin-amd64 ./cmd/orchestrator",
+              "Implement loop-runner build: GOOS=darwin GOARCH=amd64 go build -o bin/loop-runner-darwin-amd64 ./cmd/loop-runner",
+              "Add CGO_ENABLED=0 flag for static binary compilation",
+              "Implement -ldflags injection for version, commit hash, and build timestamp",
+              "Create build verification step using `file` command to confirm architecture",
+              "Implement error handling for build failures with clear error messages"
+            ],
+            "middleware": [
+              "Validate Go version is 1.21+ before build",
+              "Check that all required source files exist before compilation",
+              "Verify go.mod and go.sum are in sync (go mod verify)"
+            ],
+            "shared": [
+              "Define LDFLAGS constant pattern: -ldflags \"-X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.buildTime=$(BUILD_TIME)\"",
+              "Create build output directory structure: bin/darwin-amd64/",
+              "Define Makefile target: build-darwin-amd64"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.buildDarwinAmd64",
+          "related_concepts": [
+            "cross-compilation",
+            "Go build system",
+            "macOS Intel architecture",
+            "CGO_ENABLED",
+            "static linking",
+            "binary distribution"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Build context-engine binary for macOS Apple Silicon (ARM64) architecture using Go cross-compilation with GOOS=darwin and GOARCH=arm64 environment variables",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Binary compiles successfully with GOOS=darwin GOARCH=arm64 environment variables set",
+            "Output binary is named context-engine-darwin-arm64 following naming convention",
+            "Binary file format is Mach-O 64-bit arm64 executable (verified via `file` command)",
+            "Binary runs natively on Apple Silicon Macs (M1, M2, M3 processors) without Rosetta",
+            "Binary is compatible with macOS 11.0 Big Sur or later (minimum ARM64 macOS)",
+            "CGO_ENABLED=0 produces fully static binary",
+            "Version information is embedded via -ldflags at build time",
+            "Build can be performed from any platform (true cross-compilation)",
+            "Binary performance is optimized for ARM64 instruction set"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement build command: GOOS=darwin GOARCH=arm64 go build -o bin/context-engine-darwin-arm64 ./cmd/orchestrator",
+              "Implement loop-runner build: GOOS=darwin GOARCH=arm64 go build -o bin/loop-runner-darwin-arm64 ./cmd/loop-runner",
+              "Add CGO_ENABLED=0 flag for static binary compilation",
+              "Implement -ldflags injection for version metadata",
+              "Create build verification step to confirm arm64 architecture in output",
+              "Consider creating universal binary (lipo -create) combining amd64 and arm64 for macOS distribution"
+            ],
+            "middleware": [
+              "Validate Go version supports darwin/arm64 target (Go 1.16+)",
+              "Verify no CGO dependencies that would break cross-compilation",
+              "Check for any platform-specific code that needs ARM64 handling"
+            ],
+            "shared": [
+              "Define Makefile target: build-darwin-arm64",
+              "Create build output directory structure: bin/darwin-arm64/",
+              "Optional: Define universal binary target combining both darwin architectures"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.buildDarwinArm64",
+          "related_concepts": [
+            "cross-compilation",
+            "Go build system",
+            "Apple Silicon",
+            "ARM64 architecture",
+            "M1/M2/M3 chips",
+            "universal binary"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "Build context-engine binary for Linux x86-64 architecture using Go cross-compilation with GOOS=linux and GOARCH=amd64 environment variables",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Binary compiles successfully with GOOS=linux GOARCH=amd64 environment variables set",
+            "Output binary is named context-engine-linux-amd64 following naming convention",
+            "Binary file format is ELF 64-bit LSB executable, x86-64 (verified via `file` command)",
+            "Binary runs on standard Linux distributions (Ubuntu 18.04+, Debian 10+, CentOS 7+, Alpine)",
+            "Binary is statically linked with CGO_ENABLED=0 for maximum portability",
+            "Binary has no glibc version dependencies when statically compiled",
+            "Binary is suitable for Docker container deployment (works in scratch/alpine images)",
+            "Version information is embedded via -ldflags at build time",
+            "Binary executable permissions are set correctly (755)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement build command: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/context-engine-linux-amd64 ./cmd/orchestrator",
+              "Implement loop-runner build: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o bin/loop-runner-linux-amd64 ./cmd/loop-runner",
+              "Add -a flag to force rebuild of all packages for clean build",
+              "Add -installsuffix cgo to separate CGO-disabled package cache",
+              "Implement -ldflags '-extldflags \"-static\"' for fully static linking",
+              "Create build verification using `file` command to confirm ELF x86-64 format",
+              "Test binary execution in Docker alpine/scratch container"
+            ],
+            "middleware": [
+              "Validate no CGO dependencies in dependency tree (go list -deps)",
+              "Check for any syscall usage that differs between Linux and build platform",
+              "Verify net package behavior with CGO_ENABLED=0 (uses pure Go DNS resolver)"
+            ],
+            "shared": [
+              "Define Makefile target: build-linux-amd64",
+              "Create build output directory structure: bin/linux-amd64/",
+              "Create Dockerfile for testing Linux binary: FROM scratch / COPY context-engine-linux-amd64 /",
+              "Define installation path constant: /usr/local/bin for Linux systems"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.buildLinuxAmd64",
+          "related_concepts": [
+            "cross-compilation",
+            "Linux servers",
+            "x86-64 architecture",
+            "ELF binary format",
+            "static linking",
+            "container deployment"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.4",
+          "description": "Build context-engine binary for Linux ARM64 architecture using Go cross-compilation with GOOS=linux and GOARCH=arm64 environment variables for Raspberry Pi, AWS Graviton, and ARM servers",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Binary compiles successfully with GOOS=linux GOARCH=arm64 environment variables set",
+            "Output binary is named context-engine-linux-arm64 following naming convention",
+            "Binary file format is ELF 64-bit LSB executable, ARM aarch64 (verified via `file` command)",
+            "Binary runs on Raspberry Pi 4/5 with 64-bit OS (Raspberry Pi OS 64-bit, Ubuntu ARM64)",
+            "Binary runs on AWS Graviton instances (t4g, m6g, c6g instance families)",
+            "Binary runs on other ARM64 Linux systems (Oracle Ampere, Hetzner ARM)",
+            "Binary is statically linked with CGO_ENABLED=0",
+            "Version information is embedded via -ldflags at build time",
+            "Binary size is optimized for resource-constrained ARM devices"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement build command: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/context-engine-linux-arm64 ./cmd/orchestrator",
+              "Implement loop-runner build: CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/loop-runner-linux-arm64 ./cmd/loop-runner",
+              "Add -ldflags '-s -w' to strip debug symbols for smaller binary size on ARM devices",
+              "Create build verification using `file` command to confirm ARM aarch64 format",
+              "Test binary on QEMU ARM64 emulation if physical hardware unavailable",
+              "Document memory and CPU requirements for ARM deployment"
+            ],
+            "middleware": [
+              "Validate Go version supports linux/arm64 target",
+              "Check for any architecture-specific optimizations needed",
+              "Verify subprocess calls to external tools work on ARM64 Linux (claude CLI, git, beads)"
+            ],
+            "shared": [
+              "Define Makefile target: build-linux-arm64",
+              "Create build output directory structure: bin/linux-arm64/",
+              "Create ARM64 Docker test image: FROM arm64v8/alpine",
+              "Document tested ARM64 platforms in README"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.buildLinuxArm64",
+          "related_concepts": [
+            "cross-compilation",
+            "ARM64 Linux",
+            "Raspberry Pi 4/5",
+            "AWS Graviton",
+            "ARM servers",
+            "embedded systems",
+            "edge computing"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.5",
+          "description": "Build context-engine binary for Windows x86-64 architecture using Go cross-compilation with GOOS=windows and GOARCH=amd64 environment variables, producing .exe executable",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Binary compiles successfully with GOOS=windows GOARCH=amd64 environment variables set",
+            "Output binary is named context-engine-windows-amd64.exe with .exe extension",
+            "Binary file format is PE32+ executable (console) x86-64 (verified via `file` command)",
+            "Binary runs on Windows 10/11 64-bit systems",
+            "Binary works from both Command Prompt (cmd.exe) and PowerShell",
+            "Exit codes are handled correctly for Windows conventions",
+            "File paths use correct Windows path separators (handled by filepath package)",
+            "Binary can be added to Windows PATH for global access",
+            "Console output displays correctly including ANSI colors on Windows 10+",
+            "Version information is embedded via -ldflags at build time"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement build command: GOOS=windows GOARCH=amd64 go build -o bin/context-engine-windows-amd64.exe ./cmd/orchestrator",
+              "Implement loop-runner build: GOOS=windows GOARCH=amd64 go build -o bin/loop-runner-windows-amd64.exe ./cmd/loop-runner",
+              "Use path/filepath package for all path operations (automatic separator handling)",
+              "Implement Windows-specific ANSI color handling (enable virtual terminal processing)",
+              "Handle Windows-specific subprocess execution (no SIGTERM, use taskkill patterns)",
+              "Create build verification using `file` command to confirm PE32+ format",
+              "Test binary execution on Windows VM or CI Windows runner"
+            ],
+            "middleware": [
+              "Validate external tool availability on Windows (claude.exe, git.exe, bd.exe/beads.exe)",
+              "Handle Windows-specific environment variable syntax (%VAR% vs $VAR)",
+              "Implement graceful shutdown handling for Windows (no SIGTERM support)",
+              "Check for Windows Defender compatibility and code signing requirements"
+            ],
+            "shared": [
+              "Define Makefile target: build-windows-amd64",
+              "Create build output directory structure: bin/windows-amd64/",
+              "Create install.ps1 PowerShell installation script for Windows users",
+              "Create install.bat batch file alternative for Command Prompt users",
+              "Document Windows-specific installation steps: copy to C:\\Program Files\\context-engine\\ and add to PATH",
+              "Define Windows PATH installation instructions in README"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.buildWindowsAmd64",
+          "related_concepts": [
+            "cross-compilation",
+            "Windows executable",
+            "PE format",
+            "Windows PATH",
+            "PowerShell compatibility",
+            "Windows Subsystem for Linux"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The system must install binaries to /usr/local/bin via Makefile or install script with support for both system-wide and user-local installation",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Implement Makefile with build, install, uninstall, and release targets for Go binary compilation and distribution",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Makefile defines BINARY_NAME=context-engine and LOOP_BINARY=loop-runner constants",
+            "Build target compiles ./cmd/orchestrator to bin/$(BINARY_NAME)",
+            "Build target compiles ./cmd/loop-runner to bin/$(LOOP_BINARY)",
+            "Install target depends on build target and copies binaries to $(BINDIR)",
+            "Install target uses 'install -m 755' to set executable permissions",
+            "Install target creates destination directory with 'install -d $(BINDIR)'",
+            "Uninstall target removes both binaries from $(BINDIR)",
+            "Release target cross-compiles for darwin-amd64, darwin-arm64, linux-amd64, linux-arm64, windows-amd64",
+            "All public targets are marked as .PHONY",
+            "Build artifacts are placed in bin/ subdirectory",
+            "CGO_ENABLED=0 is used for static binary compilation in release target"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Makefile at repository root with variables: BINARY_NAME, LOOP_BINARY, PREFIX, BINDIR, VERSION, LDFLAGS",
+              "Variable PREFIX defaults to /usr/local using ?= assignment",
+              "Variable BINDIR computed as $(PREFIX)/bin",
+              "Variable VERSION computed via git describe --tags --always --dirty",
+              "LDFLAGS includes -ldflags \"-X main.version=$(VERSION)\"",
+              "Target 'build' compiles both orchestrator and loop-runner binaries",
+              "Target 'install' depends on build and installs to BINDIR",
+              "Target 'uninstall' removes installed binaries",
+              "Target 'release' creates binaries for all supported OS/arch combinations",
+              "Target 'clean' removes bin/ directory contents",
+              "Target 'test' runs go test ./...",
+              "Target 'lint' runs golangci-lint if available"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.Makefile",
+          "related_concepts": [
+            "go build",
+            "cross-compilation",
+            "make targets",
+            "PHONY targets",
+            "build automation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Create install.sh script for simplified binary installation with dependency checking and user feedback",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Script starts with #!/bin/bash shebang and set -e for error handling",
+            "Script checks for Go compiler presence and displays helpful error if missing",
+            "Script accepts PREFIX environment variable override",
+            "Script defaults PREFIX to /usr/local when not set",
+            "Script detects if sudo is required for installation (checks write permission to BINDIR)",
+            "Script displays progress messages during build and install phases",
+            "Script verifies binary existence after build completes",
+            "Script displays installed binary paths on completion",
+            "Script provides instructions for PATH configuration if not already set",
+            "Script exits with non-zero code on any failure",
+            "Script supports --help flag showing usage information",
+            "Script supports --prefix flag as alternative to environment variable"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "install.sh at repository root with execute permissions",
+              "Function check_dependencies() verifies go, git commands exist",
+              "Function build_binaries() runs go build for both entry points",
+              "Function install_binaries() handles sudo detection and file installation",
+              "Function show_usage() displays help text for --help flag",
+              "Function show_completion() displays success message with paths",
+              "Variable PREFIX parsed from environment or --prefix argument",
+              "Variable BINDIR computed as ${PREFIX}/bin",
+              "Write permission check using test -w on BINDIR or parent",
+              "Conditional sudo invocation only when write permission denied",
+              "Echo statements for user feedback: Building..., Installing..., Complete!",
+              "Verification step confirming binaries exist at target locations"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.installScript",
+          "related_concepts": [
+            "bash scripting",
+            "dependency checking",
+            "sudo detection",
+            "POSIX compatibility",
+            "installation feedback"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Support configurable PREFIX for installation directory defaulting to /usr/local with environment variable and command-line overrides",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "PREFIX defaults to /usr/local when not specified",
+            "PREFIX can be overridden via environment variable export PREFIX=/custom/path",
+            "PREFIX can be overridden via make command: make PREFIX=/custom/path install",
+            "PREFIX can be overridden via install.sh: PREFIX=/custom/path ./install.sh",
+            "PREFIX can be overridden via install.sh flag: ./install.sh --prefix=/custom/path",
+            "BINDIR is always computed as $(PREFIX)/bin",
+            "All installation targets respect the PREFIX/BINDIR hierarchy",
+            "Uninstall target uses same PREFIX logic to find binaries to remove",
+            "Documentation clearly explains PREFIX customization options",
+            "Common prefix values documented: /usr/local, /usr, /opt, ~/.local"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Makefile uses PREFIX ?= /usr/local for conditional default",
+              "Makefile computes BINDIR = $(PREFIX)/bin",
+              "install.sh parses PREFIX from $PREFIX environment variable",
+              "install.sh parses --prefix=VALUE from command line arguments",
+              "install.sh defaults PREFIX to /usr/local when neither is set",
+              "README.md section documenting PREFIX customization",
+              "Support for standard Unix paths: /usr/local/bin, /usr/bin, /opt/*/bin",
+              "Support for user paths: ~/.local/bin, ~/bin",
+              "Validation that PREFIX path exists or can be created",
+              "Error message when PREFIX is invalid or inaccessible"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.configurablePrefix",
+          "related_concepts": [
+            "environment variables",
+            "make variables",
+            "default values",
+            "installation paths",
+            "FHS compliance"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Support user-local installation to ~/.local/bin without sudo requirements",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Installation to ~/.local/bin works without sudo",
+            "Script creates ~/.local/bin directory if it doesn't exist",
+            "Script detects if ~/.local/bin is in user's PATH",
+            "Script provides PATH configuration instructions when not in PATH",
+            "Makefile supports make PREFIX=~/.local install shorthand",
+            "install.sh supports ./install.sh --user flag for ~/.local installation",
+            "Documentation provides shell-specific PATH instructions for bash, zsh, fish",
+            "Uninstall correctly removes from ~/.local/bin when PREFIX matches",
+            "No sudo prompt appears for user-local installation",
+            "Binary permissions set correctly without sudo (755)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "install.sh --user flag sets PREFIX to $HOME/.local automatically",
+              "install.sh creates $HOME/.local/bin with mkdir -p if needed",
+              "install.sh checks if $HOME/.local/bin is in $PATH using case statement or grep",
+              "install.sh outputs bash config: export PATH=\"$HOME/.local/bin:$PATH\"",
+              "install.sh outputs zsh config: path+=(\"$HOME/.local/bin\")",
+              "install.sh outputs fish config: fish_add_path $HOME/.local/bin",
+              "Makefile example in README: make PREFIX=~/.local install",
+              "install.sh skips sudo entirely when PREFIX is under $HOME",
+              "install command used without sudo: install -m 755 binary $BINDIR/",
+              "Detection function: is_user_install() checking if PREFIX starts with $HOME"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.userLocalInstall",
+          "related_concepts": [
+            "XDG Base Directory",
+            "user installation",
+            "PATH configuration",
+            "no-root installation",
+            "home directory"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.5",
+          "description": "Include version embedding via LDFLAGS during build using git tags and build metadata",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Version is extracted from git describe --tags --always --dirty",
+            "Version is embedded into binary via -ldflags \"-X main.version=$(VERSION)\"",
+            "Binary responds to --version flag showing embedded version",
+            "Dirty working directory appends '-dirty' suffix to version",
+            "Builds without git tags use short commit hash as version",
+            "VERSION can be manually overridden: make VERSION=1.0.0 build",
+            "Version includes tag name when building from tagged commit",
+            "Additional metadata can be embedded: build time, commit hash, go version",
+            "Version information accessible programmatically within application",
+            "Release builds include clean semantic version without dirty suffix"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Makefile variable: VERSION ?= $(shell git describe --tags --always --dirty)",
+              "Makefile variable: LDFLAGS = -ldflags \"-X main.version=$(VERSION)\"",
+              "Go main package variable: var version = \"dev\" in cmd/orchestrator/main.go",
+              "Go main package variable: var version = \"dev\" in cmd/loop-runner/main.go",
+              "Cobra command with --version flag reading main.version variable",
+              "Optional: BUILD_TIME variable with $(shell date -u +%Y-%m-%dT%H:%M:%SZ)",
+              "Optional: COMMIT variable with $(shell git rev-parse --short HEAD)",
+              "Optional: GO_VERSION variable with $(shell go version | cut -d' ' -f3)",
+              "LDFLAGS extended: -X main.version=$(VERSION) -X main.buildTime=$(BUILD_TIME)",
+              "Version subcommand or flag: context-engine version showing all metadata",
+              "install.sh passes VERSION to go build via -ldflags"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.versionEmbedding",
+          "related_concepts": [
+            "LDFLAGS",
+            "go build -ldflags",
+            "git describe",
+            "semantic versioning",
+            "build metadata"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must port two main CLI entry points: orchestrator.py (~1,367 lines) as context-engine binary and loop-runner.py (~1,382 lines) as loop-runner binary",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Create cmd/orchestrator/main.go entry point for context-engine binary that serves as the primary CLI interface for the context-engineered agent orchestrator",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "main.go file exists at cmd/orchestrator/main.go with proper package declaration",
+            "Version information embedded via ldflags (-X main.version) during build",
+            "Root cobra command initialized with Use='context-engine', Short and Long descriptions",
+            "Signal handling implemented for SIGINT/SIGTERM with graceful shutdown",
+            "Exit codes follow Unix conventions (0=success, 1=general error, 2=misuse)",
+            "Main function calls cmd.Execute() and handles error return appropriately",
+            "Binary compiles successfully with 'go build -o bin/context-engine ./cmd/orchestrator'",
+            "Binary installs to /usr/local/bin via 'make install'",
+            "Help output (-h/--help) displays all available commands and flags",
+            "Version output (--version) displays embedded version string"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create main() function that initializes and executes root command",
+              "Implement version variable with ldflags injection point",
+              "Set up os.Signal channel for interrupt handling",
+              "Create context.WithCancel for propagating shutdown signals",
+              "Initialize logging/debug output based on --debug flag"
+            ],
+            "middleware": [
+              "Implement PersistentPreRun hook for global initialization",
+              "Add PersistentPostRun hook for cleanup operations",
+              "Set up error wrapping for consistent error messages"
+            ],
+            "shared": [
+              "Define version, commit, and buildDate variables for injection",
+              "Create internal/cli/colors.go for ANSI terminal output (port Colors class)",
+              "Create internal/cli/prompts.go for interactive user prompts"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cmd.orchestrator.main",
+          "related_concepts": [
+            "cobra CLI framework",
+            "Go entry points",
+            "version embedding",
+            "signal handling",
+            "graceful shutdown"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Create cmd/loop-runner/main.go entry point for loop-runner binary that continuously runs Claude Code sessions for autonomous feature implementation",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "main.go file exists at cmd/loop-runner/main.go with proper package declaration",
+            "Separate binary builds as 'loop-runner' distinct from 'context-engine'",
+            "Root cobra command initialized with Use='loop-runner' and appropriate descriptions",
+            "Supports loading feature list from features.json file",
+            "Implements continuous loop with configurable iteration limits",
+            "Graceful shutdown on SIGINT preserves session state",
+            "Recovery mechanism loads last checkpoint on restart",
+            "Progress reporting to stdout with colored output",
+            "Binary compiles with 'go build -o bin/loop-runner ./cmd/loop-runner'",
+            "Both binaries can be installed simultaneously via single 'make install'"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create main() function initializing loop-runner specific command",
+              "Implement loop control with iteration counter and max limit",
+              "Create session state persistence between iterations",
+              "Port autonomous_loop.py LoopRunner logic to Go",
+              "Implement feature queue management with priority ordering"
+            ],
+            "middleware": [
+              "Add checkpoint save on each iteration completion",
+              "Implement checkpoint load on startup for recovery",
+              "Create session isolation between loop iterations"
+            ],
+            "shared": [
+              "Define SessionState struct for tracking execution state",
+              "Create internal/models/feature.go for Feature/FeatureList structs",
+              "Share colors and prompt utilities with orchestrator via internal/cli/"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cmd.looprunner.main",
+          "related_concepts": [
+            "autonomous execution",
+            "session management",
+            "checkpoint recovery",
+            "continuous loop patterns",
+            "goroutine lifecycle"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Port orchestrator CLI flags including --project, --new, --model, --max-sessions, --continue, --status, --mcp-preset, --with-qa, --debug using cobra flag system",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "--project/-p flag accepts Path type and validates directory exists",
+            "--new flag accepts Path and validates parent directory is writable",
+            "--model/-m flag defaults to 'sonnet' and validates against allowed values (sonnet/opus)",
+            "--max-sessions flag defaults to 100 and accepts positive integers only",
+            "--continue/-c flag is boolean, mutually exclusive with --new",
+            "--status/-s flag is boolean, outputs status and exits without running",
+            "--mcp-preset flag validates against choices: rust, python, node, docs",
+            "--with-qa flag is boolean for enabling E2E QA feature generation",
+            "--debug/-d flag enables verbose debug output globally",
+            "Flags bound to environment variables (CONTEXT_ENGINE_MODEL, etc.)",
+            "Invalid flag combinations produce clear error messages",
+            "Flag help text matches Python argparse descriptions exactly"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Define package-level variables for all flag values",
+              "Implement init() function to register all flags with rootCmd",
+              "Use StringVarP for flags with short versions (-p, -m, -c, -s, -d)",
+              "Use StringVar for flags without short versions (--new, --mcp-preset)",
+              "Use IntVar for --max-sessions with default value",
+              "Use BoolVarP for boolean flags with short versions",
+              "Implement custom validation in PreRunE hook"
+            ],
+            "middleware": [
+              "Create flag validation function checking mutual exclusivity",
+              "Validate --project path exists and is directory",
+              "Validate --new path parent exists and is writable",
+              "Validate --model against enum of allowed values",
+              "Validate --mcp-preset against enum of allowed presets"
+            ],
+            "shared": [
+              "Define Model type as string enum (sonnet, opus)",
+              "Define MCPPreset type as string enum (rust, python, node, docs)",
+              "Create internal/config/flags.go for shared flag definitions",
+              "Create FlagConfig struct holding all parsed flag values"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.orchestrator.initFlags",
+          "related_concepts": [
+            "cobra flags",
+            "pflag integration",
+            "flag validation",
+            "mutual exclusivity",
+            "environment variable binding"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.4",
+          "description": "Implement feature list validation and topological sort for dependencies to ensure features are processed in correct dependency order",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "Feature struct matches JSON schema with all fields (id, name, description, priority, etc.)",
+            "FeatureList struct contains Features slice and validation methods",
+            "LoadFeatureList function reads and parses features.json file",
+            "Validate method checks all required fields are present and valid",
+            "Validate method detects and reports circular dependencies",
+            "TopologicalSort method returns features ordered by dependencies",
+            "Features with no dependencies appear before dependent features",
+            "Blocked features are excluded from sorted output",
+            "Validation errors include line numbers and field names",
+            "Unit tests cover: valid lists, missing deps, circular deps, blocked features"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create internal/models/feature.go with Feature and FeatureList structs",
+              "Implement LoadFeatureList(path string) (*FeatureList, error)",
+              "Implement (fl *FeatureList) Validate() error with comprehensive checks",
+              "Implement (fl *FeatureList) TopologicalSort() ([]Feature, error)",
+              "Use map[string]*Feature for O(1) dependency lookups",
+              "Implement cycle detection using DFS with visited/recursionStack maps",
+              "Port Python topological_sort from loop-runner.py:154-209"
+            ],
+            "middleware": [
+              "Create validation error type with detailed context",
+              "Implement JSON schema validation for feature list",
+              "Add file watcher for hot-reload of features.json (optional)"
+            ],
+            "shared": [
+              "Define Feature struct with json tags matching Python schema exactly",
+              "Define FeatureList struct with Features []Feature",
+              "Create ValidationError struct with Field, Message, Line fields",
+              "Export TopologicalSort as reusable function in pkg/features/"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "pipeline.featureList.validateAndSort",
+          "related_concepts": [
+            "topological sort",
+            "DAG validation",
+            "cycle detection",
+            "Kahn's algorithm",
+            "dependency resolution"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.5",
+          "description": "Port complexity detection algorithm for feature assessment to categorize features as simple, medium, or complex based on code analysis",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "ComplexityLevel type defined as enum (simple, medium, complex)",
+            "DetectComplexity function analyzes feature and returns ComplexityLevel",
+            "Algorithm considers: file count, dependency count, description length, test requirements",
+            "Simple: 1-2 files, 0-1 dependencies, no tests specified",
+            "Medium: 3-5 files, 2-3 dependencies, basic tests",
+            "Complex: 6+ files, 4+ dependencies, comprehensive tests",
+            "Complexity affects session timeout and retry limits",
+            "Results cacheable to avoid recomputation",
+            "Algorithm matches Python implementation at loop-runner.py:348-405",
+            "Unit tests verify boundary conditions for each complexity level"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create internal/pipeline/complexity.go with detection logic",
+              "Define ComplexityLevel type with const iota (Simple, Medium, Complex)",
+              "Implement DetectComplexity(feature *Feature, projectPath string) ComplexityLevel",
+              "Implement countAffectedFiles using glob patterns from feature",
+              "Implement analyzeDependencyDepth for transitive dependency count",
+              "Implement scoreDescription for heuristic text analysis",
+              "Create ComplexityConfig struct for tunable thresholds"
+            ],
+            "middleware": [
+              "Add caching layer with sync.Map for computed complexities",
+              "Implement cache invalidation on feature list reload",
+              "Add complexity override flag for manual specification"
+            ],
+            "shared": [
+              "Define ComplexityLevel type in internal/models/complexity.go",
+              "Define ComplexityConfig struct with threshold values",
+              "Create ComplexityResult struct with level, score, reasoning fields",
+              "Export complexity utilities for use by both binaries"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "pipeline.complexity.detectComplexity",
+          "related_concepts": [
+            "code complexity metrics",
+            "static analysis",
+            "file counting",
+            "dependency analysis",
+            "heuristic scoring"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must implement the planning pipeline module with 18 core files including models, steps, decomposition, context generation, and checkpoint management",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Implement the RequirementNode data model in Go, mirroring the Python dataclass. This includes defining the structure, data types, and initial validation logic.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The Go struct `RequirementNode` matches the Python dataclass in terms of fields and data types.",
+            "The `Validate` method is implemented with basic validation logic (e.g., type checks).",
+            "Unit tests cover the `RequirementNode` struct and the `Validate` method."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "RequirementNode.go",
+              "ValidationUtils.go"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "port_requirement_node_model",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "Data Modeling",
+            "Validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.1.1",
+          "description": "Implement the RequirementHierarchy data model in Go, mirroring the Python dataclass. This includes defining the structure, data types, and initial validation logic.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The Go struct `RequirementHierarchy` matches the Python dataclass in terms of fields and data types.",
+            "The `Validate` method is implemented with basic validation logic (e.g., type checks).",
+            "Unit tests cover the `RequirementHierarchy` struct and the `Validate` method."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "RequirementHierarchy.go",
+              "ValidationUtils.go"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "implement_requirement_hierarchy",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "Data Modeling",
+            "Validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Implement the 'Requirement Decomposition' step using the Claude SDK to break down a high-level requirement into smaller, manageable sub-requirements. This step should utilize the Claude SDK to query the Claude API for assistance in generating a hierarchical decomposition based on the input requirement.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The output of the Claude SDK query should be a `RequirementHierarchy` object conforming to the defined schema.",
+            "The decomposition should accurately reflect the original requirement's scope and complexity.",
+            "The decomposition should be documented with clear explanations of the reasoning behind each sub-requirement."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a function to call the Claude SDK with the input requirement.",
+              "Parse the Claude SDK response and construct a `RequirementHierarchy` object.",
+              "Handle potential errors from the Claude SDK API."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the Claude SDK client interface.",
+              "Implement error handling and logging."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PLANNING_PIPELINE_STEP_001",
+          "related_concepts": [
+            "Claude SDK",
+            "Requirement Decomposition",
+            "Hierarchical Decomposition",
+            "Claude API"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2.1",
+          "description": "Implement the 'Context Generation' step to automatically detect and group related concepts and technologies based on the input requirement. This step should leverage the Claude SDK to analyze the requirement and identify relevant tech stacks, file types, and related concepts.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The output of the Claude SDK query should be a list of relevant concepts and technologies.",
+            "The identified concepts and technologies should be categorized based on their relevance to the input requirement.",
+            "The identified concepts and technologies should be included in the `RequirementHierarchy` object."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a function to call the Claude SDK with the input requirement.",
+              "Parse the Claude SDK response and extract the relevant concepts and technologies.",
+              "Categorize the identified concepts and technologies based on their relevance to the input requirement.",
+              "Add the categorized concepts and technologies to the `RequirementHierarchy` object."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the Claude SDK client interface.",
+              "Implement error handling and logging."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PLANNING_PIPELINE_STEP_002",
+          "related_concepts": [
+            "Claude SDK",
+            "Tech Stack Detection",
+            "File Grouping",
+            "Context Generation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2.2",
+          "description": "Implement the 'Checkpoint Management' step to enable the creation, retrieval, and deletion of checkpoints for the planning pipeline. This step should manage the state of the planning pipeline, allowing for resumption of interrupted planning sessions.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The system should be able to create checkpoints at various stages of the planning pipeline.",
+            "The system should be able to retrieve and restore the state of the planning pipeline from a checkpoint.",
+            "The system should be able to delete checkpoints."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a function to create a checkpoint.",
+              "Implement a function to retrieve a checkpoint.",
+              "Implement a function to delete a checkpoint."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the data structure for storing checkpoint data.",
+              "Implement error handling and logging."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PLANNING_PIPELINE_STEP_003",
+          "related_concepts": [
+            "Checkpoint Persistence",
+            "Checkpoint Recovery",
+            "Pipeline State Management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2.3",
+          "description": "Implement the 'Pipeline Resume' step to allow the system to resume a paused planning pipeline from a checkpoint.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The system should be able to resume a paused planning pipeline from a checkpoint.",
+            "The system should be able to restore the state of the planning pipeline from a checkpoint.",
+            "The system should be able to handle potential conflicts between the current state and the checkpoint state."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement a function to retrieve a checkpoint.",
+              "Implement a function to restore the state of the planning pipeline from a checkpoint.",
+              "Implement a function to handle potential conflicts between the current state and the checkpoint state."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define the data structure for storing checkpoint data.",
+              "Implement error handling and logging."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PLANNING_PIPELINE_STEP_004",
+          "related_concepts": [
+            "Checkpoint Persistence",
+            "Pipeline State Recovery"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Develop the core PlanningPipeline orchestrator, responsible for coordinating the execution of planning steps and managing the overall pipeline state. This includes handling data flow between components, managing checkpoints, and ensuring the integrity of the planning process.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The orchestrator successfully manages the execution of all 18 core files within the planning pipeline module.",
+            "The orchestrator accurately tracks the state of the planning pipeline, including checkpoint information.",
+            "The orchestrator correctly handles data flow between the various components of the planning pipeline.",
+            "The orchestrator successfully manages checkpoints, allowing for the resumption of the planning process from a specific point.",
+            "The orchestrator integrates with the Claude SDK for seamless interaction with the Claude API.",
+            "The orchestrator handles errors gracefully and provides informative logging.",
+            "The orchestrator supports concurrent execution of planning steps (if applicable)."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "API endpoint for initiating planning pipeline execution",
+              "API endpoint for querying pipeline status",
+              "API endpoint for managing checkpoints"
+            ],
+            "middleware": [
+              "Authentication middleware",
+              "Authorization middleware",
+              "Request/response processing middleware"
+            ],
+            "shared": [
+              "RequirementHierarchy data model",
+              "Pipeline state data model",
+              "Checkpoint data model",
+              "Logging utilities"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "pipeline_orchestrator_v1",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "PlanningPipeline",
+            "CheckpointManager",
+            "ClaudeSDK",
+            "DataFlow",
+            "StateManagement"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3.1",
+          "description": "Implement the core data models, including RequirementNode, Hierarchy, and related data structures, to represent the planning pipeline structure and data.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The RequirementNode data model accurately represents the structure of the RequirementHierarchy.",
+            "The Hierarchy data model correctly represents the relationships between RequirementNodes.",
+            "The data models are well-documented and easy to understand.",
+            "The data models are optimized for performance."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Go structs for RequirementNode, Hierarchy, etc.",
+              "Validation methods for RequirementNode"
+            ],
+            "middleware": [],
+            "shared": [
+              "Go data modeling best practices",
+              "Static typing"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "models_v1",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "DataModeling",
+            "DataStructures"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3.2",
+          "description": "Implement the 7 pipeline step implementations, including data processing, Claude SDK integration, and other core planning operations.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Each pipeline step is implemented according to the specified requirements.",
+            "Each step is thoroughly tested to ensure its functionality.",
+            "Each step is documented clearly.",
+            "The steps are optimized for performance."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Go implementations for each pipeline step",
+              "Integration with the Claude SDK"
+            ],
+            "middleware": [],
+            "shared": [
+              "Logging utilities",
+              "Error handling utilities"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "steps_v1",
+          "related_concepts": [
+            "PipelineSteps",
+            "ClaudeSDK",
+            "DataProcessing",
+            "APIIntegration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3.3",
+          "description": "Implement the requirement decomposition using the Claude SDK, to break down complex requirements into smaller, more manageable steps.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The Claude SDK is used to decompose complex requirements into smaller, more manageable steps.",
+            "The decomposition process is accurate and complete.",
+            "The decomposed steps are well-defined and easy to understand."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Go implementation of the Claude SDK wrapper",
+              "API calls to the Claude SDK"
+            ],
+            "middleware": [],
+            "shared": [
+              "Logging utilities",
+              "Error handling utilities"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "decomposition_v1",
+          "related_concepts": [
+            "RequirementDecomposition",
+            "ClaudeSDK",
+            "NaturalLanguageProcessing"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Implement RequirementHierarchy data model with JSON serialization/deserialization.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "RequirementHierarchy data model is implemented with JSON serialization/deserialization.",
+            "JSON Schema is validated against the implemented data model.",
+            "Data model is thoroughly tested with various input data."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "API endpoint for serializing/deserializing RequirementHierarchy objects.",
+              "Data validation logic for RequirementHierarchy objects."
+            ],
+            "middleware": [],
+            "shared": [
+              "JSON Schema definition for RequirementHierarchy.",
+              "Data model definition for RequirementHierarchy."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "REQ_PLANNING_PIPELINE_001",
+          "related_concepts": [
+            "RequirementNode",
+            "JSON Schema",
+            "Data Model"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4.1",
+          "description": "Implement Claude SDK integration for requirement decomposition.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Claude SDK is successfully integrated into the planning pipeline.",
+            "Requirement decomposition is performed using the Claude SDK.",
+            "Decomposed requirements are stored in the RequirementHierarchy data model.",
+            "API calls to the Claude SDK are correctly implemented and tested."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "API endpoint for interacting with the Claude SDK.",
+              "Code for sending requests to the Claude SDK.",
+              "Data processing logic for handling responses from the Claude SDK."
+            ],
+            "middleware": [],
+            "shared": [
+              "Claude SDK client library.",
+              "API keys and authentication credentials."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "REQ_PLANNING_PIPELINE_002",
+          "related_concepts": [
+            "Claude SDK",
+            "Requirement Decomposition",
+            "API Integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.5",
+          "description": "Implement checkpoint persistence mechanism for storing pipeline state.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Pipeline state (RequirementHierarchy) is serialized to persistent storage (e.g., database, file system) upon reaching a checkpoint.",
+            "Pipeline state can be loaded from persistent storage and restored to a consistent state.",
+            "The recovery process should handle potential inconsistencies and errors gracefully.",
+            "The checkpointing process should be configurable (e.g., frequency, storage location).",
+            "The recovery process should not introduce new errors or inconsistencies."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create a service to serialize and deserialize pipeline state.",
+              "Implement a database or file system interface for storing checkpoints.",
+              "Develop a mechanism for triggering checkpointing (e.g., based on time, resource usage)."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define a data model for representing pipeline state.",
+              "Create utility functions for serialization and deserialization."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RP-001",
+          "related_concepts": [
+            "Pipeline State",
+            "Checkpointing",
+            "Persistence",
+            "Recovery"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.5.1",
+          "description": "Implement a mechanism to verify the integrity of the restored pipeline state.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The system performs data validation on the restored pipeline state to ensure data integrity.",
+            "The system detects and handles any inconsistencies or errors during the recovery process.",
+            "The system logs all errors and warnings related to the recovery process."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement data validation checks for each component of the pipeline state.",
+              "Develop error handling mechanisms to catch and log any validation failures."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define data validation rules for each component of the pipeline state.",
+              "Create utility functions for performing data validation."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RP-002",
+          "related_concepts": [
+            "Data Validation",
+            "State Consistency",
+            "Error Handling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.5.2",
+          "description": "Implement a mechanism to handle potential race conditions during checkpointing and recovery.",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "The system uses appropriate synchronization mechanisms (e.g., locks, mutexes) to prevent race conditions during checkpointing and recovery.",
+            "The system ensures that only one process can access the pipeline state at a time.",
+            "The system handles potential deadlocks gracefully."
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement locking mechanisms to protect shared resources.",
+              "Develop error handling mechanisms to catch and log any concurrency-related errors."
+            ],
+            "middleware": [],
+            "shared": [
+              "Define data access patterns to minimize contention.",
+              "Create utility functions for managing concurrency."
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RP-003",
+          "related_concepts": [
+            "Concurrency",
+            "Race Conditions",
+            "Synchronization"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 23346,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 54,
+      "total_nodes": 61,
+      "extraction_time_ms": 25725,
+      "expansion_time_ms": 593869
+    }
+  }
+}

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/silmari/context-engine/go/internal/planning"
 )
 
 // Plan command flags
@@ -121,6 +122,37 @@ func runPlan(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// TODO: Implement actual planning pipeline logic
-	return nil
+	// Validate that prompt text is provided
+	if planPromptText == "" {
+		return fmt.Errorf("--prompt-text is required")
+	}
+
+	// Create and run the planning pipeline
+	config := planning.PipelineConfig{
+		ProjectPath: planProjectPath,
+		AutoApprove: planAutoApprove,
+		TicketID:    planTicket,
+	}
+
+	pipeline := planning.NewPlanningPipeline(config)
+	results := pipeline.Run(planPromptText)
+
+	// Display results
+	if results.Success {
+		fmt.Printf("\n✓ Pipeline completed successfully\n")
+		if results.PlanDir != "" {
+			fmt.Printf("  Plan directory: %s\n", results.PlanDir)
+		}
+		if results.EpicID != "" {
+			fmt.Printf("  Epic ID: %s\n", results.EpicID)
+		}
+		return nil
+	}
+
+	// Pipeline failed
+	fmt.Printf("\n✗ Pipeline failed at: %s\n", results.FailedAt)
+	if results.Error != "" {
+		fmt.Printf("  Error: %s\n", results.Error)
+	}
+	return fmt.Errorf("pipeline failed at step: %s", results.FailedAt)
 }

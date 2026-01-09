@@ -1,0 +1,16 @@
+{
+  "id": "345d2bb4-49dc-4b7e-9547-a6088147d8e9",
+  "phase": "planning-failed",
+  "timestamp": "2026-01-04T15:45:39.779487Z",
+  "state_snapshot": {
+    "phase": "Planning",
+    "context_usage": 0.0,
+    "artifacts": [
+      "/home/maceo/Dev/silmari-Context-Engine/thoughts/searchable/research/2026-01-04-pytest-fixtures-analysis.md"
+    ],
+    "errors": [
+      ""
+    ]
+  },
+  "git_commit": "c58ea565a65a2c776e94716d0998f3d6a05ab2f5"
+}

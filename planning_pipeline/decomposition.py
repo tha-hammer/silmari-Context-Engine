@@ -1,14 +1,14 @@
-"""BAML-based requirement decomposition for research content.
+"""Agent SDK-based requirement decomposition for research content.
 
 This module provides functions to decompose research documents into
-structured requirement hierarchies using BAML for LLM-powered analysis.
-Includes CLI fallback for environments without BAML.
+structured requirement hierarchies using the Claude agent SDK.
 
 Main entry points:
-- decompose_requirements(): Use BAML to decompose research into requirements
-- decompose_requirements_cli_fallback(): Use Claude CLI when BAML unavailable
+- decompose_requirements(): Use Claude agent SDK to decompose research into requirements
+- decompose_requirements_cli_fallback(): Legacy CLI subprocess fallback
 """
 
+import json
 import sys
 import time
 from dataclasses import dataclass, field
@@ -20,17 +20,14 @@ from planning_pipeline.models import (
     RequirementHierarchy,
     RequirementNode,
 )
+from planning_pipeline.claude_runner import run_claude_sync
 
-# Try to import BAML client - may not be available in all environments
-# Using Optional type and conditional import pattern
-b: Any
+# BAML client for calling Ollama via ProcessGate1SubprocessDetailsPrompt
 try:
-    from baml_client import b as _b
-
-    b = _b
+    from baml_client import b as baml_client
     BAML_AVAILABLE = True
 except ImportError:
-    b = None
+    baml_client = None
     BAML_AVAILABLE = False
 
 
@@ -100,6 +97,9 @@ Extract requirements focusing on:
 # Type alias for progress callback
 ProgressCallback = Callable[[str], None]
 
+# Type alias for save callback (receives hierarchy after each requirement is added)
+SaveCallback = Callable[["RequirementHierarchy"], None]
+
 
 def _default_progress(message: str) -> None:
     """Default progress callback - prints to stdout."""
@@ -134,21 +134,25 @@ def decompose_requirements(
     research_content: str,
     config: Optional[DecompositionConfig] = None,
     progress: Optional[ProgressCallback] = None,
+    save_callback: Optional[SaveCallback] = None,
 ) -> Union[RequirementHierarchy, DecompositionError]:
-    """Decompose research content into requirement hierarchy using BAML.
+    """Decompose research content into requirement hierarchy using Claude agent SDK.
 
     Takes research output (typically from step_research()) and produces a
     structured RequirementHierarchy with:
-    - Top-level requirements extracted via ProcessGate1InitialExtractionPrompt
-    - Sub-process children via ProcessGate1SubprocessDetailsPrompt
+    - Top-level requirements extracted from research
+    - Sub-process children for each requirement
 
-    Uses HaikuWithOllamaFallback BAML client: tries Claude Haiku first,
-    automatically falls back to local Ollama if API fails.
+    Uses the Claude agent SDK (run_claude_sync) which provides proper
+    authentication and rate limiting through the Claude CLI infrastructure.
 
     Args:
         research_content: Research document text to decompose
         config: Optional decomposition configuration
         progress: Optional callback for CLI progress updates
+        save_callback: Optional callback invoked after each requirement is added to
+            the hierarchy. Use this for incremental saving to prevent data loss
+            if the process crashes mid-decomposition.
 
     Returns:
         RequirementHierarchy on success, DecompositionError on failure
@@ -172,104 +176,285 @@ def decompose_requirements(
             details={"input_length": len(research_content) if research_content else 0},
         )
 
-    # Check BAML availability
-    if not BAML_AVAILABLE or b is None:
-        return DecompositionError(
-            error_code=DecompositionErrorCode.BAML_UNAVAILABLE,
-            error="BAML client not available. Install baml-py or use CLI fallback.",
-        )
-
     # Initialize stats for CLI summary
     stats = DecompositionStats()
 
     try:
-        # Step 1: Extract initial requirements
-        # Uses HaikuWithOllamaFallback client - tries Haiku first, falls back to Ollama
-        report("  Analyzing research with AI (Haiku with Ollama fallback)...")
+        # Step 1: Extract initial requirements using Claude agent SDK
+        report("  Analyzing research with Claude agent SDK...")
         extraction_start = time.time()
 
-        initial_response = b.ProcessGate1InitialExtractionPrompt(
-            scope_text=research_content,
-            analysis_framework=DEFAULT_ANALYSIS_FRAMEWORK,
-            user_confirmation=True,
+        # Build prompt for requirement extraction
+        extraction_prompt = f"""You are an expert software requirements analyst. Your task is to extract EVERY requirement from the scope text. DO NOT summarize. Extract individual requirements from EVERY section.
+
+Research content:
+{research_content}
+
+**MANDATORY REQUIREMENTS:**
+1. Count all numbered sections in the document (e.g., '## 0.', '## 1.', '## 2.', etc.)
+2. Extract AT LEAST 2-5 requirements from EACH numbered section
+3. For a document with 15 sections, you MUST extract 30-75+ requirements total
+4. DO NOT combine multiple requirements into one - each requirement must be separate
+5. Process sections in order: Section 0, then Section 1, then Section 2, etc. - do not skip any
+
+**EXTRACTION METHOD:**
+
+For EACH numbered section (## 0, ## 1, ## 2, etc.):
+
+1. Read the entire section content
+2. Find ALL requirement statements (look for: "must", "should", "shall", "will", "needs to", "requires", "supports", "implements", "provides")
+3. Extract EACH requirement as a separate item - do not combine them
+4. Include requirements from:
+   - Section headers and objectives
+   - Bullet points and lists
+   - Tables and structured data
+   - Subsections (2.1, 2.2, etc.)
+   - Examples and use cases
+   - Technical specifications
+
+**REQUIREMENT TYPES TO EXTRACT:**
+- Functional: What the system does (features, capabilities, workflows)
+- Non-functional: How it performs (performance, scalability, reliability)
+- Security: Authentication, authorization, encryption, compliance
+- Integration: Third-party tools, APIs, data synchronization
+- Usability: User experience, interface design, accessibility
+- Technical: Infrastructure, deployment, monitoring, data storage
+
+**EXAMPLES OF GOOD REQUIREMENTS:**
+- "The system must support end-to-end encryption for private chats" (specific, actionable)
+- "The system must scale to 10,000+ concurrent users" (quantitative, clear)
+- "The system must integrate with Slack, Gmail, and Notion" (specific integrations)
+- "The system must support ISO 27001-2022 compliance" (specific standard)
+
+**EXAMPLES OF BAD REQUIREMENTS (DO NOT CREATE THESE):**
+- "The system must be secure" (too vague - break into specific security requirements)
+- "The system must have good performance" (too vague - extract specific performance metrics)
+- "The system must integrate with tools" (too vague - list specific tools)
+
+**MINIMUM REQUIREMENTS:**
+- If the document has 15 sections, extract at least 30 requirements (2 per section minimum)
+- More sections = more requirements (aim for 2-5 per section)
+- Better to extract too many than too few
+
+**RESPONSE FORMAT:**
+Return JSON with:
+1. "requirements" - Array of Requirement objects (MUST have 30+ for documents with 15 sections)
+2. "metadata" - Response metadata object
+
+**Each Requirement Object:**
+- "description": Specific requirement statement (required, 25+ chars)
+- "sub_processes": Array of subprocess names (can be empty [])
+- "related_concepts": Array of related concepts/technologies (can be empty [])
+
+**Metadata Object:**
+- "baml_validated": true
+- "schema_version": "2.0.0"
+- "llm_model": string (model name)
+- "processing_time_ms": optional integer
+- "sections_processed": integer (count of sections you processed - should match document sections)
+- "extraction_completeness": "high|medium|low" (should be "high" if you extracted 2+ requirements per section)
+
+Output ONLY the JSON object with 'requirements' array and 'metadata' object at the top level.
+NO prose, explanations, or code fences.
+
+Return ONLY valid JSON with this exact structure (no markdown, no explanation):
+{{
+    "requirements": [
+        {{
+            "description": "Clear description of the requirement",
+            "sub_processes": ["subprocess 1", "subprocess 2", "subprocess 3"]
+        }}
+    ]
+}}
+
+Extract 3-7 top-level requirements, each with 2-5 sub-processes.
+
+
+"""
+
+        # Call Claude via agent SDK (stream=False for JSON parsing)
+        result = run_claude_sync(
+            prompt=extraction_prompt,
+            timeout=1300,
+            stream=False,
         )
 
+        if not result["success"]:
+            return DecompositionError(
+                error_code=DecompositionErrorCode.BAML_API_ERROR,
+                error=f"Claude agent SDK call failed: {result.get('error', 'Unknown error')}",
+            )
+
+        # Parse JSON response
+        output = result["output"]
+        json_str = _extract_json(output)
+        if not json_str:
+            return DecompositionError(
+                error_code=DecompositionErrorCode.INVALID_JSON,
+                error="No valid JSON found in Claude response",
+                details={"output_preview": output[:500]},
+            )
+
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            return DecompositionError(
+                error_code=DecompositionErrorCode.INVALID_JSON,
+                error=f"Invalid JSON in response: {e}",
+                details={"json_str": json_str[:500]},
+            )
+
+        requirements_data = data.get("requirements", [])
         stats.extraction_time_ms = int((time.time() - extraction_start) * 1000)
-        stats.requirements_found = len(initial_response.requirements)
+        stats.requirements_found = len(requirements_data)
 
         report(f"  ✓ Extracted {stats.requirements_found} top-level requirements")
 
-        # Step 2: Build hierarchy from response
+        # Step 2: Expand each requirement via LLM to get implementation details
         hierarchy = RequirementHierarchy(
             metadata={
-                "source": "baml_decomposition",
+                "source": "agent_sdk_decomposition",
                 "research_length": len(research_content),
             }
         )
 
-        # Count total subprocesses for progress tracking
-        total_subprocs = sum(
-            min(len(req.sub_processes), config.max_sub_processes)
-            for req in initial_response.requirements
-        )
-        processed_subprocs = 0
-
-        report(f"  Expanding {total_subprocs} subprocesses (local Ollama)...")
+        report(f"  Expanding {stats.requirements_found} requirements via LLM...")
         expansion_start = time.time()
 
-        # Process each top-level requirement
-        for req_idx, requirement in enumerate(initial_response.requirements):
-            # Create parent node
+        # Process each top-level requirement with LLM call
+        for req_idx, requirement in enumerate(requirements_data):
             parent_id = f"REQ_{req_idx:03d}"
+            parent_description = requirement.get("description", "Unknown requirement")
+            sub_processes = requirement.get("sub_processes", [])[: config.max_sub_processes]
+
+            report(f"    [{req_idx + 1}/{stats.requirements_found}] Expanding: {parent_description[:60]}...")
+
+            # Create parent node
             parent_node = RequirementNode(
                 id=parent_id,
-                description=requirement.description,
+                description=parent_description,
                 type="parent",
             )
 
-            # Limit sub_processes per config
-            sub_processes = requirement.sub_processes[: config.max_sub_processes]
+            # Call LLM for each requirement to get implementation details
+            expansion_prompt = f"""You are an expert software analyst. Expand each requirement into specific implementation requirements.
+The software developer needs to know what detailed requirements are needed to implement this requirement for this project.
+For each implementation requirement:
 
-            # Step 3: Get details for each sub-process
-            for sub_idx, sub_process in enumerate(sub_processes):
-                child_id = f"{parent_id}.{sub_idx + 1}"
-                processed_subprocs += 1
 
-                try:
-                    # Call BAML for subprocess details
-                    details_response = b.ProcessGate1SubprocessDetailsPrompt(
-                        sub_process=sub_process,
-                        parent_description=requirement.description,
-                        scope_text=research_content[:500],  # Truncate for context
-                        user_confirmation=True,
-                    )
+RESEARCH CONTEXT:
+{research_content}
 
-                    # Convert implementation details to child node
-                    child_node = _create_child_from_details(
-                        child_id=child_id,
-                        sub_process=sub_process,
-                        details_response=details_response,
-                        parent_id=parent_id,
-                        config=config,
-                    )
-                    stats.subprocesses_expanded += 1
-                except Exception:
-                    # If details call fails, create basic child node
-                    child_node = RequirementNode(
-                        id=child_id,
-                        description=sub_process,
-                        type="sub_process",
-                        parent_id=parent_id,
-                    )
+PARENT REQUIREMENT:
+{parent_description}
 
-                parent_node.children.append(child_node)
+SUB-PROCESSES TO EXPAND:
+{json.dumps(sub_processes, indent=2)}
+
+1. Provide a clear, actionable description
+2. List ALL REQUIRED STEPS to implement the requirement
+3. For each step, provide specific acceptance criteria
+4. Consider technical and functional aspects
+5. If the requirement lists specific actions, questions or decisions, include them as acceptance criteria
+6. If the requirement is a decision, include the decision and the criteria for making that decision
+7. If the requirement is a question, include the question and the criteria for answering it
+8. Add any related or dependent concepts
+9. EACH AND EVERY STEP to implement the requirement must be included
+10. For each requirement, specify exactly what components are needed:
+    - frontend: UI components, pages, forms, validation, user interactions
+    - backend: API endpoints, services, data processing, business logic
+    - middleware: authentication, authorization, request/response processing
+    - shared: data models, utilities, constants, interfaces
+Assume sub-processes exist even if not stated. Propose granular steps.
+
+Return ONLY valid JSON in this exact format:
+{{
+  "implementation_details": [
+    {{
+      "function_id": "ServiceName.functionName or ComponentName.methodName",
+      "description": "specific requirement description",
+      "related_concepts": ["concept1", "concept2"],
+      "acceptance_criteria": [
+        "specific measurable criterion",
+        "specific testable criterion"
+      ],
+      "implementation": {{
+        "frontend": ["UI components needed", "user interaction requirements"],
+        "backend": ["API endpoints needed", "business logic requirements"],
+        "middleware": ["authentication requirements", "validation rules"],
+        "shared": ["data models needed", "utility functions required"]
+      }}
+    }}
+  ]
+}}
+
+Generate one implementation_detail for each sub-process. If no sub-processes provided, generate 2-3 implementation details based on the parent requirement.
+"""
+
+            expansion_result = run_claude_sync(
+                prompt=expansion_prompt,
+                timeout=90,
+                stream=False,
+            )
+
+            if expansion_result["success"]:
+                expansion_json = _extract_json(expansion_result["output"])
+                if expansion_json:
+                    try:
+                        expansion_data = json.loads(expansion_json)
+                        impl_details = expansion_data.get("implementation_details", [])
+
+                        # Create child nodes from implementation details
+                        for impl_idx, detail in enumerate(impl_details):
+                            child_id = f"{parent_id}.{impl_idx + 1}"
+
+                            # Extract implementation components
+                            impl_data = detail.get("implementation", {})
+                            impl_components = ImplementationComponents(
+                                frontend=impl_data.get("frontend", []),
+                                backend=impl_data.get("backend", []),
+                                middleware=impl_data.get("middleware", []),
+                                shared=impl_data.get("shared", []),
+                            )
+
+                            child_node = RequirementNode(
+                                id=child_id,
+                                description=detail.get("description", f"Implementation {impl_idx + 1}"),
+                                type="sub_process",
+                                parent_id=parent_id,
+                                function_id=detail.get("function_id", _generate_function_id(detail.get("description", ""), parent_id)),
+                                related_concepts=detail.get("related_concepts", []),
+                                acceptance_criteria=detail.get("acceptance_criteria", []),
+                                implementation=impl_components,
+                            )
+                            parent_node.children.append(child_node)
+                            stats.subprocesses_expanded += 1
+
+                    except json.JSONDecodeError:
+                        # Fallback to Ollama via BAML for JSON parsing failure
+                        report(f"      ⚠ JSON parse failed, trying BAML/Ollama fallback...")
+                        _process_with_ollama_fallback(
+                            parent_id, parent_description, parent_node, sub_processes, research_content, stats
+                        )
+            else:
+                # LLM call failed - fallback to local Ollama via BAML
+                sdk_error = expansion_result.get("error", "Unknown error")
+                report(f"      ⚠ Claude SDK failed: {sdk_error}")
+                report(f"      Trying BAML/Ollama fallback...")
+                _process_with_ollama_fallback(
+                    parent_id, parent_description, parent_node, sub_processes, research_content, stats
+                )
 
             hierarchy.add_requirement(parent_node)
 
-        stats.expansion_time_ms = int((time.time() - expansion_start) * 1000)
-        stats.total_nodes = stats.requirements_found + processed_subprocs
+            # Incremental save after each requirement is fully processed
+            if save_callback is not None:
+                save_callback(hierarchy)
 
-        report(f"  ✓ Expanded {stats.subprocesses_expanded}/{total_subprocs} subprocesses")
+        stats.expansion_time_ms = int((time.time() - expansion_start) * 1000)
+        stats.total_nodes = stats.requirements_found + stats.subprocesses_expanded
+
+        report(f"  ✓ Expanded {stats.subprocesses_expanded} implementation details via LLM")
         report(stats.summary())
 
         # Store stats in hierarchy metadata for downstream access
@@ -342,6 +527,109 @@ _SUBJECT_PRIORITY: list[tuple[str, str]] = [
     ("api", "API"),
     ("endpoint", "Endpoint"),
 ]
+
+
+def _process_with_ollama_fallback(
+    parent_id: str,
+    parent_description: str,
+    parent_node: RequirementNode,
+    sub_processes: list[str],
+    research_content: str,
+    stats: "DecompositionStats",
+) -> None:
+    """Process requirement expansion using BAML ProcessGate1SubprocessDetailsPrompt.
+
+    Calls Ollama via BAML function to get implementation details for each subprocess.
+    If BAML is unavailable or call fails, creates basic nodes from sub_processes.
+
+    Args:
+        parent_id: Parent requirement ID
+        parent_description: Description of the parent requirement
+        parent_node: Parent RequirementNode to add children to
+        sub_processes: List of sub-process descriptions to expand
+        research_content: Research context (scope_text for BAML function)
+        stats: DecompositionStats to update
+    """
+    if not BAML_AVAILABLE or baml_client is None:
+        # BAML not available - create basic nodes
+        for sub_idx, sub_process in enumerate(sub_processes):
+            child_id = f"{parent_id}.{sub_idx + 1}"
+            child_node = RequirementNode(
+                id=child_id,
+                description=sub_process,
+                type="sub_process",
+                parent_id=parent_id,
+                function_id=_generate_function_id(sub_process, parent_id),
+            )
+            parent_node.children.append(child_node)
+            stats.subprocesses_expanded += 1
+        return
+
+    # Call BAML function for each subprocess
+    for sub_idx, sub_process in enumerate(sub_processes):
+        child_id = f"{parent_id}.{sub_idx + 1}"
+
+        try:
+            # Call ProcessGate1SubprocessDetailsPrompt via BAML
+            response = baml_client.ProcessGate1SubprocessDetailsPrompt(
+                sub_process=sub_process,
+                parent_description=parent_description,
+                scope_text=research_content[:8000],  # Limit context size
+                user_confirmation=True,
+            )
+
+            # Process implementation details from response
+            if response and response.implementation_details:
+                for impl_idx, detail in enumerate(response.implementation_details):
+                    # Use sub_idx for first detail, then append impl_idx for additional
+                    if impl_idx == 0:
+                        detail_child_id = child_id
+                    else:
+                        detail_child_id = f"{child_id}.{impl_idx}"
+
+                    # Extract implementation components
+                    impl_components = ImplementationComponents(
+                        frontend=list(detail.implementation.frontend) if detail.implementation.frontend else [],
+                        backend=list(detail.implementation.backend) if detail.implementation.backend else [],
+                        middleware=list(detail.implementation.middleware) if detail.implementation.middleware else [],
+                        shared=list(detail.implementation.shared) if detail.implementation.shared else [],
+                    )
+
+                    child_node = RequirementNode(
+                        id=detail_child_id,
+                        description=detail.description,
+                        type="sub_process",
+                        parent_id=parent_id,
+                        function_id=detail.function_id or _generate_function_id(detail.description, parent_id),
+                        related_concepts=list(detail.related_concepts) if detail.related_concepts else [],
+                        acceptance_criteria=list(detail.acceptance_criteria) if detail.acceptance_criteria else [],
+                        implementation=impl_components,
+                    )
+                    parent_node.children.append(child_node)
+                    stats.subprocesses_expanded += 1
+            else:
+                # No implementation details returned - create basic node
+                child_node = RequirementNode(
+                    id=child_id,
+                    description=sub_process,
+                    type="sub_process",
+                    parent_id=parent_id,
+                    function_id=_generate_function_id(sub_process, parent_id),
+                )
+                parent_node.children.append(child_node)
+                stats.subprocesses_expanded += 1
+
+        except Exception:
+            # BAML call failed - create basic node for this subprocess
+            child_node = RequirementNode(
+                id=child_id,
+                description=sub_process,
+                type="sub_process",
+                parent_id=parent_id,
+                function_id=_generate_function_id(sub_process, parent_id),
+            )
+            parent_node.children.append(child_node)
+            stats.subprocesses_expanded += 1
 
 
 def _generate_function_id(description: str, parent_id: Optional[str] = None) -> str:
@@ -542,7 +830,7 @@ Return ONLY valid JSON with this structure:
 }}
 
 Research content:
-{research_content[:2000]}
+{research_content}
 """
 
     try:

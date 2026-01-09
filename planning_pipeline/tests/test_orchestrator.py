@@ -207,7 +207,7 @@ class TestResultDisplay:
 
         result = {
             "success": True,
-            "plan_dir": "thoughts/shared/plans/2026-01-01-plan",
+            "plan_dir": "thoughts/searchable/plans/2026-01-01-plan",
             "epic_id": "beads-abc123"
         }
 
@@ -215,7 +215,7 @@ class TestResultDisplay:
 
         captured = capsys.readouterr()
         assert "SUCCESS" in captured.out or "success" in captured.out.lower()
-        assert "thoughts/shared/plans/2026-01-01-plan" in captured.out
+        assert "thoughts/searchable/plans/2026-01-01-plan" in captured.out
         assert "beads-abc123" in captured.out
 
     def test_displays_failure_result(self, capsys):

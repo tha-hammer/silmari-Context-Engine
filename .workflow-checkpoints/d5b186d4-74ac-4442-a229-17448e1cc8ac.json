@@ -1,0 +1,14 @@
+{
+  "id": "d5b186d4-74ac-4442-a229-17448e1cc8ac",
+  "phase": "research-failed",
+  "timestamp": "2026-01-04T17:58:00.586493Z",
+  "state_snapshot": {
+    "phase": "Research",
+    "context_usage": 0.0,
+    "artifacts": [],
+    "errors": [
+      ""
+    ]
+  },
+  "git_commit": "0304fb2453c5b0dc26c3c95ade67cabe4aa35a5d"
+}

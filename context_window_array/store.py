@@ -94,9 +94,7 @@ class CentralContextStore:
         return len(self._entries)
 
     def remove(
-        self,
-        entry_id: str,
-        return_entry: bool = False
+        self, entry_id: str, return_entry: bool = False
     ) -> Union[bool, Optional[ContextEntry]]:
         """Remove an entry from the store.
 
@@ -255,7 +253,9 @@ class CentralContextStore:
                 entry_type=EntryType.COMMAND,
                 source=source,
                 content=command,
-                summary=f"Executed: {command[:50]}..." if len(command) > 50 else f"Executed: {command}",
+                summary=f"Executed: {command[:50]}..."
+                if len(command) > 50
+                else f"Executed: {command}",
                 searchable=False,  # Commands not searchable
             )
             self.add(command_entry)
@@ -318,7 +318,8 @@ class CentralContextStore:
             List of entries expiring soon
         """
         return [
-            e for e in self._entries.values()
+            e
+            for e in self._entries.values()
             if e.ttl is not None and e.ttl <= threshold
         ]
 
@@ -395,16 +396,18 @@ class CentralContextStore:
             if entry is None:
                 continue
 
-            results.append(StoreSearchResult(
-                entry_id=entry.id,
-                entry_type=entry.entry_type,
-                source=entry.source,
-                summary=entry.summary,
-                content=entry.content if include_content else None,
-                score=index_result.score,
-                references=entry.references,
-                parent_id=entry.parent_id,
-                compressed=entry.compressed,
-            ))
+            results.append(
+                StoreSearchResult(
+                    entry_id=entry.id,
+                    entry_type=entry.entry_type,
+                    source=entry.source,
+                    summary=entry.summary,
+                    content=entry.content if include_content else None,
+                    score=index_result.score,
+                    references=entry.references,
+                    parent_id=entry.parent_id,
+                    compressed=entry.compressed,
+                )
+            )
 
         return results

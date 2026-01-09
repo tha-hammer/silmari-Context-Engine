@@ -81,13 +81,13 @@ if __name__ == "__main__":
         epilog="""
 Examples:
   # Resume from planning
-  resume_pipeline.py planning --research-path thoughts/shared/research/2025-12-31-research.md
+  resume_pipeline.py planning --research-path thoughts/searchable/research/2025-12-31-research.md
   
   # Resume from planning with additional context
   resume_pipeline.py planning --research-path research.md --additional-context "Focus on authentication"
   
   # Resume from decomposition
-  resume_pipeline.py decomposition --plan-path thoughts/shared/plans/2025-12-31-plan.md
+  resume_pipeline.py decomposition --plan-path thoughts/searchable/plans/2025-12-31-plan.md
   
   # Resume from beads integration
   resume_pipeline.py beads --phase-files file1.md file2.md --epic-title "My Epic"

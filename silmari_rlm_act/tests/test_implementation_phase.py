@@ -141,29 +141,31 @@ class TestBuildImplementationPrompt:
 
 
 class TestInvokeClaude:
-    """Test Claude invocation."""
+    """Test Claude invocation via run_claude_subprocess."""
 
-    def test_invokes_claude_with_permissions_bypass(
+    def test_invokes_claude_successfully(
         self,
         tmp_path: Path,
         cwa: CWAIntegration,
     ) -> None:
-        """Given prompt, invokes claude with --dangerously-skip-permissions."""
+        """Given prompt, invokes claude and returns success."""
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = Mock(
-                returncode=0,
-                stdout="Implementation complete",
-                stderr="",
-            )
+        with patch("silmari_rlm_act.phases.implementation.run_claude_subprocess") as mock_run:
+            mock_run.return_value = {
+                "success": True,
+                "output": "Implementation complete",
+                "error": "",
+                "elapsed": 10.0,
+            }
 
             result = phase._invoke_claude("Test prompt")
 
         assert result["success"] is True
-        call_args = mock_run.call_args[0][0]
-        assert "claude" in call_args
-        assert "--dangerously-skip-permissions" in call_args
+        mock_run.assert_called_once()
+        call_kwargs = mock_run.call_args[1]
+        assert call_kwargs["stream_json"] is False
+        assert call_kwargs["cwd"] == str(tmp_path)
 
     def test_handles_timeout(
         self,
@@ -171,11 +173,15 @@ class TestInvokeClaude:
         cwa: CWAIntegration,
     ) -> None:
         """Given timeout, returns error."""
-        import subprocess
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = subprocess.TimeoutExpired(cmd="claude", timeout=3600)
+        with patch("silmari_rlm_act.phases.implementation.run_claude_subprocess") as mock_run:
+            mock_run.return_value = {
+                "success": False,
+                "output": "",
+                "error": "Timed out after 3600s",
+                "elapsed": 3600,
+            }
 
             result = phase._invoke_claude("Test prompt")
 
@@ -190,8 +196,13 @@ class TestInvokeClaude:
         """Given claude not installed, returns error."""
         phase = ImplementationPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = FileNotFoundError()
+        with patch("silmari_rlm_act.phases.implementation.run_claude_subprocess") as mock_run:
+            mock_run.return_value = {
+                "success": False,
+                "output": "",
+                "error": "claude command not found",
+                "elapsed": 0,
+            }
 
             result = phase._invoke_claude("Test prompt")
 

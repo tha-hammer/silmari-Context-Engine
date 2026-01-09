@@ -242,7 +242,7 @@ class TestExecutePhaseE2E:
         # Mock orchestrator
         orchestrator = Mock()
         orchestrator.discover_plans = Mock(return_value=[
-            Mock(path=str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md"), priority=1)
+            Mock(path=str(full_setup / "thoughts/searchable/plans/2026-01-03-test-feature.md"), priority=1)
         ])
 
         feature_mock = {"id": "feature-1", "title": "Test Feature", "status": "open"}
@@ -253,7 +253,7 @@ class TestExecutePhaseE2E:
 
         runner = LoopRunner(orchestrator=orchestrator)
         runner._project_path = full_setup
-        runner.plan_path = str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+        runner.plan_path = str(full_setup / "thoughts/searchable/plans/2026-01-03-test-feature.md")
 
         with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
             mock_invoke.return_value = {
@@ -280,7 +280,7 @@ class TestExecutePhaseE2E:
 
         runner = LoopRunner(orchestrator=orchestrator)
         runner._project_path = full_setup
-        runner.plan_path = str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+        runner.plan_path = str(full_setup / "thoughts/searchable/plans/2026-01-03-test-feature.md")
         runner.current_phase = "feature-1"
 
         with patch('planning_pipeline.autonomous_loop.invoke_claude') as mock_invoke:
@@ -343,7 +343,7 @@ class TestExecutePhaseE2E:
     async def test_loop_respects_timeout(self, full_setup):
         """Should handle timeout during Claude invocation."""
         runner = LoopRunner(
-            plan_path=str(full_setup / "thoughts/shared/plans/2026-01-03-test-feature.md")
+            plan_path=str(full_setup / "thoughts/searchable/plans/2026-01-03-test-feature.md")
         )
         runner._project_path = full_setup
         runner.current_phase = "timeout-test"

@@ -112,7 +112,7 @@ func TestTruncateString(t *testing.T) {
 }
 
 func TestDecomposeRequirementsEmptyContent(t *testing.T) {
-	_, err := DecomposeRequirements("", nil, nil, nil)
+	_, err := DecomposeRequirements("", ".", nil, nil, nil)
 	if err == nil {
 		t.Error("expected error for empty content")
 	}
@@ -122,7 +122,7 @@ func TestDecomposeRequirementsEmptyContent(t *testing.T) {
 }
 
 func TestDecomposeRequirementsWhitespaceContent(t *testing.T) {
-	_, err := DecomposeRequirements("   \n\t  ", nil, nil, nil)
+	_, err := DecomposeRequirements("   \n\t  ", ".", nil, nil, nil)
 	if err == nil {
 		t.Error("expected error for whitespace-only content")
 	}

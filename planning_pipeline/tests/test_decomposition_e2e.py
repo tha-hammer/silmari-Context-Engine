@@ -99,7 +99,7 @@ This document describes requirements for implementing user authentication.
 
             result = step_requirement_decomposition(
                 project_path=tmp_path,
-                research_path="thoughts/shared/research/2026-01-02-auth-research.md",
+                research_path="thoughts/searchable/research/2026-01-02-auth-research.md",
             )
 
         # Verify success
@@ -112,7 +112,7 @@ This document describes requirements for implementing user authentication.
         with open(hierarchy_path) as f:
             data = json.load(f)
         assert len(data["requirements"]) == 2
-        assert data["metadata"]["source_research"] == "thoughts/shared/research/2026-01-02-auth-research.md"
+        assert data["metadata"]["source_research"] == "thoughts/searchable/research/2026-01-02-auth-research.md"
 
         # Verify diagram file
         diagram_path = Path(result["diagram_path"])
@@ -160,7 +160,7 @@ Implement a basic counter component.
 
         result = step_requirement_decomposition(
             project_path=tmp_path,
-            research_path="thoughts/shared/research/2026-01-02-counter-research.md",
+            research_path="thoughts/searchable/research/2026-01-02-counter-research.md",
         )
 
         # With real API, should succeed or fail with known error
@@ -212,7 +212,7 @@ class TestDecompositionOutputStructure:
 
             result = step_requirement_decomposition(
                 project_path=tmp_path,
-                research_path="thoughts/shared/research/test.md",
+                research_path="thoughts/searchable/research/test.md",
             )
 
         assert result["success"] is True
@@ -270,7 +270,7 @@ class TestDecompositionOutputStructure:
 
             result = step_requirement_decomposition(
                 project_path=tmp_path,
-                research_path="thoughts/shared/research/test.md",
+                research_path="thoughts/searchable/research/test.md",
             )
 
         with open(result["hierarchy_path"]) as f:
@@ -332,7 +332,7 @@ class TestDecompositionOutputStructure:
 
             result = step_requirement_decomposition(
                 project_path=tmp_path,
-                research_path="thoughts/shared/research/test.md",
+                research_path="thoughts/searchable/research/test.md",
             )
 
         content = Path(result["diagram_path"]).read_text()

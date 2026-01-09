@@ -50,6 +50,7 @@ func (s *DecompositionStats) Summary() string {
 // DecomposeRequirements decomposes research content into a requirement hierarchy.
 func DecomposeRequirements(
 	researchContent string,
+	projectPath string,
 	config *DecompositionConfig,
 	progress ProgressCallback,
 	saveCallback SaveCallback,
@@ -81,7 +82,7 @@ func DecomposeRequirements(
 
 	extractionPrompt := buildExtractionPrompt(researchContent)
 
-	result := RunClaudeSync(extractionPrompt, 1300, false)
+	result := RunClaudeSync(extractionPrompt, 1300, false, projectPath)
 	if !result.Success {
 		return nil, NewDecompositionError(
 			ErrBAMLAPIError,
@@ -148,7 +149,7 @@ func DecomposeRequirements(
 
 		// Call LLM to expand implementation details
 		expansionPrompt := buildExpansionPrompt(researchContent, requirement.Description, subProcesses)
-		expansionResult := RunClaudeSync(expansionPrompt, 90, false)
+		expansionResult := RunClaudeSync(expansionPrompt, 90, false, projectPath)
 
 		if expansionResult.Success {
 			expansionJSON := extractJSON(expansionResult.Output)
@@ -351,6 +352,7 @@ func truncateString(s string, maxLen int) string {
 // DecomposeRequirementsCLIFallback provides a fallback using Claude CLI.
 func DecomposeRequirementsCLIFallback(
 	researchContent string,
+	projectPath string,
 	config *DecompositionConfig,
 ) (*RequirementHierarchy, *DecompositionError) {
 	if config == nil {
@@ -382,7 +384,7 @@ Research content:
 %s
 `, researchContent)
 
-	result := RunClaudeSync(prompt, 60, false)
+	result := RunClaudeSync(prompt, 60, false, projectPath)
 	if !result.Success {
 		return nil, NewDecompositionError(
 			ErrCLIFallbackError,

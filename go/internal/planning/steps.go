@@ -92,15 +92,15 @@ func StepResearch(projectPath, researchPrompt string) *StepResult {
 	// Replace date placeholder
 	instructions = strings.Join(finalLines, "\n")
 	instructions = strings.Replace(instructions,
-		"Filename: `thoughts/shared/research/YYYY-MM-DD-description.md`",
-		fmt.Sprintf("Filename: `thoughts/shared/research/%s-pipeline-research.md`", dateStr),
+		"Filename: `thoughts/searchable/research/YYYY-MM-DD-description.md`",
+		fmt.Sprintf("Filename: `thoughts/searchable/research/%s-pipeline-research.md`", dateStr),
 		1,
 	)
 
 	prompt := instructions + "\n\nAfter creating the document, output the path.\n"
 
 	// Run Claude
-	claudeResult := RunClaudeSync(prompt, 1200, true)
+	claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
 	if !claudeResult.Success {
 		result.SetError(fmt.Errorf("research failed: %s", claudeResult.Error))
 		return result
@@ -179,15 +179,15 @@ func StepPlanning(projectPath, researchPath, additionalContext string) *StepResu
 	// Replace date placeholders
 	instructions = strings.Join(finalLines, "\n")
 	instructions = strings.Replace(instructions,
-		"`thoughts/shared/plans/YYYY-MM-DD-tdd-description.md`",
-		fmt.Sprintf("`thoughts/shared/plans/%s-plan.md`", dateStr),
+		"`thoughts/searchable/plans/YYYY-MM-DD-tdd-description.md`",
+		fmt.Sprintf("`thoughts/searchable/plans/%s-plan.md`", dateStr),
 		1,
 	)
 
 	prompt := instructions + "\n\nOutput the plan file path when complete.\n"
 
 	// Run Claude
-	claudeResult := RunClaudeSync(prompt, 1200, true)
+	claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
 	if !claudeResult.Success {
 		result.SetError(fmt.Errorf("planning failed: %s", claudeResult.Error))
 		return result
@@ -235,7 +235,7 @@ Each phase file must contain:
 After creating all files, list the created file paths.
 `, planPath, planDir)
 
-	claudeResult := RunClaudeSync(prompt, 1200, true)
+	claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
 	if !claudeResult.Success {
 		result.SetError(fmt.Errorf("phase decomposition failed: %s", claudeResult.Error))
 		return result
@@ -485,7 +485,7 @@ Edit the file at %s with these additions.
 Only add the beads information, do not change the existing plan content.
 `, overviewFile, string(content), epicID, phaseList.String(), epicID, overviewFile)
 
-	claudeResult := RunClaudeSync(prompt, 120, true)
+	claudeResult := RunClaudeSync(prompt, 120, true, projectPath)
 	return claudeResult.Success
 }
 
@@ -527,6 +527,6 @@ Edit the file at %s with these additions.
 Only add the tracking information, do not change the existing phase content.
 `, phaseFile, string(content), phaseNum, issueID, issueID, issueID, issueID, phaseFile)
 
-	claudeResult := RunClaudeSync(prompt, 120, true)
+	claudeResult := RunClaudeSync(prompt, 120, true, projectPath)
 	return claudeResult.Success
 }

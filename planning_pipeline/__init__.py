@@ -4,7 +4,7 @@ __version__ = "0.1.0"
 
 from .pipeline import PlanningPipeline
 from .beads_controller import BeadsController
-from .claude_runner import run_claude_sync
+from .claude_runner import run_claude_sync, run_claude_subprocess
 from .helpers import extract_file_path, extract_open_questions, extract_phase_files, discover_thoughts_files, resolve_file_path
 from .steps import step_research, step_planning, step_phase_decomposition, step_beads_integration
 from .checkpoints import (
@@ -29,6 +29,7 @@ __all__ = [
     "PlanningPipeline",
     "BeadsController",
     "run_claude_sync",
+    "run_claude_subprocess",
     "extract_file_path",
     "extract_open_questions",
     "extract_phase_files",

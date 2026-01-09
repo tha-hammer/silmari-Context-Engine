@@ -1,6 +1,6 @@
 # Implement Plan with Checkpoints
 
-You are tasked with implementing an approved technical plan from `thoughts/shared/plans/`. These plans contain phases with specific changes and success criteria. This enhanced version includes checkpoint management for better progress tracking and recovery.
+You are tasked with implementing an approved technical plan from `thoughts/searchable/plans/`. These plans contain phases with specific changes and success criteria. This enhanced version includes checkpoint management for better progress tracking and recovery.
 
 ## Getting Started
 

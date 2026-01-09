@@ -5,7 +5,7 @@ import time
 from typing import Any
 
 
-def invoke_claude(prompt: str, timeout: int = 300) -> dict[str, Any]:
+def invoke_claude(prompt: str, timeout: int = 1300) -> dict[str, Any]:
     """Invoke Claude Code via subprocess.
 
     Args:

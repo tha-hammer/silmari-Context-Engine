@@ -159,12 +159,35 @@ class PlanningPipeline:
             # Interactive prompt
             print("\nOptions:")
             print("  (R)etry - Try decomposition again")
+            print("  (P)ath - Provide custom research file path")
             print("  (C)ontinue - Skip decomposition and proceed to planning")
 
-            choice = input("\nChoice [R/c]: ").strip().lower()
+            choice = input("\nChoice [R/p/c]: ").strip().lower()
             if choice == 'r' or choice == '':
                 print("\nRetrying decomposition...")
                 continue
+            elif choice == 'p':
+                print("\nEnter custom research file path:")
+                custom_path = input().strip()
+                if custom_path and Path(custom_path).exists():
+                    print(f"\nRetrying decomposition with custom path: {custom_path}")
+                    req_decomp = step_requirement_decomposition(
+                        self.project_path,
+                        custom_path
+                    )
+                    results["steps"]["requirement_decomposition"] = req_decomp
+
+                    if req_decomp["success"]:
+                        print(f"\nDecomposed into {req_decomp['requirement_count']} requirements")
+                        print(f"Hierarchy: {req_decomp['hierarchy_path']}")
+                        print(f"Diagram: {req_decomp['diagram_path']}")
+                        break
+                    else:
+                        print(f"\nDecomposition with custom path failed: {req_decomp.get('error', 'Unknown error')}")
+                        continue
+                else:
+                    print(f"\nError: Path not found or invalid: {custom_path}")
+                    continue
             else:
                 print("\nSkipping decomposition, continuing to planning...")
                 break
