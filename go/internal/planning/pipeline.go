@@ -199,6 +199,9 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 	if beads.Success {
 		fmt.Printf("\nCreated epic: %s\n", beads.EpicID)
 		fmt.Printf("Created %d phase issues\n", len(beads.PhaseIssues))
+	} else {
+		fmt.Printf("\n⚠️  Beads integration failed: %s\n", beads.Error)
+		fmt.Println("Continuing to implementation phase without beads tracking...")
 	}
 
 	// Step 8: Implementation Phase
@@ -492,6 +495,9 @@ func (p *PlanningPipeline) runFromPhaseDecomposition(results *PipelineResults, p
 	if beads.Success {
 		fmt.Printf("\nCreated epic: %s\n", beads.EpicID)
 		fmt.Printf("Created %d phase issues\n", len(beads.PhaseIssues))
+	} else {
+		fmt.Printf("\n⚠️  Beads integration failed: %s\n", beads.Error)
+		fmt.Println("Continuing to implementation phase without beads tracking...")
 	}
 
 	// Step 8: Implementation Phase

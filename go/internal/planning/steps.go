@@ -1,6 +1,7 @@
 package planning
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"os/exec"
@@ -186,16 +187,72 @@ func StepPlanning(projectPath, researchPath, additionalContext string) *StepResu
 
 	prompt := instructions + "\n\nOutput the plan file path when complete.\n"
 
-	// Run Claude
-	claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
-	if !claudeResult.Success {
-		result.SetError(fmt.Errorf("planning failed: %s", claudeResult.Error))
-		return result
+	// Retry loop with question detection (max 3 attempts)
+	maxRetries := 3
+	fmt.Printf("\n[DEBUG] Starting planning retry loop (max %d attempts)\n", maxRetries)
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		fmt.Printf("[DEBUG] Planning attempt %d/%d\n", attempt+1, maxRetries)
+		// Run Claude
+		claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
+		if !claudeResult.Success {
+			result.SetError(fmt.Errorf("planning failed: %s", claudeResult.Error))
+			return result
+		}
+
+		result.Output = claudeResult.Output
+		result.PlanPath = ExtractFilePath(claudeResult.Output, "plan")
+
+		fmt.Printf("[DEBUG] Extracted plan path: '%s'\n", result.PlanPath)
+
+		// Success - plan file found
+		if result.PlanPath != "" {
+			fmt.Println("[DEBUG] Plan file found, returning success")
+			return result
+		}
+
+		// Check if output contains questions and we have retries left
+		hasQuestion := isQuestion(claudeResult.Output)
+		fmt.Printf("[DEBUG] Question detected: %v, Retries left: %v\n", hasQuestion, attempt < maxRetries-1)
+
+		if hasQuestion && attempt < maxRetries-1 {
+			fmt.Println("\n" + strings.Repeat("=", 60))
+			fmt.Println("CLAUDE NEEDS CLARIFICATION")
+			fmt.Println(strings.Repeat("=", 60))
+			fmt.Println("\nClaude's response did not produce a plan file.")
+			fmt.Println("Please provide additional context or answers:\n")
+
+			// Collect user input
+			fmt.Print("> ")
+			userResponse := collectMultilineInput()
+
+			fmt.Printf("[DEBUG] User response length: %d\n", len(userResponse))
+
+			if userResponse != "" {
+				// Augment prompt with user clarification and retry
+				prompt = fmt.Sprintf(`%s
+
+## User Clarification (Attempt %d)
+%s
+
+Now create the plan file. Output the plan file path when complete.
+`, prompt, attempt+2, userResponse)
+				fmt.Println("\nSending additional context to Claude...")
+				continue
+			}
+			fmt.Println("[DEBUG] No user response provided, continuing loop")
+		}
+
+		// No question detected or no user input - fail after last attempt
+		if attempt == maxRetries-1 {
+			fmt.Println("[DEBUG] Last attempt reached, failing")
+			result.SetError(fmt.Errorf("failed to generate plan after %d attempts", maxRetries))
+			return result
+		}
+		fmt.Printf("[DEBUG] Continuing to next attempt (attempt %d < maxRetries-1 %d)\n", attempt, maxRetries-1)
 	}
 
-	result.Output = claudeResult.Output
-	result.PlanPath = ExtractFilePath(claudeResult.Output, "plan")
-
+	// Should not reach here, but just in case
+	result.SetError(fmt.Errorf("failed to generate plan"))
 	return result
 }
 
@@ -529,4 +586,40 @@ Only add the tracking information, do not change the existing phase content.
 
 	claudeResult := RunClaudeSync(prompt, 120, true, projectPath)
 	return claudeResult.Success
+}
+
+// isQuestion checks if Claude's output contains question indicators.
+func isQuestion(output string) bool {
+	outputLower := strings.ToLower(output)
+	questionIndicators := []string{
+		"could you", "can you", "would you", "what is", "which",
+		"clarify", "specify", "more information", "more details",
+		"please provide", "i need to understand", "?",
+	}
+	for _, q := range questionIndicators {
+		if strings.Contains(outputLower, q) {
+			return true
+		}
+	}
+	return false
+}
+
+// collectMultilineInput prompts the user for multi-line input.
+// Returns the collected input as a single string, or empty string if no input.
+func collectMultilineInput() string {
+	fmt.Println("(Enter your response, blank line to finish)")
+	var lines []string
+
+	// Use bufio.Scanner for line-by-line reading
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" {
+			break
+		}
+		lines = append(lines, line)
+		fmt.Print("> ")
+	}
+
+	return strings.Join(lines, "\n")
 }
