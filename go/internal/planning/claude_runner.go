@@ -86,6 +86,11 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *Cla
 		defer wg.Done()
 		fmt.Fprintf(os.Stderr, "[DEBUG] stdout goroutine started\n")
 		scanner := bufio.NewScanner(stdout)
+		// Increase buffer size to handle large JSON objects (default is 64KB)
+		// Set max token size to 10MB to handle large Claude outputs
+		const maxCapacity = 10 * 1024 * 1024 // 10MB
+		buf := make([]byte, maxCapacity)
+		scanner.Buffer(buf, maxCapacity)
 		lineCount := 0
 
 		for scanner.Scan() {
@@ -179,6 +184,10 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *Cla
 		defer wg.Done()
 		fmt.Fprintf(os.Stderr, "[DEBUG] stderr goroutine started\n")
 		scanner := bufio.NewScanner(stderr)
+		// Increase buffer size for stderr as well
+		const maxCapacity = 10 * 1024 * 1024 // 10MB
+		buf := make([]byte, maxCapacity)
+		scanner.Buffer(buf, maxCapacity)
 		for scanner.Scan() {
 			stderrBuilder.WriteString(scanner.Text())
 			stderrBuilder.WriteString("\n")
