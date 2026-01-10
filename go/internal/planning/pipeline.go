@@ -10,9 +10,24 @@ import (
 
 // PipelineConfig contains configuration for the planning pipeline.
 type PipelineConfig struct {
-	ProjectPath string
-	AutoApprove bool
-	TicketID    string
+	ProjectPath  string
+	AutoApprove  bool
+	TicketID     string
+	AutonomyMode AutonomyMode
+}
+
+// GetAutoApprove returns the auto-approve setting based on the autonomy mode.
+func (pc *PipelineConfig) GetAutoApprove() bool {
+	switch pc.AutonomyMode {
+	case AutonomyCheckpoint:
+		return false
+	case AutonomyFullyAutonomous:
+		return true
+	case AutonomyBatch:
+		return false // False at boundaries, true within groups (handled by orchestrator)
+	default:
+		return false
+	}
 }
 
 // PipelineResults contains the results from all pipeline steps.
