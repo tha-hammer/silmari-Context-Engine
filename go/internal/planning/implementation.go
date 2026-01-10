@@ -14,6 +14,7 @@ const (
 	IMPL_LOOP_SLEEP     = 10 * time.Second
 	IMPL_MAX_ITERATIONS = 100
 	IMPL_TIMEOUT        = 3600 // 1 hour per iteration in seconds
+	TEST_TIMEOUT        = 300  // 5 minutes for test execution
 )
 
 // ImplementationResult contains the result of the implementation phase.
@@ -274,46 +275,90 @@ func getOpenIssues(allIssues, closedIssues []string) []string {
 }
 
 // runTests executes the test suite and returns (passed bool, output string).
+// Implements REQ_012.3: pytest-first strategy with fallback to make test only when pytest binary not found.
 func runTests(projectPath string) (bool, string) {
-	// Try pytest first (more common in Python projects)
-	passed, output := tryPytest(projectPath)
-	if passed || output != "" {
+	fmt.Println("Attempting to run tests with pytest...")
+
+	// Try pytest first (REQ_012.1)
+	passed, output, err := tryPytest(projectPath)
+
+	// If pytest ran (even if tests failed), return the result
+	// REQ_012.2: Only fallback when pytest binary is not found
+	if err == nil {
+		fmt.Printf("Tests executed with pytest. Passed: %v\n", passed)
 		return passed, output
 	}
 
-	// Fallback to make test
-	passed, output = tryMakeTest(projectPath)
-	if passed || output != "" {
-		return passed, output
+	// Check if error is due to pytest not being found
+	if err == exec.ErrNotFound || strings.Contains(err.Error(), "executable file not found") {
+		fmt.Println("pytest not found, falling back to make test...")
+
+		// Fallback to make test (REQ_012.2)
+		passed, output = tryMakeTest(projectPath)
+		if output != "" {
+			fmt.Printf("Tests executed with make test. Passed: %v\n", passed)
+			return passed, output
+		}
+
+		// Neither pytest nor make test available
+		fmt.Println("No test command found (pytest and make test not available), skipping tests")
+		return true, "No test command found, skipping"
 	}
 
-	// Fallback to go test (for Go projects)
-	passed, output = tryGoTest(projectPath)
-	if passed || output != "" {
-		return passed, output
-	}
-
-	// No test runner found
-	return false, "ERROR: No test runner found (tried pytest, make test, go test)"
+	// pytest exists but execution failed for another reason
+	fmt.Printf("pytest execution failed: %v\n", err)
+	return false, fmt.Sprintf("pytest execution error: %v\n%s", err, output)
 }
 
-// tryPytest attempts to run pytest.
-func tryPytest(projectPath string) (bool, string) {
-	// Check if pytest is available
+// tryPytest attempts to run pytest with timeout.
+// Implements REQ_012.1: Execute pytest as primary test command with verbose output.
+// Returns (passed bool, output string, error).
+// Error is non-nil only when pytest binary is not found or execution fails.
+func tryPytest(projectPath string) (bool, string, error) {
+	// Check if pytest is available first
 	checkCmd := exec.Command("pytest", "--version")
 	if err := checkCmd.Run(); err != nil {
-		return false, ""
+		// pytest binary not found - return error to trigger fallback
+		return false, "", err
 	}
 
-	// Run pytest with verbose output and short traceback
+	// Run pytest with verbose output and short traceback (REQ_012.1)
 	cmd := exec.Command("pytest", "-v", "--tb=short")
 	cmd.Dir = projectPath
-	output, err := cmd.CombinedOutput()
 
-	return err == nil, string(output)
+	// Create a channel to capture command result
+	type cmdResult struct {
+		output []byte
+		err    error
+	}
+	resultChan := make(chan cmdResult, 1)
+
+	// Run command in goroutine with timeout (REQ_012.1)
+	go func() {
+		output, err := cmd.CombinedOutput()
+		resultChan <- cmdResult{output: output, err: err}
+	}()
+
+	// Wait for command to complete or timeout
+	select {
+	case result := <-resultChan:
+		// Command completed within timeout
+		// REQ_012.1: Return exit code 0 as success, non-zero as failure
+		passed := result.err == nil
+		return passed, string(result.output), nil
+
+	case <-time.After(TEST_TIMEOUT * time.Second):
+		// Timeout occurred (REQ_012.1)
+		// Try to kill the process if it's still running
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		return false, "", fmt.Errorf("pytest execution timed out after %d seconds", TEST_TIMEOUT)
+	}
 }
 
-// tryMakeTest attempts to run make test.
+// tryMakeTest attempts to run make test with timeout.
+// Implements REQ_012.2: Execute 'make test' as fallback when pytest not available.
 func tryMakeTest(projectPath string) (bool, string) {
 	// Check if Makefile exists
 	makefilePath := filepath.Join(projectPath, "Makefile")
@@ -321,26 +366,36 @@ func tryMakeTest(projectPath string) (bool, string) {
 		return false, ""
 	}
 
-	// Run make test
+	// Run make test with same timeout as pytest (REQ_012.2)
 	cmd := exec.Command("make", "test")
 	cmd.Dir = projectPath
-	output, err := cmd.CombinedOutput()
 
-	return err == nil, string(output)
-}
-
-// tryGoTest attempts to run go test.
-func tryGoTest(projectPath string) (bool, string) {
-	// Check if go.mod exists
-	goModPath := filepath.Join(projectPath, "go.mod")
-	if _, err := os.Stat(goModPath); os.IsNotExist(err) {
-		return false, ""
+	// Create a channel to capture command result
+	type cmdResult struct {
+		output []byte
+		err    error
 	}
+	resultChan := make(chan cmdResult, 1)
 
-	// Run go test on all packages
-	cmd := exec.Command("go", "test", "./...")
-	cmd.Dir = projectPath
-	output, err := cmd.CombinedOutput()
+	// Run command in goroutine with timeout
+	go func() {
+		output, err := cmd.CombinedOutput()
+		resultChan <- cmdResult{output: output, err: err}
+	}()
 
-	return err == nil, string(output)
+	// Wait for command to complete or timeout
+	select {
+	case result := <-resultChan:
+		// Command completed within timeout
+		passed := result.err == nil
+		return passed, string(result.output)
+
+	case <-time.After(TEST_TIMEOUT * time.Second):
+		// Timeout occurred
+		if cmd.Process != nil {
+			_ = cmd.Process.Kill()
+		}
+		return false, fmt.Sprintf("make test execution timed out after %d seconds", TEST_TIMEOUT)
+	}
 }
+
