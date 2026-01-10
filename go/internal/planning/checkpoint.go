@@ -106,6 +106,7 @@ func (cm *CheckpointManager) getGitCommit() string {
 // DetectResumableCheckpoint finds the most recent checkpoint based on timestamp field.
 //
 // REQ_003.3: Load and restore pipeline state from any checkpoint file
+// REQ_013.2: Checkpoint validation includes checking required fields: id, phase, timestamp, state
 func (cm *CheckpointManager) DetectResumableCheckpoint() (*Checkpoint, error) {
 	// Return nil if checkpoints directory doesn't exist
 	if _, err := os.Stat(cm.checkpointsDir); os.IsNotExist(err) {
@@ -132,6 +133,11 @@ func (cm *CheckpointManager) DetectResumableCheckpoint() (*Checkpoint, error) {
 		var cp Checkpoint
 		if err := json.Unmarshal(data, &cp); err != nil {
 			continue // Skip invalid JSON files
+		}
+
+		// Validate required fields (REQ_013.2)
+		if cp.ID == "" || cp.Phase == "" || cp.Timestamp == "" {
+			continue // Skip checkpoints with missing required fields
 		}
 
 		checkpoints = append(checkpoints, cp)
