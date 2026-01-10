@@ -13,6 +13,7 @@ type PipelineConfig struct {
 	ProjectPath   string
 	AutoApprove   bool
 	TicketID      string
+	ResearchPath  string       // Optional: path to existing research file (skips research step if provided)
 	AutonomyMode  AutonomyMode
 	MaxIterations int // Maximum iterations for implementation phase (default: IMPL_MAX_ITERATIONS)
 }
@@ -64,19 +65,33 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 		Steps:    make(map[string]interface{}),
 	}
 
-	// Step 1: Research
-	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 1/8: RESEARCH PHASE")
-	fmt.Println(strings.Repeat("=", 60))
+	// Step 1: Research (skip if research path is provided)
+	var research *StepResult
+	if p.config.ResearchPath != "" {
+		fmt.Println("\n" + strings.Repeat("=", 60))
+		fmt.Println("STEP 1/8: RESEARCH PHASE (SKIPPED - using provided research)")
+		fmt.Println(strings.Repeat("=", 60))
+		fmt.Printf("Using existing research: %s\n", p.config.ResearchPath)
 
-	research := StepResearch(p.config.ProjectPath, researchPrompt)
-	results.Steps["research"] = research
+		// Create a synthetic result with the provided path
+		research = NewStepResult()
+		research.ResearchPath = p.config.ResearchPath
+		research.Success = true
+		results.Steps["research"] = research
+	} else {
+		fmt.Println("\n" + strings.Repeat("=", 60))
+		fmt.Println("STEP 1/8: RESEARCH PHASE")
+		fmt.Println(strings.Repeat("=", 60))
 
-	if !research.Success {
-		results.Success = false
-		results.FailedAt = "research"
-		results.Error = research.Error
-		return results
+		research = StepResearch(p.config.ProjectPath, researchPrompt)
+		results.Steps["research"] = research
+
+		if !research.Success {
+			results.Success = false
+			results.FailedAt = "research"
+			results.Error = research.Error
+			return results
+		}
 	}
 
 	// Step 2: Memory Sync

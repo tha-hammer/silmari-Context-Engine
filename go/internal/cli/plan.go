@@ -129,9 +129,10 @@ func runPlan(cmd *cobra.Command, args []string) error {
 
 	// Create and run the planning pipeline
 	config := planning.PipelineConfig{
-		ProjectPath: planProjectPath,
-		AutoApprove: planAutoApprove,
-		TicketID:    planTicket,
+		ProjectPath:  planProjectPath,
+		AutoApprove:  planAutoApprove,
+		TicketID:     planTicket,
+		ResearchPath: planResearchPath,
 	}
 
 	pipeline := planning.NewPlanningPipeline(config)
