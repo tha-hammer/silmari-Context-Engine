@@ -298,6 +298,288 @@ func getIssueIDsFromBeads(phaseIssues []PhaseIssue) []string {
 	return issueIDs
 }
 
+// ResumeFromCheckpoint resumes pipeline execution from a checkpoint.
+func (p *PlanningPipeline) ResumeFromCheckpoint(checkpoint *Checkpoint, resumePhase string, planPath string) *PipelineResults {
+	results := &PipelineResults{
+		Success:  true,
+		Started:  time.Now().Format(time.RFC3339),
+		TicketID: p.config.TicketID,
+		Steps:    make(map[string]interface{}),
+	}
+
+	fmt.Printf("\nResuming pipeline from %s phase...\n", resumePhase)
+
+	// Determine which steps to run based on resume phase
+	var research *StepResult
+	var planning *StepResult
+
+	switch resumePhase {
+	case "research":
+		// Resume from research step (run all steps)
+		return p.Run("")
+
+	case "planning":
+		// Skip research, run from planning onwards
+		if p.config.ResearchPath == "" {
+			results.Success = false
+			results.FailedAt = "planning"
+			results.Error = "No research path provided for planning resume"
+			return results
+		}
+
+		// Create synthetic research result
+		research = NewStepResult()
+		research.ResearchPath = p.config.ResearchPath
+		research.Success = true
+		results.Steps["research"] = research
+
+		// Continue with memory sync and subsequent steps
+		return p.runFromMemorySync(results, research)
+
+	case "decomposition":
+		// Skip to phase decomposition
+		if planPath == "" {
+			results.Success = false
+			results.FailedAt = "decomposition"
+			results.Error = "No plan path provided for decomposition resume"
+			return results
+		}
+
+		// Create synthetic research result
+		if p.config.ResearchPath != "" {
+			research = NewStepResult()
+			research.ResearchPath = p.config.ResearchPath
+			research.Success = true
+			results.Steps["research"] = research
+		}
+
+		// Create synthetic planning result
+		planning = NewStepResult()
+		planning.PlanPath = planPath
+		planning.Success = true
+		results.Steps["planning"] = planning
+
+		// Run from phase decomposition
+		return p.runFromPhaseDecomposition(results, planning)
+
+	case "implementation":
+		// Resume implementation phase
+		// This requires phase files and beads info from checkpoint
+		fmt.Println("⚠ Implementation phase resume not yet fully implemented")
+		results.Success = false
+		results.FailedAt = "implementation"
+		results.Error = "Implementation phase resume requires phase files from checkpoint"
+		return results
+
+	default:
+		results.Success = false
+		results.FailedAt = resumePhase
+		results.Error = fmt.Sprintf("Unknown resume phase: %s", resumePhase)
+		return results
+	}
+}
+
+// runFromMemorySync runs pipeline from memory sync step onwards.
+func (p *PlanningPipeline) runFromMemorySync(results *PipelineResults, research *StepResult) *PipelineResults {
+	// Step 2: Memory Sync
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 2/8: MEMORY SYNC")
+	fmt.Println(strings.Repeat("=", 60))
+
+	sessionID := fmt.Sprintf("research-%s", time.Now().Format("20060102-150405"))
+	memoryResult := StepMemorySync(p.config.ProjectPath, research.ResearchPath, sessionID)
+	results.Steps["memory_sync"] = memoryResult
+
+	if episodeRecorded, ok := memoryResult.Data["episode_recorded"].(bool); ok && episodeRecorded {
+		fmt.Println("  ✓ Episodic memory recorded")
+	}
+	if contextCompiled, ok := memoryResult.Data["context_compiled"].(bool); ok && contextCompiled {
+		fmt.Println("  ✓ Working context compiled")
+	}
+	if contextCleared, ok := memoryResult.Data["context_cleared"].(bool); ok && contextCleared {
+		fmt.Println("  ✓ Claude context cleared")
+	}
+
+	// Step 3: Requirement Decomposition
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 3/8: REQUIREMENT DECOMPOSITION")
+	fmt.Println(strings.Repeat("=", 60))
+
+	reqDecomp := StepRequirementDecomposition(p.config.ProjectPath, research.ResearchPath)
+	results.Steps["requirement_decomposition"] = reqDecomp
+
+	if reqDecomp.Success {
+		fmt.Printf("\nDecomposed into %d requirements\n", reqDecomp.RequirementCount)
+		fmt.Printf("Hierarchy: %s\n", reqDecomp.HierarchyPath)
+	} else {
+		fmt.Printf("\nDecomposition failed: %s\n", reqDecomp.Error)
+		fmt.Println("Continuing to planning...")
+	}
+
+	// Step 4: Context Generation
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 4/8: CONTEXT GENERATION")
+	fmt.Println(strings.Repeat("=", 60))
+
+	contextGen := StepContextGeneration(p.config.ProjectPath, 100)
+	results.Steps["context_generation"] = contextGen
+
+	if contextGen.Success {
+		fmt.Println("  ✓ Context generated successfully")
+	} else {
+		fmt.Printf("  ⚠ Context generation failed: %s\n", contextGen.Error)
+		fmt.Println("  → Continuing without context (non-blocking)")
+	}
+
+	// Step 5: Planning
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 5/8: PLANNING PHASE")
+	fmt.Println(strings.Repeat("=", 60))
+
+	planning := StepPlanning(p.config.ProjectPath, research.ResearchPath, "")
+	results.Steps["planning"] = planning
+
+	if !planning.Success {
+		results.Success = false
+		results.FailedAt = "planning"
+		results.Error = planning.Error
+		return results
+	}
+
+	if planning.PlanPath == "" {
+		results.Success = false
+		results.FailedAt = "phase_decomposition"
+		results.Error = "No plan_path extracted from planning step"
+		return results
+	}
+
+	// Continue with phase decomposition
+	return p.runFromPhaseDecomposition(results, planning)
+}
+
+// runFromPhaseDecomposition runs pipeline from phase decomposition onwards.
+func (p *PlanningPipeline) runFromPhaseDecomposition(results *PipelineResults, planning *StepResult) *PipelineResults {
+	// Step 6: Phase Decomposition
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 6/8: PHASE DECOMPOSITION")
+	fmt.Println(strings.Repeat("=", 60))
+
+	decomposition := StepPhaseDecomposition(p.config.ProjectPath, planning.PlanPath)
+	results.Steps["decomposition"] = decomposition
+
+	if !decomposition.Success {
+		results.Success = false
+		results.FailedAt = "decomposition"
+		results.Error = decomposition.Error
+		return results
+	}
+
+	fmt.Printf("\nCreated %d phase files\n", len(decomposition.PhaseFiles))
+
+	// Step 7: Beads Integration
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 7/8: BEADS INTEGRATION")
+	fmt.Println(strings.Repeat("=", 60))
+
+	epicTitle := fmt.Sprintf("Plan: %s", p.config.TicketID)
+	if p.config.TicketID == "" {
+		epicTitle = fmt.Sprintf("Plan: %s", time.Now().Format("2006-01-02"))
+	}
+
+	beads := StepBeadsIntegration(p.config.ProjectPath, decomposition.PhaseFiles, epicTitle)
+	results.Steps["beads"] = beads
+
+	if beads.Success {
+		fmt.Printf("\nCreated epic: %s\n", beads.EpicID)
+		fmt.Printf("Created %d phase issues\n", len(beads.PhaseIssues))
+	}
+
+	// Step 8: Implementation Phase
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 8/8: IMPLEMENTATION PHASE")
+	fmt.Println(strings.Repeat("=", 60))
+
+	// Extract issue IDs from phase issues
+	issueIDs := getIssueIDsFromBeads(beads.PhaseIssues)
+
+	// Get max iterations from config or use default
+	maxIterations := p.config.MaxIterations
+	if maxIterations == 0 {
+		maxIterations = IMPL_MAX_ITERATIONS
+	}
+
+	// Run implementation phase
+	impl := StepImplementation(
+		p.config.ProjectPath,
+		decomposition.PhaseFiles,
+		issueIDs,
+		beads.EpicID,
+		maxIterations,
+	)
+	results.Steps["implementation"] = impl
+
+	// Handle implementation result
+	if !impl.Success {
+		results.Success = false
+		results.FailedAt = "implementation"
+		results.Error = impl.Error
+
+		// Add detailed error information
+		fmt.Printf("\n❌ Implementation failed after %d iterations\n", impl.Iterations)
+		if impl.Error != "" {
+			fmt.Printf("Error: %s\n", impl.Error)
+		}
+
+		// Show which phases were completed
+		if len(impl.PhasesClosed) > 0 {
+			fmt.Printf("\nPhases completed: %v\n", impl.PhasesClosed)
+		}
+
+		// Show test status
+		if !impl.TestsPassed && len(impl.PhasesClosed) == len(issueIDs) {
+			fmt.Println("\n⚠ All phases closed but tests failed")
+			if impl.Output != "" {
+				// Show first 500 chars of test output
+				testOutput := impl.Output
+				if len(testOutput) > 500 {
+					testOutput = testOutput[:500] + "...\n(truncated)"
+				}
+				fmt.Printf("\nTest output:\n%s\n", testOutput)
+			}
+		}
+
+		fmt.Println("\n💡 Run 'bd ready' to see remaining work")
+
+		results.Completed = time.Now().Format(time.RFC3339)
+		if len(decomposition.PhaseFiles) > 0 {
+			results.PlanDir = filepath.Dir(decomposition.PhaseFiles[0])
+		}
+		results.EpicID = beads.EpicID
+
+		return results
+	}
+
+	// Success!
+	fmt.Printf("\n✅ Implementation complete after %d iterations\n", impl.Iterations)
+	fmt.Printf("✅ All %d phases closed\n", len(impl.PhasesClosed))
+	fmt.Println("✅ All tests passed")
+
+	// Complete
+	results.Completed = time.Now().Format(time.RFC3339)
+	if len(decomposition.PhaseFiles) > 0 {
+		results.PlanDir = filepath.Dir(decomposition.PhaseFiles[0])
+	}
+	results.EpicID = beads.EpicID
+
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("PIPELINE COMPLETE")
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Printf("\nPlan directory: %s\n", results.PlanDir)
+	fmt.Printf("Epic ID: %s\n", results.EpicID)
+
+	return results
+}
+
 // RequirementDecompositionResult contains results from requirement decomposition.
 type RequirementDecompositionResult struct {
 	Success          bool   `json:"success"`
