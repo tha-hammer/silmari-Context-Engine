@@ -806,3 +806,726 @@ func TestEmptyFeatureListJSON(t *testing.T) {
 	}
 }
 
+// TestPhaseTypeDefinition tests PhaseType enum definition.
+// REQ_007.2: Define PhaseType as iota-based integer type preserving execution order
+func TestPhaseTypeDefinition(t *testing.T) {
+	// Verify order is preserved
+	if PhaseResearch != 0 {
+		t.Error("PhaseResearch should be 0")
+	}
+	if PhaseDecomposition != 1 {
+		t.Error("PhaseDecomposition should be 1")
+	}
+	if PhaseTDDPlanning != 2 {
+		t.Error("PhaseTDDPlanning should be 2")
+	}
+	if PhaseMultiDoc != 3 {
+		t.Error("PhaseMultiDoc should be 3")
+	}
+	if PhaseBeadsSync != 4 {
+		t.Error("PhaseBeadsSync should be 4")
+	}
+	if PhaseImplementation != 5 {
+		t.Error("PhaseImplementation should be 5")
+	}
+}
+
+// TestPhaseTypeString tests String() method.
+// REQ_007.2: Implement String() method returning phase names
+func TestPhaseTypeString(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  string
+	}{
+		{PhaseResearch, "research"},
+		{PhaseDecomposition, "decomposition"},
+		{PhaseTDDPlanning, "tdd_planning"},
+		{PhaseMultiDoc, "multi_doc"},
+		{PhaseBeadsSync, "beads_sync"},
+		{PhaseImplementation, "implementation"},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.String(); got != tt.want {
+			t.Errorf("PhaseType.String() = %v, want %v", got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeFromString tests FromString() factory method.
+// REQ_007.2: Implement FromString(string) (PhaseType, error) factory method
+func TestPhaseTypeFromString(t *testing.T) {
+	tests := []struct {
+		input   string
+		want    PhaseType
+		wantErr bool
+	}{
+		{"research", PhaseResearch, false},
+		{"decomposition", PhaseDecomposition, false},
+		{"tdd_planning", PhaseTDDPlanning, false},
+		{"multi_doc", PhaseMultiDoc, false},
+		{"beads_sync", PhaseBeadsSync, false},
+		{"implementation", PhaseImplementation, false},
+		{"RESEARCH", PhaseResearch, false}, // Case insensitive
+		{" research ", PhaseResearch, false}, // Whitespace trimming
+		{"invalid", PhaseResearch, true},
+		{"", PhaseResearch, true},
+	}
+
+	for _, tt := range tests {
+		got, err := PhaseTypeFromString(tt.input)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("PhaseTypeFromString(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && got != tt.want {
+			t.Errorf("PhaseTypeFromString(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeNext tests Next() method.
+// REQ_007.2: Implement Next() method returning the next phase in sequence
+func TestPhaseTypeNext(t *testing.T) {
+	tests := []struct {
+		phase   PhaseType
+		want    PhaseType
+		wantErr bool
+	}{
+		{PhaseResearch, PhaseDecomposition, false},
+		{PhaseDecomposition, PhaseTDDPlanning, false},
+		{PhaseTDDPlanning, PhaseMultiDoc, false},
+		{PhaseMultiDoc, PhaseBeadsSync, false},
+		{PhaseBeadsSync, PhaseImplementation, false},
+		{PhaseImplementation, PhaseImplementation, true}, // Last phase has no next
+	}
+
+	for _, tt := range tests {
+		got, err := tt.phase.Next()
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%v.Next() error = %v, wantErr %v", tt.phase, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && got != tt.want {
+			t.Errorf("%v.Next() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypePrevious tests Previous() method.
+// REQ_007.2: Implement Previous() method returning the prior phase
+func TestPhaseTypePrevious(t *testing.T) {
+	tests := []struct {
+		phase   PhaseType
+		want    PhaseType
+		wantErr bool
+	}{
+		{PhaseResearch, PhaseResearch, true}, // First phase has no previous
+		{PhaseDecomposition, PhaseResearch, false},
+		{PhaseTDDPlanning, PhaseDecomposition, false},
+		{PhaseMultiDoc, PhaseTDDPlanning, false},
+		{PhaseBeadsSync, PhaseMultiDoc, false},
+		{PhaseImplementation, PhaseBeadsSync, false},
+	}
+
+	for _, tt := range tests {
+		got, err := tt.phase.Previous()
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%v.Previous() error = %v, wantErr %v", tt.phase, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && got != tt.want {
+			t.Errorf("%v.Previous() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeJSON tests JSON marshaling/unmarshaling.
+// REQ_007.2: Implement MarshalJSON() and UnmarshalJSON()
+func TestPhaseTypeJSON(t *testing.T) {
+	phase := PhaseTDDPlanning
+	data, err := json.Marshal(phase)
+	if err != nil {
+		t.Fatalf("Marshal failed: %v", err)
+	}
+
+	if string(data) != `"tdd_planning"` {
+		t.Errorf("Marshal() = %s, want %q", data, "tdd_planning")
+	}
+
+	var unmarshaled PhaseType
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	if unmarshaled != phase {
+		t.Errorf("Unmarshal() = %v, want %v", unmarshaled, phase)
+	}
+}
+
+// TestAllPhases tests AllPhases() function.
+// REQ_007.2: Implement AllPhases() function returning ordered slice
+func TestAllPhases(t *testing.T) {
+	phases := AllPhases()
+	if len(phases) != 6 {
+		t.Errorf("AllPhases() length = %d, want 6", len(phases))
+	}
+
+	expected := []PhaseType{
+		PhaseResearch,
+		PhaseDecomposition,
+		PhaseTDDPlanning,
+		PhaseMultiDoc,
+		PhaseBeadsSync,
+		PhaseImplementation,
+	}
+
+	for i, phase := range phases {
+		if phase != expected[i] {
+			t.Errorf("AllPhases()[%d] = %v, want %v", i, phase, expected[i])
+		}
+	}
+}
+
+// TestPhaseStatusDefinition tests PhaseStatus enum definition.
+// REQ_007.3: Define PhaseStatus as iota-based integer type
+func TestPhaseStatusDefinition(t *testing.T) {
+	if StatusPending != 0 {
+		t.Error("StatusPending should be 0")
+	}
+	if StatusInProgress != 1 {
+		t.Error("StatusInProgress should be 1")
+	}
+	if StatusComplete != 2 {
+		t.Error("StatusComplete should be 2")
+	}
+	if StatusFailed != 3 {
+		t.Error("StatusFailed should be 3")
+	}
+}
+
+// TestPhaseStatusString tests String() method.
+// REQ_007.3: Implement String() method
+func TestPhaseStatusString(t *testing.T) {
+	tests := []struct {
+		status PhaseStatus
+		want   string
+	}{
+		{StatusPending, "pending"},
+		{StatusInProgress, "in_progress"},
+		{StatusComplete, "complete"},
+		{StatusFailed, "failed"},
+	}
+
+	for _, tt := range tests {
+		if got := tt.status.String(); got != tt.want {
+			t.Errorf("PhaseStatus.String() = %v, want %v", got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusFromString tests FromString() factory method.
+// REQ_007.3: Implement FromString(string) (PhaseStatus, error)
+func TestPhaseStatusFromString(t *testing.T) {
+	tests := []struct {
+		input   string
+		want    PhaseStatus
+		wantErr bool
+	}{
+		{"pending", StatusPending, false},
+		{"in_progress", StatusInProgress, false},
+		{"complete", StatusComplete, false},
+		{"failed", StatusFailed, false},
+		{"PENDING", StatusPending, false}, // Case insensitive
+		{" pending ", StatusPending, false}, // Whitespace
+		{"invalid", StatusPending, true},
+	}
+
+	for _, tt := range tests {
+		got, err := PhaseStatusFromString(tt.input)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("PhaseStatusFromString(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && got != tt.want {
+			t.Errorf("PhaseStatusFromString(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusIsTerminal tests IsTerminal() method.
+// REQ_007.3: Implement IsTerminal() method
+func TestPhaseStatusIsTerminal(t *testing.T) {
+	tests := []struct {
+		status PhaseStatus
+		want   bool
+	}{
+		{StatusPending, false},
+		{StatusInProgress, false},
+		{StatusComplete, true},
+		{StatusFailed, true},
+	}
+
+	for _, tt := range tests {
+		if got := tt.status.IsTerminal(); got != tt.want {
+			t.Errorf("%v.IsTerminal() = %v, want %v", tt.status, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusCanTransitionTo tests state transition validation.
+// REQ_007.3: Implement CanTransitionTo() and validate state transitions
+func TestPhaseStatusCanTransitionTo(t *testing.T) {
+	tests := []struct {
+		from PhaseStatus
+		to   PhaseStatus
+		want bool
+	}{
+		// Pending can only transition to InProgress
+		{StatusPending, StatusInProgress, true},
+		{StatusPending, StatusComplete, false},
+		{StatusPending, StatusFailed, false},
+		{StatusPending, StatusPending, false},
+
+		// InProgress can transition to Complete or Failed
+		{StatusInProgress, StatusComplete, true},
+		{StatusInProgress, StatusFailed, true},
+		{StatusInProgress, StatusPending, false},
+		{StatusInProgress, StatusInProgress, false},
+
+		// Failed can transition back to InProgress (retry)
+		{StatusFailed, StatusInProgress, true},
+		{StatusFailed, StatusPending, false},
+		{StatusFailed, StatusComplete, false},
+		{StatusFailed, StatusFailed, false},
+
+		// Complete is terminal, no transitions
+		{StatusComplete, StatusPending, false},
+		{StatusComplete, StatusInProgress, false},
+		{StatusComplete, StatusFailed, false},
+		{StatusComplete, StatusComplete, false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.from.CanTransitionTo(tt.to); got != tt.want {
+			t.Errorf("%v.CanTransitionTo(%v) = %v, want %v", tt.from, tt.to, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusJSON tests JSON marshaling/unmarshaling.
+// REQ_007.3: Implement MarshalJSON() and UnmarshalJSON()
+func TestPhaseStatusJSON(t *testing.T) {
+	status := StatusInProgress
+	data, err := json.Marshal(status)
+	if err != nil {
+		t.Fatalf("Marshal failed: %v", err)
+	}
+
+	if string(data) != `"in_progress"` {
+		t.Errorf("Marshal() = %s, want %q", data, "in_progress")
+	}
+
+	var unmarshaled PhaseStatus
+	if err := json.Unmarshal(data, &unmarshaled); err != nil {
+		t.Fatalf("Unmarshal failed: %v", err)
+	}
+
+	if unmarshaled != status {
+		t.Errorf("Unmarshal() = %v, want %v", unmarshaled, status)
+	}
+}
+
+// TestPhaseResultCreation tests PhaseResult creation and methods.
+// REQ_007.4: Port PhaseResult dataclass with all fields
+func TestPhaseResultCreation(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+
+	if result.Phase != PhaseResearch {
+		t.Errorf("Phase = %v, want %v", result.Phase, PhaseResearch)
+	}
+	if result.Status != StatusPending {
+		t.Errorf("Status = %v, want %v", result.Status, StatusPending)
+	}
+	if result.StartedAt == nil {
+		t.Error("StartedAt should not be nil")
+	}
+	if len(result.Artifacts) != 0 {
+		t.Error("Artifacts should be empty")
+	}
+	if len(result.Errors) != 0 {
+		t.Error("Errors should be empty")
+	}
+	if result.Metadata == nil {
+		t.Error("Metadata should not be nil")
+	}
+}
+
+// TestPhaseResultComplete tests Complete() method.
+// REQ_007.4: Implement IsComplete(), IsFailed(), Complete(), Fail()
+func TestPhaseResultComplete(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+
+	if result.IsComplete() {
+		t.Error("IsComplete() should be false initially")
+	}
+
+	result.Complete()
+
+	if !result.IsComplete() {
+		t.Error("IsComplete() should be true after Complete()")
+	}
+	if result.Status != StatusComplete {
+		t.Errorf("Status = %v, want %v", result.Status, StatusComplete)
+	}
+	if result.CompletedAt == nil {
+		t.Error("CompletedAt should not be nil")
+	}
+	if result.DurationSeconds <= 0 {
+		t.Error("DurationSeconds should be > 0")
+	}
+}
+
+// TestPhaseResultFail tests Fail() method.
+// REQ_007.4: Implement Fail() method
+func TestPhaseResultFail(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+
+	if result.IsFailed() {
+		t.Error("IsFailed() should be false initially")
+	}
+
+	testErr := errors.New("test error")
+	result.Fail(testErr)
+
+	if !result.IsFailed() {
+		t.Error("IsFailed() should be true after Fail()")
+	}
+	if result.Status != StatusFailed {
+		t.Errorf("Status = %v, want %v", result.Status, StatusFailed)
+	}
+	if len(result.Errors) != 1 {
+		t.Errorf("len(Errors) = %d, want 1", len(result.Errors))
+	}
+	if !strings.Contains(result.Errors[0], "test error") {
+		t.Errorf("Errors[0] = %q, should contain %q", result.Errors[0], "test error")
+	}
+}
+
+// TestPhaseResultArtifacts tests artifact management.
+// REQ_007.4: Include Artifacts []string field
+func TestPhaseResultArtifacts(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+
+	result.AddArtifact("/path/to/file1.md")
+	result.AddArtifact("/path/to/file2.json")
+
+	if len(result.Artifacts) != 2 {
+		t.Errorf("len(Artifacts) = %d, want 2", len(result.Artifacts))
+	}
+	if result.Artifacts[0] != "/path/to/file1.md" {
+		t.Errorf("Artifacts[0] = %q, want %q", result.Artifacts[0], "/path/to/file1.md")
+	}
+}
+
+// TestPhaseResultMetadata tests metadata management.
+// REQ_007.4: Include Metadata map[string]interface{}
+func TestPhaseResultMetadata(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+
+	result.SetMetadata("key1", "value1")
+	result.SetMetadata("key2", 42)
+
+	if result.Metadata["key1"] != "value1" {
+		t.Errorf("Metadata[key1] = %v, want %q", result.Metadata["key1"], "value1")
+	}
+	if result.Metadata["key2"] != 42 {
+		t.Errorf("Metadata[key2] = %v, want 42", result.Metadata["key2"])
+	}
+}
+
+// TestPhaseResultToDict tests serialization.
+// REQ_007.4: Implement ToDict() for checkpoint serialization
+func TestPhaseResultToDict(t *testing.T) {
+	result := NewPhaseResult(PhaseResearch)
+	result.AddArtifact("/path/to/file.md")
+	result.SetMetadata("test", "value")
+	result.Complete()
+
+	dict := result.ToDict()
+
+	if dict["phase"] != "research" {
+		t.Errorf("dict[phase] = %v, want %q", dict["phase"], "research")
+	}
+	if dict["status"] != "complete" {
+		t.Errorf("dict[status] = %v, want %q", dict["status"], "complete")
+	}
+	if _, ok := dict["artifacts"]; !ok {
+		t.Error("dict should contain artifacts")
+	}
+	if _, ok := dict["metadata"]; !ok {
+		t.Error("dict should contain metadata")
+	}
+}
+
+// TestPhaseResultFromDict tests deserialization.
+// REQ_007.4: Implement FromDict() for deserialization
+func TestPhaseResultFromDict(t *testing.T) {
+	dict := map[string]interface{}{
+		"phase":  "research",
+		"status": "complete",
+		"artifacts": []interface{}{"/path/to/file.md"},
+		"errors": []interface{}{"test error"},
+		"duration_seconds": 1.5,
+		"metadata": map[string]interface{}{"key": "value"},
+	}
+
+	result, err := PhaseResultFromDict(dict)
+	if err != nil {
+		t.Fatalf("PhaseResultFromDict failed: %v", err)
+	}
+
+	if result.Phase != PhaseResearch {
+		t.Errorf("Phase = %v, want %v", result.Phase, PhaseResearch)
+	}
+	if result.Status != StatusComplete {
+		t.Errorf("Status = %v, want %v", result.Status, StatusComplete)
+	}
+	if len(result.Artifacts) != 1 {
+		t.Errorf("len(Artifacts) = %d, want 1", len(result.Artifacts))
+	}
+	if len(result.Errors) != 1 {
+		t.Errorf("len(Errors) = %d, want 1", len(result.Errors))
+	}
+	if result.DurationSeconds != 1.5 {
+		t.Errorf("DurationSeconds = %v, want 1.5", result.DurationSeconds)
+	}
+}
+
+// TestPipelineStateCreation tests PipelineState creation.
+// REQ_007.5: Port PipelineState with all fields
+func TestPipelineStateCreation(t *testing.T) {
+	state, err := NewPipelineState("/test/path", AutonomyCheckpoint)
+	if err != nil {
+		t.Fatalf("NewPipelineState failed: %v", err)
+	}
+
+	if state.ProjectPath != "/test/path" {
+		t.Errorf("ProjectPath = %q, want %q", state.ProjectPath, "/test/path")
+	}
+	if state.AutonomyMode != AutonomyCheckpoint {
+		t.Errorf("AutonomyMode = %v, want %v", state.AutonomyMode, AutonomyCheckpoint)
+	}
+	if state.StartedAt == nil {
+		t.Error("StartedAt should not be nil")
+	}
+	if state.PhaseResults == nil {
+		t.Error("PhaseResults should not be nil")
+	}
+	if state.ContextEntryIDs == nil {
+		t.Error("ContextEntryIDs should not be nil")
+	}
+}
+
+// TestPipelineStateValidation tests project path validation.
+// REQ_007.5: Implement validation ensuring non-empty project path
+func TestPipelineStateValidation(t *testing.T) {
+	_, err := NewPipelineState("", AutonomyCheckpoint)
+	if err == nil {
+		t.Error("NewPipelineState should fail with empty project path")
+	}
+
+	state, _ := NewPipelineState("/test/path", AutonomyCheckpoint)
+	err = state.SetProjectPath("")
+	if err == nil {
+		t.Error("SetProjectPath should fail with empty path")
+	}
+}
+
+// TestPipelineStatePhaseResults tests phase result management.
+// REQ_007.5: Implement GetPhaseResult, SetPhaseResult, IsPhaseComplete
+func TestPipelineStatePhaseResults(t *testing.T) {
+	state, _ := NewPipelineState("/test/path", AutonomyCheckpoint)
+
+	result := NewPhaseResult(PhaseResearch)
+	state.SetPhaseResult(PhaseResearch, result)
+
+	retrieved := state.GetPhaseResult(PhaseResearch)
+	if retrieved != result {
+		t.Error("GetPhaseResult should return the same result")
+	}
+
+	if state.IsPhaseComplete(PhaseResearch) {
+		t.Error("IsPhaseComplete should be false for pending phase")
+	}
+
+	result.Complete()
+	if !state.IsPhaseComplete(PhaseResearch) {
+		t.Error("IsPhaseComplete should be true after Complete()")
+	}
+}
+
+// TestPipelineStateAllPhasesComplete tests completion checking.
+// REQ_007.5: Implement AllPhasesComplete()
+func TestPipelineStateAllPhasesComplete(t *testing.T) {
+	state, _ := NewPipelineState("/test/path", AutonomyCheckpoint)
+
+	if state.AllPhasesComplete() {
+		t.Error("AllPhasesComplete should be false initially")
+	}
+
+	// Complete all phases
+	for _, phase := range AllPhases() {
+		result := NewPhaseResult(phase)
+		result.Complete()
+		state.SetPhaseResult(phase, result)
+	}
+
+	if !state.AllPhasesComplete() {
+		t.Error("AllPhasesComplete should be true after all phases complete")
+	}
+}
+
+// TestPipelineStateContextEntries tests CWA tracking.
+// REQ_007.5: Implement TrackContextEntry and GetContextEntries
+func TestPipelineStateContextEntries(t *testing.T) {
+	state, _ := NewPipelineState("/test/path", AutonomyCheckpoint)
+
+	state.TrackContextEntry(PhaseResearch, "entry-1")
+	state.TrackContextEntry(PhaseResearch, "entry-2")
+	state.TrackContextEntry(PhaseDecomposition, "entry-3")
+
+	entries := state.GetContextEntries(PhaseResearch)
+	if len(entries) != 2 {
+		t.Errorf("len(GetContextEntries(PhaseResearch)) = %d, want 2", len(entries))
+	}
+
+	entries = state.GetContextEntries(PhaseDecomposition)
+	if len(entries) != 1 {
+		t.Errorf("len(GetContextEntries(PhaseDecomposition)) = %d, want 1", len(entries))
+	}
+}
+
+// TestPipelineStateToDict tests serialization.
+// REQ_007.5: Implement ToDict() and ToCheckpointDict()
+func TestPipelineStateToDict(t *testing.T) {
+	state, _ := NewPipelineState("/test/path", AutonomyCheckpoint)
+	state.CheckpointID = "checkpoint-123"
+	state.BeadsEpicID = "epic-456"
+
+	result := NewPhaseResult(PhaseResearch)
+	result.Complete()
+	state.SetPhaseResult(PhaseResearch, result)
+
+	state.TrackContextEntry(PhaseResearch, "entry-1")
+
+	dict := state.ToDict()
+
+	if dict["project_path"] != "/test/path" {
+		t.Errorf("dict[project_path] = %v, want %q", dict["project_path"], "/test/path")
+	}
+	if dict["autonomy_mode"] != "checkpoint" {
+		t.Errorf("dict[autonomy_mode] = %v, want %q", dict["autonomy_mode"], "checkpoint")
+	}
+	if dict["checkpoint_id"] != "checkpoint-123" {
+		t.Errorf("dict[checkpoint_id] = %v, want %q", dict["checkpoint_id"], "checkpoint-123")
+	}
+	if dict["beads_epic_id"] != "epic-456" {
+		t.Errorf("dict[beads_epic_id] = %v, want %q", dict["beads_epic_id"], "epic-456")
+	}
+}
+
+// TestPipelineStateFromDict tests deserialization.
+// REQ_007.5: Implement FromDict() and FromCheckpointDict()
+func TestPipelineStateFromDict(t *testing.T) {
+	dict := map[string]interface{}{
+		"project_path":  "/test/path",
+		"autonomy_mode": "batch",
+		"checkpoint_id": "checkpoint-123",
+		"beads_epic_id": "epic-456",
+		"phase_results": map[string]interface{}{
+			"research": map[string]interface{}{
+				"phase":  "research",
+				"status": "complete",
+			},
+		},
+		"context_entry_ids": map[string]interface{}{
+			"research": []interface{}{"entry-1", "entry-2"},
+		},
+	}
+
+	state, err := PipelineStateFromDict(dict)
+	if err != nil {
+		t.Fatalf("PipelineStateFromDict failed: %v", err)
+	}
+
+	if state.ProjectPath != "/test/path" {
+		t.Errorf("ProjectPath = %q, want %q", state.ProjectPath, "/test/path")
+	}
+	if state.AutonomyMode != AutonomyBatch {
+		t.Errorf("AutonomyMode = %v, want %v", state.AutonomyMode, AutonomyBatch)
+	}
+	if state.CheckpointID != "checkpoint-123" {
+		t.Errorf("CheckpointID = %q, want %q", state.CheckpointID, "checkpoint-123")
+	}
+
+	result := state.GetPhaseResult(PhaseResearch)
+	if result == nil {
+		t.Fatal("PhaseResult for research should not be nil")
+	}
+	if result.Status != StatusComplete {
+		t.Errorf("PhaseResult.Status = %v, want %v", result.Status, StatusComplete)
+	}
+
+	entries := state.GetContextEntries(PhaseResearch)
+	if len(entries) != 2 {
+		t.Errorf("len(context entries) = %d, want 2", len(entries))
+	}
+}
+
+// TestPipelineStateSerialization tests full round-trip serialization.
+// REQ_007.5: Verify serialization compatibility
+func TestPipelineStateSerialization(t *testing.T) {
+	state, _ := NewPipelineState("/test/path", AutonomyFullyAutonomous)
+	state.CheckpointID = "checkpoint-abc"
+
+	result := NewPhaseResult(PhaseResearch)
+	result.AddArtifact("/path/to/artifact.md")
+	result.Complete()
+	state.SetPhaseResult(PhaseResearch, result)
+
+	state.TrackContextEntry(PhaseResearch, "entry-123")
+
+	// Serialize
+	dict := state.ToDict()
+
+	// Deserialize
+	restored, err := PipelineStateFromDict(dict)
+	if err != nil {
+		t.Fatalf("Deserialization failed: %v", err)
+	}
+
+	// Verify
+	if restored.ProjectPath != state.ProjectPath {
+		t.Errorf("ProjectPath mismatch: %q != %q", restored.ProjectPath, state.ProjectPath)
+	}
+	if restored.AutonomyMode != state.AutonomyMode {
+		t.Errorf("AutonomyMode mismatch: %v != %v", restored.AutonomyMode, state.AutonomyMode)
+	}
+	if restored.CheckpointID != state.CheckpointID {
+		t.Errorf("CheckpointID mismatch: %q != %q", restored.CheckpointID, state.CheckpointID)
+	}
+
+	restoredResult := restored.GetPhaseResult(PhaseResearch)
+	if restoredResult == nil {
+		t.Fatal("Restored phase result should not be nil")
+	}
+	if restoredResult.Status != StatusComplete {
+		t.Errorf("Restored status = %v, want %v", restoredResult.Status, StatusComplete)
+	}
+
+	restoredEntries := restored.GetContextEntries(PhaseResearch)
+	if len(restoredEntries) != 1 {
+		t.Errorf("len(restored entries) = %d, want 1", len(restoredEntries))
+	}
+}

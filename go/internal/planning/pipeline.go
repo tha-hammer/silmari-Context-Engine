@@ -10,10 +10,11 @@ import (
 
 // PipelineConfig contains configuration for the planning pipeline.
 type PipelineConfig struct {
-	ProjectPath  string
-	AutoApprove  bool
-	TicketID     string
-	AutonomyMode AutonomyMode
+	ProjectPath   string
+	AutoApprove   bool
+	TicketID      string
+	AutonomyMode  AutonomyMode
+	MaxIterations int // Maximum iterations for implementation phase (default: IMPL_MAX_ITERATIONS)
 }
 
 // GetAutoApprove returns the auto-approve setting based on the autonomy mode.
@@ -44,7 +45,7 @@ type PipelineResults struct {
 	Steps     map[string]interface{} `json:"steps"`
 }
 
-// PlanningPipeline orchestrates the 7-step planning process.
+// PlanningPipeline orchestrates the 8-step planning and implementation process.
 type PlanningPipeline struct {
 	config PipelineConfig
 }
@@ -65,7 +66,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 1: Research
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 1/7: RESEARCH PHASE")
+	fmt.Println("STEP 1/8: RESEARCH PHASE")
 	fmt.Println(strings.Repeat("=", 60))
 
 	research := StepResearch(p.config.ProjectPath, researchPrompt)
@@ -80,7 +81,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 2: Memory Sync
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 2/7: MEMORY SYNC")
+	fmt.Println("STEP 2/8: MEMORY SYNC")
 	fmt.Println(strings.Repeat("=", 60))
 
 	sessionID := fmt.Sprintf("research-%s", time.Now().Format("20060102-150405"))
@@ -99,7 +100,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 3: Requirement Decomposition
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 3/7: REQUIREMENT DECOMPOSITION")
+	fmt.Println("STEP 3/8: REQUIREMENT DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
 	reqDecomp := StepRequirementDecomposition(p.config.ProjectPath, research.ResearchPath)
@@ -115,7 +116,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 4: Context Generation
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 4/7: CONTEXT GENERATION")
+	fmt.Println("STEP 4/8: CONTEXT GENERATION")
 	fmt.Println(strings.Repeat("=", 60))
 
 	contextGen := StepContextGeneration(p.config.ProjectPath, 100)
@@ -130,7 +131,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 5: Planning
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 5/7: PLANNING PHASE")
+	fmt.Println("STEP 5/8: PLANNING PHASE")
 	fmt.Println(strings.Repeat("=", 60))
 
 	planning := StepPlanning(p.config.ProjectPath, research.ResearchPath, "")
@@ -152,7 +153,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 6: Phase Decomposition
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 6/7: PHASE DECOMPOSITION")
+	fmt.Println("STEP 6/8: PHASE DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
 	decomposition := StepPhaseDecomposition(p.config.ProjectPath, planning.PlanPath)
@@ -169,7 +170,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 
 	// Step 7: Beads Integration
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("STEP 7/7: BEADS INTEGRATION")
+	fmt.Println("STEP 7/8: BEADS INTEGRATION")
 	fmt.Println(strings.Repeat("=", 60))
 
 	epicTitle := fmt.Sprintf("Plan: %s", p.config.TicketID)
@@ -185,6 +186,76 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 		fmt.Printf("Created %d phase issues\n", len(beads.PhaseIssues))
 	}
 
+	// Step 8: Implementation Phase
+	fmt.Println("\n" + strings.Repeat("=", 60))
+	fmt.Println("STEP 8/8: IMPLEMENTATION PHASE")
+	fmt.Println(strings.Repeat("=", 60))
+
+	// Extract issue IDs from phase issues
+	issueIDs := getIssueIDsFromBeads(beads.PhaseIssues)
+
+	// Get max iterations from config or use default
+	maxIterations := p.config.MaxIterations
+	if maxIterations == 0 {
+		maxIterations = IMPL_MAX_ITERATIONS
+	}
+
+	// Run implementation phase
+	impl := StepImplementation(
+		p.config.ProjectPath,
+		decomposition.PhaseFiles,
+		issueIDs,
+		beads.EpicID,
+		maxIterations,
+	)
+	results.Steps["implementation"] = impl
+
+	// Handle implementation result
+	if !impl.Success {
+		results.Success = false
+		results.FailedAt = "implementation"
+		results.Error = impl.Error
+
+		// Add detailed error information
+		fmt.Printf("\n❌ Implementation failed after %d iterations\n", impl.Iterations)
+		if impl.Error != "" {
+			fmt.Printf("Error: %s\n", impl.Error)
+		}
+
+		// Show which phases were completed
+		if len(impl.PhasesClosed) > 0 {
+			fmt.Printf("\nPhases completed: %v\n", impl.PhasesClosed)
+		}
+
+		// Show test status
+		if !impl.TestsPassed && len(impl.PhasesClosed) == len(issueIDs) {
+			fmt.Println("\n⚠ All phases closed but tests failed")
+			if impl.Output != "" {
+				// Show first 500 chars of test output
+				testOutput := impl.Output
+				if len(testOutput) > 500 {
+					testOutput = testOutput[:500] + "...\n(truncated)"
+				}
+				fmt.Printf("\nTest output:\n%s\n", testOutput)
+			}
+		}
+
+		fmt.Println("\n💡 Run 'bd ready' to see remaining work")
+
+		results.Completed = time.Now().Format(time.RFC3339)
+		if len(decomposition.PhaseFiles) > 0 {
+			results.PlanDir = filepath.Dir(decomposition.PhaseFiles[0])
+		}
+		results.EpicID = beads.EpicID
+
+		return results
+	}
+
+	// Success!
+	fmt.Printf("\n✅ Implementation complete after %d iterations\n", impl.Iterations)
+	fmt.Printf("✅ All %d phases closed\n", len(impl.PhasesClosed))
+	fmt.Println("✅ All tests passed")
+
 	// Complete
 	results.Completed = time.Now().Format(time.RFC3339)
 	if len(decomposition.PhaseFiles) > 0 {
@@ -199,6 +270,17 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 	fmt.Printf("Epic ID: %s\n", results.EpicID)
 
 	return results
+}
+
+// getIssueIDsFromBeads extracts issue IDs from phase issues.
+func getIssueIDsFromBeads(phaseIssues []PhaseIssue) []string {
+	issueIDs := make([]string, 0, len(phaseIssues))
+	for _, pi := range phaseIssues {
+		if pi.IssueID != "" {
+			issueIDs = append(issueIDs, pi.IssueID)
+		}
+	}
+	return issueIDs
 }
 
 // RequirementDecompositionResult contains results from requirement decomposition.
