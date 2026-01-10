@@ -1,6 +1,7 @@
 package planning
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -635,5 +636,614 @@ func BenchmarkCheckAllIssuesClosed(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		checkAllIssuesClosed(tmpDir, issueIDs)
+	}
+}
+
+// ==================== REQ_010 Tests ====================
+// Tests for REQ_010: The Implementation Phase must build implementation prompts
+// with TDD plan paths, Epic ID, and Issue IDs
+
+// REQ_010.1: Test that plan file paths are included in prompt
+func TestBuildPrompt_REQ_010_1_IncludePlanFilePaths(t *testing.T) {
+	tests := []struct {
+		name       string
+		phasePaths []string
+		want       []string
+	}{
+		{
+			name:       "Single absolute path",
+			phasePaths: []string{"/absolute/path/to/phase1.md"},
+			want:       []string{"/absolute/path/to/phase1.md", "Read the plan at:"},
+		},
+		{
+			name:       "Multiple absolute paths",
+			phasePaths: []string{"/path/phase1.md", "/path/phase2.md"},
+			want:       []string{"/path/phase1.md", "/path/phase2.md", "Read the plan at:"},
+		},
+		{
+			name: "Relative path format",
+			phasePaths: []string{"thoughts/plans/phase1.md"},
+			want: []string{"thoughts/plans/phase1.md", "Read the plan at:"},
+		},
+		{
+			name:       "Empty paths list",
+			phasePaths: []string{},
+			want:       []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prompt := buildImplementationPrompt(tt.phasePaths, "", []string{})
+
+			// Verify all expected strings are present
+			for _, wantStr := range tt.want {
+				if !strings.Contains(prompt, wantStr) {
+					t.Errorf("Prompt missing expected string: %s", wantStr)
+				}
+			}
+
+			// Verify phase numbering starts at 1
+			if len(tt.phasePaths) > 0 {
+				if !strings.Contains(prompt, "1. Read the plan at:") {
+					t.Error("Prompt should start phase numbering at 1")
+				}
+			}
+
+			// Verify TDD Plan Files section present when paths exist
+			if len(tt.phasePaths) > 0 {
+				if !strings.Contains(prompt, "## TDD Plan Files") {
+					t.Error("Prompt missing '## TDD Plan Files' section")
+				}
+			}
+		})
+	}
+}
+
+// REQ_010.1: Test path format compatibility with Claude file reading
+func TestBuildPrompt_REQ_010_1_PathFormatCompatibility(t *testing.T) {
+	phasePaths := []string{"/home/user/project/plan.md"}
+	prompt := buildImplementationPrompt(phasePaths, "", []string{})
+
+	// Verify format is compatible: "Read the plan at: /path/to/plan.md"
+	expectedFormat := "Read the plan at: /home/user/project/plan.md"
+	if !strings.Contains(prompt, expectedFormat) {
+		t.Errorf("Prompt path format not compatible with Claude file reading.\nExpected format containing: %s\nGot: %s",
+			expectedFormat, prompt)
+	}
+}
+
+// REQ_010.2: Test that Beads Epic ID is included with correct format
+func TestBuildPrompt_REQ_010_2_IncludeEpicID(t *testing.T) {
+	tests := []struct {
+		name    string
+		epicID  string
+		want    []string
+		notWant []string
+	}{
+		{
+			name:   "Epic ID present",
+			epicID: "beads-epic-123",
+			want: []string{
+				"## Beads Epic",
+				"Epic ID: beads-epic-123",
+				"bd show beads-epic-123",
+			},
+		},
+		{
+			name:   "Different epic format",
+			epicID: "EPIC-456",
+			want: []string{
+				"## Beads Epic",
+				"Epic ID: EPIC-456",
+				"bd show EPIC-456",
+			},
+		},
+		{
+			name:    "Empty epic ID - section should be omitted",
+			epicID:  "",
+			notWant: []string{"## Beads Epic", "Epic ID:"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prompt := buildImplementationPrompt([]string{}, tt.epicID, []string{})
+
+			// Verify expected strings are present
+			for _, wantStr := range tt.want {
+				if !strings.Contains(prompt, wantStr) {
+					t.Errorf("Prompt missing expected string: %s", wantStr)
+				}
+			}
+
+			// Verify unwanted strings are absent
+			for _, notWantStr := range tt.notWant {
+				if strings.Contains(prompt, notWantStr) {
+					t.Errorf("Prompt should not contain: %s (when epic ID is empty)", notWantStr)
+				}
+			}
+		})
+	}
+}
+
+// REQ_010.2: Test epic section format with show command
+func TestBuildPrompt_REQ_010_2_EpicShowCommand(t *testing.T) {
+	epicID := "beads-epic-789"
+	prompt := buildImplementationPrompt([]string{}, epicID, []string{})
+
+	// Verify 'bd show' command is included with proper formatting
+	expectedCommand := "bd show beads-epic-789"
+	if !strings.Contains(prompt, expectedCommand) {
+		t.Errorf("Prompt missing 'bd show' command for epic.\nExpected: %s\nPrompt: %s",
+			expectedCommand, prompt)
+	}
+
+	// Verify command is formatted for easy use (with backticks)
+	if !strings.Contains(prompt, "`bd show beads-epic-789`") {
+		t.Error("Epic show command should be formatted with backticks for easy copying")
+	}
+}
+
+// REQ_010.3: Test that all Phase Issue IDs are included
+func TestBuildPrompt_REQ_010_3_IncludePhaseIssueIDs(t *testing.T) {
+	tests := []struct {
+		name     string
+		issueIDs []string
+		want     []string
+	}{
+		{
+			name:     "Single issue",
+			issueIDs: []string{"beads-issue-1"},
+			want:     []string{"## Phase Issues", "Phase 1: beads-issue-1"},
+		},
+		{
+			name:     "Multiple issues in order",
+			issueIDs: []string{"beads-issue-1", "beads-issue-2", "beads-issue-3"},
+			want: []string{
+				"## Phase Issues",
+				"Phase 1: beads-issue-1",
+				"Phase 2: beads-issue-2",
+				"Phase 3: beads-issue-3",
+			},
+		},
+		{
+			name:     "Different ID formats",
+			issueIDs: []string{"ISSUE-001", "TASK-002"},
+			want: []string{
+				"Phase 1: ISSUE-001",
+				"Phase 2: TASK-002",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			prompt := buildImplementationPrompt([]string{}, "", tt.issueIDs)
+
+			for _, wantStr := range tt.want {
+				if !strings.Contains(prompt, wantStr) {
+					t.Errorf("Prompt missing expected string: %s", wantStr)
+				}
+			}
+		})
+	}
+}
+
+// REQ_010.3: Test phase numbering starts at 1 and increments sequentially
+func TestBuildPrompt_REQ_010_3_PhaseNumbering(t *testing.T) {
+	issueIDs := []string{"issue-1", "issue-2", "issue-3", "issue-4"}
+	prompt := buildImplementationPrompt([]string{}, "", issueIDs)
+
+	// Verify sequential numbering
+	expectedPatterns := []string{
+		"Phase 1:",
+		"Phase 2:",
+		"Phase 3:",
+		"Phase 4:",
+	}
+
+	for _, pattern := range expectedPatterns {
+		if !strings.Contains(prompt, pattern) {
+			t.Errorf("Prompt missing expected phase numbering: %s", pattern)
+		}
+	}
+
+	// Verify Phase 0 is not present
+	if strings.Contains(prompt, "Phase 0:") {
+		t.Error("Phase numbering should start at 1, not 0")
+	}
+}
+
+// REQ_010.3: Test issue IDs preserve ordering
+func TestBuildPrompt_REQ_010_3_IssueOrderPreservation(t *testing.T) {
+	issueIDs := []string{"Z-last", "A-first", "M-middle"}
+	prompt := buildImplementationPrompt([]string{}, "", issueIDs)
+
+	// Find positions of each issue in the prompt
+	posZ := strings.Index(prompt, "Z-last")
+	posA := strings.Index(prompt, "A-first")
+	posM := strings.Index(prompt, "M-middle")
+
+	// Verify ordering is preserved (not alphabetically sorted)
+	if posZ == -1 || posA == -1 || posM == -1 {
+		t.Error("Not all issue IDs found in prompt")
+	}
+
+	if !(posZ < posA && posA < posM) {
+		t.Error("Issue IDs should preserve input ordering, not be sorted")
+	}
+}
+
+// REQ_010.3: Test empty issue IDs list
+func TestBuildPrompt_REQ_010_3_EmptyIssueList(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	// Verify section is omitted when no issues
+	if strings.Contains(prompt, "## Phase Issues") {
+		t.Error("Phase Issues section should be omitted when issue list is empty")
+	}
+}
+
+// REQ_010.4: Test implementation instructions for Red-Green-Refactor TDD
+func TestBuildPrompt_REQ_010_4_TDDInstructions(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	requiredSections := []string{
+		"## Implementation Instructions",
+		"Follow these steps for EACH phase:",
+		"Red-Green-Refactor Cycle",
+	}
+
+	for _, section := range requiredSections {
+		if !strings.Contains(prompt, section) {
+			t.Errorf("Prompt missing required instruction section: %s", section)
+		}
+	}
+}
+
+// REQ_010.4: Test numbered steps 1-6 for TDD workflow
+func TestBuildPrompt_REQ_010_4_NumberedTDDSteps(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	requiredSteps := []string{
+		"1. **Read the Phase Plan**",
+		"2. **Red-Green-Refactor Cycle**",
+		"3. **Run Tests**",
+		"4. **Close Phase Issue**",
+		"5. **Clear Context**",
+		"6. **Move to Next Phase**",
+	}
+
+	for _, step := range requiredSteps {
+		if !strings.Contains(prompt, step) {
+			t.Errorf("Prompt missing required TDD step: %s", step)
+		}
+	}
+}
+
+// REQ_010.4: Test specific TDD cycle instructions (Red-Green-Refactor)
+func TestBuildPrompt_REQ_010_4_RedGreenRefactorCycle(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	redGreenRefactorElements := []string{
+		"Write a failing test (RED)",
+		"Implement minimal code to make it pass (GREEN)",
+		"Refactor if needed while keeping tests green (REFACTOR)",
+	}
+
+	for _, element := range redGreenRefactorElements {
+		if !strings.Contains(prompt, element) {
+			t.Errorf("Prompt missing Red-Green-Refactor element: %s", element)
+		}
+	}
+}
+
+// REQ_010.4: Test run tests commands (pytest, make test)
+func TestBuildPrompt_REQ_010_4_RunTestsCommands(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	testCommands := []string{
+		"pytest",
+		"make test",
+	}
+
+	for _, cmd := range testCommands {
+		if !strings.Contains(prompt, cmd) {
+			t.Errorf("Prompt missing test command: %s", cmd)
+		}
+	}
+}
+
+// REQ_010.4: Test close issue instructions (bd close)
+func TestBuildPrompt_REQ_010_4_CloseIssueInstructions(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	closeInstructions := []string{
+		"bd close",
+		"When a phase is complete and tests pass",
+	}
+
+	for _, instruction := range closeInstructions {
+		if !strings.Contains(prompt, instruction) {
+			t.Errorf("Prompt missing close issue instruction: %s", instruction)
+		}
+	}
+}
+
+// REQ_010.4: Test /clear instruction after closing issues
+func TestBuildPrompt_REQ_010_4_ClearContextInstruction(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	clearInstructions := []string{
+		"/clear",
+		"Clear Context",
+	}
+
+	for _, instruction := range clearInstructions {
+		if !strings.Contains(prompt, instruction) {
+			t.Errorf("Prompt missing clear context instruction: %s", instruction)
+		}
+	}
+}
+
+// REQ_010.4: Test CRITICAL section emphasizes important rules
+func TestBuildPrompt_REQ_010_4_CriticalRulesSection(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	if !strings.Contains(prompt, "## Critical Rules") {
+		t.Error("Prompt missing '## Critical Rules' section")
+	}
+
+	criticalRules := []string{
+		"ALWAYS run tests before closing an issue",
+		"ALWAYS close issues when phase is complete",
+		"ALWAYS emit /clear after closing issues",
+	}
+
+	for _, rule := range criticalRules {
+		if !strings.Contains(prompt, rule) {
+			t.Errorf("Prompt missing critical rule: %s", rule)
+		}
+	}
+}
+
+// REQ_010.5: Test bd commands for progress tracking
+func TestBuildPrompt_REQ_010_5_BeadsCommands(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "epic-123", []string{"issue-1"})
+
+	beadsCommands := []string{
+		"bd show",
+		"bd close",
+	}
+
+	for _, cmd := range beadsCommands {
+		if !strings.Contains(prompt, cmd) {
+			t.Errorf("Prompt missing beads command: %s", cmd)
+		}
+	}
+}
+
+// REQ_010: Test complete prompt structure with all elements
+func TestBuildPrompt_REQ_010_CompleteStructure(t *testing.T) {
+	phasePaths := []string{"/path/to/phase1.md", "/path/to/phase2.md"}
+	epicID := "epic-abc"
+	issueIDs := []string{"issue-1", "issue-2"}
+
+	prompt := buildImplementationPrompt(phasePaths, epicID, issueIDs)
+
+	// Verify main header
+	if !strings.Contains(prompt, "# TDD Implementation Task") {
+		t.Error("Prompt missing main header")
+	}
+
+	// Verify all major sections are present
+	majorSections := []string{
+		"## TDD Plan Files",
+		"## Beads Epic",
+		"## Phase Issues",
+		"## Implementation Instructions",
+		"## Critical Rules",
+		"## Exit Conditions",
+	}
+
+	for _, section := range majorSections {
+		if !strings.Contains(prompt, section) {
+			t.Errorf("Prompt missing major section: %s", section)
+		}
+	}
+
+	// Verify section ordering (plan files before epic, epic before issues, etc.)
+	planPos := strings.Index(prompt, "## TDD Plan Files")
+	epicPos := strings.Index(prompt, "## Beads Epic")
+	issuesPos := strings.Index(prompt, "## Phase Issues")
+	instructionsPos := strings.Index(prompt, "## Implementation Instructions")
+
+	if !(planPos < epicPos && epicPos < issuesPos && issuesPos < instructionsPos) {
+		t.Error("Prompt sections are not in the expected order")
+	}
+}
+
+// REQ_010: Test edge case with nil/empty values
+func TestBuildPrompt_REQ_010_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name       string
+		phasePaths []string
+		epicID     string
+		issueIDs   []string
+		shouldWork bool
+	}{
+		{
+			name:       "All empty",
+			phasePaths: []string{},
+			epicID:     "",
+			issueIDs:   []string{},
+			shouldWork: true, // Should still generate basic prompt
+		},
+		{
+			name:       "Nil phase paths",
+			phasePaths: nil,
+			epicID:     "epic",
+			issueIDs:   []string{"issue"},
+			shouldWork: true,
+		},
+		{
+			name:       "Nil issue IDs",
+			phasePaths: []string{"plan.md"},
+			epicID:     "epic",
+			issueIDs:   nil,
+			shouldWork: true,
+		},
+		{
+			name:       "Empty strings in lists",
+			phasePaths: []string{"", "valid.md", ""},
+			epicID:     "",
+			issueIDs:   []string{"", "valid-issue"},
+			shouldWork: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Should not panic
+			prompt := buildImplementationPrompt(tt.phasePaths, tt.epicID, tt.issueIDs)
+
+			if tt.shouldWork {
+				// Should still contain basic structure
+				if !strings.Contains(prompt, "TDD Implementation Task") {
+					t.Error("Prompt should contain basic structure even with empty inputs")
+				}
+
+				if !strings.Contains(prompt, "## Implementation Instructions") {
+					t.Error("Prompt should always contain implementation instructions")
+				}
+			}
+		})
+	}
+}
+
+// REQ_010: Test prompt formatting and readability
+func TestBuildPrompt_REQ_010_FormattingAndReadability(t *testing.T) {
+	phasePaths := []string{"/path/plan.md"}
+	epicID := "epic-1"
+	issueIDs := []string{"issue-1", "issue-2"}
+
+	prompt := buildImplementationPrompt(phasePaths, epicID, issueIDs)
+
+	// Verify proper markdown formatting
+	if !strings.Contains(prompt, "# TDD") {
+		t.Error("Prompt should use markdown headers")
+	}
+
+	// Verify code formatting for commands (backticks)
+	if !strings.Contains(prompt, "`bd show") {
+		t.Error("Commands should be formatted with backticks")
+	}
+
+	// Verify bullet points are used
+	if !strings.Contains(prompt, "- Phase") {
+		t.Error("Prompt should use bullet points for phase lists")
+	}
+
+	// Verify proper spacing between sections (should have newlines)
+	if !strings.Contains(prompt, "\n\n") {
+		t.Error("Prompt should have proper spacing between sections")
+	}
+}
+
+// REQ_010: Test that issue IDs are formatted consistently
+func TestBuildPrompt_REQ_010_IssueIDFormatting(t *testing.T) {
+	issueIDs := []string{"issue-1", "issue-2", "issue-3"}
+	prompt := buildImplementationPrompt([]string{}, "", issueIDs)
+
+	// Each issue should appear with:
+	// 1. Phase number
+	// 2. Issue ID
+	// 3. bd show command reference
+	for i, id := range issueIDs {
+		expectedFormat := fmt.Sprintf("Phase %d: %s", i+1, id)
+		if !strings.Contains(prompt, expectedFormat) {
+			t.Errorf("Issue ID not formatted correctly. Expected: %s", expectedFormat)
+		}
+
+		// Verify bd show command is present for each issue
+		expectedShowCmd := fmt.Sprintf("bd show %s", id)
+		if !strings.Contains(prompt, expectedShowCmd) {
+			t.Errorf("Missing bd show command for issue: %s", id)
+		}
+	}
+}
+
+// REQ_010: Test exit conditions section
+func TestBuildPrompt_REQ_010_ExitConditions(t *testing.T) {
+	prompt := buildImplementationPrompt([]string{}, "", []string{})
+
+	if !strings.Contains(prompt, "## Exit Conditions") {
+		t.Error("Prompt missing exit conditions section")
+	}
+
+	exitConditions := []string{
+		"All phase issues are closed",
+		"All tests pass",
+	}
+
+	for _, condition := range exitConditions {
+		if !strings.Contains(prompt, condition) {
+			t.Errorf("Prompt missing exit condition: %s", condition)
+		}
+	}
+}
+
+// REQ_010: Integration test - verify prompt with realistic data
+func TestBuildPrompt_REQ_010_Integration(t *testing.T) {
+	// Realistic data similar to what would be used in production
+	phasePaths := []string{
+		"/home/user/project/thoughts/plans/2024-01-10-feature/00-overview.md",
+		"/home/user/project/thoughts/plans/2024-01-10-feature/01-phase-1.md",
+		"/home/user/project/thoughts/plans/2024-01-10-feature/02-phase-2.md",
+	}
+	epicID := "beads-epic-2024-01-10-feature-implementation"
+	issueIDs := []string{
+		"beads-issue-phase-1-setup",
+		"beads-issue-phase-2-core-logic",
+		"beads-issue-phase-3-integration",
+	}
+
+	prompt := buildImplementationPrompt(phasePaths, epicID, issueIDs)
+
+	// Verify all inputs are present
+	for _, path := range phasePaths {
+		if !strings.Contains(prompt, path) {
+			t.Errorf("Prompt missing phase path: %s", path)
+		}
+	}
+
+	if !strings.Contains(prompt, epicID) {
+		t.Errorf("Prompt missing epic ID: %s", epicID)
+	}
+
+	for i, id := range issueIDs {
+		if !strings.Contains(prompt, id) {
+			t.Errorf("Prompt missing issue ID: %s", id)
+		}
+
+		// Verify phase numbering matches
+		expectedPhase := fmt.Sprintf("Phase %d:", i+1)
+		if !strings.Contains(prompt, expectedPhase) {
+			t.Errorf("Prompt missing phase number for issue %s", id)
+		}
+	}
+
+	// Verify prompt is substantial (not empty or truncated)
+	if len(prompt) < 500 {
+		t.Errorf("Prompt seems too short (%d chars), may be missing content", len(prompt))
+	}
+
+	// Verify prompt contains actionable instructions
+	actionableKeywords := []string{"Read", "Implement", "Run", "Close", "Clear"}
+	for _, keyword := range actionableKeywords {
+		if !strings.Contains(prompt, keyword) {
+			t.Errorf("Prompt missing actionable keyword: %s", keyword)
+		}
 	}
 }
