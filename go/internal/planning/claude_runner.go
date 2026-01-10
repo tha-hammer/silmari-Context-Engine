@@ -165,10 +165,6 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *Cla
 					finalResult = res
 				}
 			}
-
-			if lineCount%10 == 0 {
-				fmt.Fprintf(os.Stderr, "[DEBUG] Processed %d lines from stdout\n", lineCount)
-			}
 		}
 
 		if err := scanner.Err(); err != nil {

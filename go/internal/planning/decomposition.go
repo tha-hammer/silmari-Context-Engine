@@ -82,7 +82,7 @@ func DecomposeRequirements(
 
 	extractionPrompt := buildExtractionPrompt(researchContent)
 
-	result := RunClaudeSync(extractionPrompt, 1300, false, projectPath)
+	result := RunClaudeSync(extractionPrompt, 1300, true, projectPath)
 	if !result.Success {
 		return nil, NewDecompositionError(
 			ErrBAMLAPIError,
@@ -149,7 +149,7 @@ func DecomposeRequirements(
 
 		// Call LLM to expand implementation details
 		expansionPrompt := buildExpansionPrompt(researchContent, requirement.Description, subProcesses)
-		expansionResult := RunClaudeSync(expansionPrompt, 90, false, projectPath)
+		expansionResult := RunClaudeSync(expansionPrompt, 90, true, projectPath)
 
 		if expansionResult.Success {
 			expansionJSON := extractJSON(expansionResult.Output)
@@ -384,7 +384,7 @@ Research content:
 %s
 `, researchContent)
 
-	result := RunClaudeSync(prompt, 60, false, projectPath)
+	result := RunClaudeSync(prompt, 60, true, projectPath)
 	if !result.Success {
 		return nil, NewDecompositionError(
 			ErrCLIFallbackError,
