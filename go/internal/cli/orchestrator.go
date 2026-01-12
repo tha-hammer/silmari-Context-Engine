@@ -214,7 +214,8 @@ func handleContinue(projectPath string) error {
 	}
 
 	// Extract artifacts from state
-	var researchPath, planPath string
+	var researchPath string
+	var planPaths []string
 
 	// Try to extract from phase_results (RLM-Act format)
 	if phaseResults, ok := checkpoint.State["phase_results"].(map[string]interface{}); ok {
@@ -228,19 +229,21 @@ func handleContinue(projectPath string) error {
 			}
 		}
 
-		// Extract plan path from planning phase
+		// Extract all plan paths from planning phase
 		if planningPhase, ok := phaseResults["planning"].(map[string]interface{}); ok {
-			if artifacts, ok := planningPhase["artifacts"].([]interface{}); ok && len(artifacts) > 0 {
-				if path, ok := artifacts[0].(string); ok {
-					planPath = path
-					fmt.Printf("  Plan: %s\n", filepath.Base(path))
+			if artifacts, ok := planningPhase["artifacts"].([]interface{}); ok {
+				for _, artifact := range artifacts {
+					if path, ok := artifact.(string); ok {
+						planPaths = append(planPaths, path)
+						fmt.Printf("  Plan: %s\n", filepath.Base(path))
+					}
 				}
 			}
 		}
 	}
 
 	// Fallback: Try to extract from artifacts array (planning_orchestrator format)
-	if researchPath == "" || planPath == "" {
+	if researchPath == "" || len(planPaths) == 0 {
 		if artifacts, ok := checkpoint.State["artifacts"].([]interface{}); ok {
 			for _, artifact := range artifacts {
 				if artifactStr, ok := artifact.(string); ok {
@@ -249,7 +252,7 @@ func handleContinue(projectPath string) error {
 						researchPath = artifactStr
 						fmt.Printf("  Research: %s\n", filepath.Base(artifactStr))
 					} else if filepath.Base(filepath.Dir(artifactStr)) == "plans" {
-						planPath = artifactStr
+						planPaths = append(planPaths, artifactStr)
 						fmt.Printf("  Plan: %s\n", filepath.Base(artifactStr))
 					}
 				}
@@ -283,7 +286,7 @@ func handleContinue(projectPath string) error {
 		resumePhase = "research"
 	} else {
 		// Default: Try to determine from available artifacts
-		if planPath != "" {
+		if len(planPaths) > 0 {
 			resumePhase = "decomposition"
 		} else if researchPath != "" {
 			resumePhase = "planning"
@@ -296,6 +299,9 @@ func handleContinue(projectPath string) error {
 	}
 
 	fmt.Printf("\n→ Resuming from: %s phase\n", resumePhase)
+	if len(planPaths) > 0 {
+		fmt.Printf("  Plan files: %d\n", len(planPaths))
+	}
 	fmt.Println(strings.Repeat("=", 60))
 
 	// Create pipeline config
@@ -309,8 +315,8 @@ func handleContinue(projectPath string) error {
 	// Create pipeline
 	pipeline := planning.NewPlanningPipeline(config)
 
-	// Resume from checkpoint
-	results := pipeline.ResumeFromCheckpoint(checkpoint, resumePhase, planPath)
+	// Resume from checkpoint with multiple plan paths
+	results := pipeline.ResumeFromCheckpointMulti(checkpoint, resumePhase, planPaths)
 
 	// Display results
 	fmt.Println("\n" + strings.Repeat("=", 60))

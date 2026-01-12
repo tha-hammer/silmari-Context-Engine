@@ -79,6 +79,92 @@ func TestExtractFilePath(t *testing.T) {
 	}
 }
 
+func TestExtractAllFilePaths(t *testing.T) {
+	tests := []struct {
+		name     string
+		text     string
+		fileType string
+		want     []string
+	}{
+		{
+			name:     "single file",
+			text:     "Created file at thoughts/searchable/shared/research/2026-01-01-test.md",
+			fileType: "research",
+			want:     []string{"thoughts/searchable/shared/research/2026-01-01-test.md"},
+		},
+		{
+			name:     "multiple files",
+			text:     "Created thoughts/searchable/shared/research/first.md and thoughts/searchable/shared/research/second.md",
+			fileType: "research",
+			want:     []string{"thoughts/searchable/shared/research/first.md", "thoughts/searchable/shared/research/second.md"},
+		},
+		{
+			name: "multiple plan files with paths listing",
+			text: `## Plan Files Created
+
+### 1. Backend TDD Plan (Improved)
+**Path:** ` + "`thoughts/searchable/shared/plans/2026-01-11-tdd-writing-agent-backend-improved.md`" + `
+
+### 2. Svelte Frontend TDD Plan (New)
+**Path:** ` + "`thoughts/searchable/shared/plans/2026-01-11-tdd-writing-agent-svelte-frontend.md`" + `
+`,
+			fileType: "plan",
+			want: []string{
+				"thoughts/searchable/shared/plans/2026-01-11-tdd-writing-agent-backend-improved.md",
+				"thoughts/searchable/shared/plans/2026-01-11-tdd-writing-agent-svelte-frontend.md",
+			},
+		},
+		{
+			name:     "no matches",
+			text:     "No file path here",
+			fileType: "research",
+			want:     []string{},
+		},
+		{
+			name:     "duplicate paths deduplicated",
+			text:     "thoughts/searchable/research/test.md and thoughts/searchable/research/test.md again",
+			fileType: "research",
+			want:     []string{"thoughts/searchable/research/test.md"},
+		},
+		{
+			name: "mixed quoted formats",
+			text: `Created files:
+- "thoughts/searchable/shared/plans/first-plan.md"
+- 'thoughts/searchable/shared/plans/second-plan.md'
+- ` + "`thoughts/searchable/shared/plans/third-plan.md`",
+			fileType: "plan",
+			want: []string{
+				"thoughts/searchable/shared/plans/first-plan.md",
+				"thoughts/searchable/shared/plans/second-plan.md",
+				"thoughts/searchable/shared/plans/third-plan.md",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractAllFilePaths(tt.text, tt.fileType)
+			if len(got) == 0 && len(tt.want) == 0 {
+				return // Both empty, pass
+			}
+			if len(got) != len(tt.want) {
+				t.Errorf("ExtractAllFilePaths() returned %d paths, want %d\ngot: %v\nwant: %v", len(got), len(tt.want), got, tt.want)
+				return
+			}
+			// Check that all expected paths are present (order-independent)
+			gotSet := make(map[string]bool)
+			for _, path := range got {
+				gotSet[path] = true
+			}
+			for _, wantPath := range tt.want {
+				if !gotSet[wantPath] {
+					t.Errorf("ExtractAllFilePaths() missing expected path %q\ngot: %v", wantPath, got)
+				}
+			}
+		})
+	}
+}
+
 func TestExtractOpenQuestions(t *testing.T) {
 	text := `# Research Summary
 

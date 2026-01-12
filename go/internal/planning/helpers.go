@@ -12,7 +12,20 @@ import (
 // ExtractFilePath extracts a file path matching a specific type from text.
 // Pattern: thoughts/...{file_type}...*.md
 // Handles various formats: backticks, quotes, bare paths
+// Note: This returns only the first match. Use ExtractAllFilePaths for multiple files.
 func ExtractFilePath(text, fileType string) string {
+	paths := ExtractAllFilePaths(text, fileType)
+	if len(paths) > 0 {
+		return paths[0]
+	}
+	return ""
+}
+
+// ExtractAllFilePaths extracts all file paths matching a specific type from text.
+// Pattern: thoughts/...{file_type}...*.md
+// Handles various formats: backticks, quotes, bare paths
+// Returns all unique matches found.
+func ExtractAllFilePaths(text, fileType string) []string {
 	// Build patterns dynamically with fileType
 	quotedFileType := regexp.QuoteMeta(fileType)
 
@@ -29,16 +42,25 @@ func ExtractFilePath(text, fileType string) string {
 		`(thoughts/[^\s\)\]"'` + "`" + `]*` + quotedFileType + `[^\s\)\]"'` + "`" + `]*\.md)`,
 	}
 
+	seen := make(map[string]bool)
+	var result []string
+
 	for _, pattern := range patterns {
 		re := regexp.MustCompile(pattern)
-		matches := re.FindStringSubmatch(text)
-		if len(matches) > 1 {
-			// Return the captured group (without quotes/backticks)
-			return matches[1]
+		// Use FindAllStringSubmatch to get all matches
+		allMatches := re.FindAllStringSubmatch(text, -1)
+		for _, matches := range allMatches {
+			if len(matches) > 1 {
+				path := matches[1]
+				if !seen[path] {
+					seen[path] = true
+					result = append(result, path)
+				}
+			}
 		}
 	}
 
-	return ""
+	return result
 }
 
 // ExtractOpenQuestions extracts bullet/numbered items from an "Open Questions" section.

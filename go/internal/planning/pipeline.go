@@ -34,16 +34,17 @@ func (pc *PipelineConfig) GetAutoApprove() bool {
 
 // PipelineResults contains the results from all pipeline steps.
 type PipelineResults struct {
-	Success   bool                   `json:"success"`
-	Started   string                 `json:"started"`
-	Completed string                 `json:"completed,omitempty"`
-	TicketID  string                 `json:"ticket_id,omitempty"`
-	FailedAt  string                 `json:"failed_at,omitempty"`
-	StoppedAt string                 `json:"stopped_at,omitempty"`
-	Error     string                 `json:"error,omitempty"`
-	PlanDir   string                 `json:"plan_dir,omitempty"`
-	EpicID    string                 `json:"epic_id,omitempty"`
-	Steps     map[string]interface{} `json:"steps"`
+	Success    bool                   `json:"success"`
+	Started    string                 `json:"started"`
+	Completed  string                 `json:"completed,omitempty"`
+	TicketID   string                 `json:"ticket_id,omitempty"`
+	FailedAt   string                 `json:"failed_at,omitempty"`
+	StoppedAt  string                 `json:"stopped_at,omitempty"`
+	Error      string                 `json:"error,omitempty"`
+	PlanDir    string                 `json:"plan_dir,omitempty"`
+	SessionDir string                 `json:"session_dir,omitempty"` // Shared directory for all session artifacts
+	EpicID     string                 `json:"epic_id,omitempty"`
+	Steps      map[string]interface{} `json:"steps"`
 }
 
 // PlanningPipeline orchestrates the 8-step planning and implementation process.
@@ -64,6 +65,21 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 		TicketID: p.config.TicketID,
 		Steps:    make(map[string]interface{}),
 	}
+
+	// Create session directory for all artifacts from this run
+	sessionTimestamp := time.Now().Format("2006-01-02-1504") // YYYY-MM-DD-HHMM
+	sessionName := fmt.Sprintf("%s-planning-session", sessionTimestamp)
+	sessionDir := filepath.Join(p.config.ProjectPath, "thoughts", "searchable", "shared", "plans", sessionName)
+
+	if err := CreateDir(sessionDir); err != nil {
+		results.Success = false
+		results.FailedAt = "session_setup"
+		results.Error = fmt.Sprintf("failed to create session directory: %v", err)
+		return results
+	}
+
+	results.SessionDir = sessionDir
+	fmt.Printf("\n📁 Session directory: %s\n", sessionDir)
 
 	// Step 1: Research (skip if research path is provided)
 	var research *StepResult
@@ -118,7 +134,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 	fmt.Println("STEP 3/8: REQUIREMENT DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	reqDecomp := StepRequirementDecomposition(p.config.ProjectPath, research.ResearchPath)
+	reqDecomp := StepRequirementDecompositionWithSession(p.config.ProjectPath, research.ResearchPath, sessionDir)
 	results.Steps["requirement_decomposition"] = reqDecomp
 
 	if reqDecomp.Success {
@@ -134,11 +150,12 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 	fmt.Println("STEP 4/8: CONTEXT GENERATION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	contextGen := StepContextGeneration(p.config.ProjectPath, 100)
+	contextGen := StepContextGenerationWithSession(p.config.ProjectPath, sessionDir, 100)
 	results.Steps["context_generation"] = contextGen
 
 	if contextGen.Success {
 		fmt.Println("  ✓ Context generated successfully")
+		fmt.Printf("  ✓ Context directory: %s\n", contextGen.OutputDir)
 	} else {
 		fmt.Printf("  ⚠ Context generation failed: %s\n", contextGen.Error)
 		fmt.Println("  → Continuing without context (non-blocking)")
@@ -159,7 +176,7 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 		return results
 	}
 
-	if planning.PlanPath == "" {
+	if len(planning.PlanPaths) == 0 && planning.PlanPath == "" {
 		results.Success = false
 		results.FailedAt = "phase_decomposition"
 		results.Error = "No plan_path extracted from planning step"
@@ -171,7 +188,14 @@ func (p *PlanningPipeline) Run(researchPrompt string) *PipelineResults {
 	fmt.Println("STEP 6/8: PHASE DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	decomposition := StepPhaseDecomposition(p.config.ProjectPath, planning.PlanPath)
+	// Use PlanPaths if available, otherwise fall back to single PlanPath for backward compatibility
+	planPaths := planning.PlanPaths
+	if len(planPaths) == 0 && planning.PlanPath != "" {
+		planPaths = []string{planning.PlanPath}
+	}
+	fmt.Printf("Processing %d plan file(s)\n", len(planPaths))
+
+	decomposition := StepPhaseDecompositionMulti(p.config.ProjectPath, planPaths)
 	results.Steps["decomposition"] = decomposition
 
 	if !decomposition.Success {
@@ -302,7 +326,17 @@ func getIssueIDsFromBeads(phaseIssues []PhaseIssue) []string {
 }
 
 // ResumeFromCheckpoint resumes pipeline execution from a checkpoint.
+// Deprecated: Use ResumeFromCheckpointMulti for multiple plan file support.
 func (p *PlanningPipeline) ResumeFromCheckpoint(checkpoint *Checkpoint, resumePhase string, planPath string) *PipelineResults {
+	var planPaths []string
+	if planPath != "" {
+		planPaths = []string{planPath}
+	}
+	return p.ResumeFromCheckpointMulti(checkpoint, resumePhase, planPaths)
+}
+
+// ResumeFromCheckpointMulti resumes pipeline execution from a checkpoint with multiple plan paths.
+func (p *PlanningPipeline) ResumeFromCheckpointMulti(checkpoint *Checkpoint, resumePhase string, planPaths []string) *PipelineResults {
 	results := &PipelineResults{
 		Success:  true,
 		Started:  time.Now().Format(time.RFC3339),
@@ -341,10 +375,10 @@ func (p *PlanningPipeline) ResumeFromCheckpoint(checkpoint *Checkpoint, resumePh
 
 	case "decomposition":
 		// Skip to phase decomposition
-		if planPath == "" {
+		if len(planPaths) == 0 {
 			results.Success = false
 			results.FailedAt = "decomposition"
-			results.Error = "No plan path provided for decomposition resume"
+			results.Error = "No plan paths provided for decomposition resume"
 			return results
 		}
 
@@ -356,9 +390,12 @@ func (p *PlanningPipeline) ResumeFromCheckpoint(checkpoint *Checkpoint, resumePh
 			results.Steps["research"] = research
 		}
 
-		// Create synthetic planning result
+		// Create synthetic planning result with all plan paths
 		planning = NewStepResult()
-		planning.PlanPath = planPath
+		planning.PlanPaths = planPaths
+		if len(planPaths) > 0 {
+			planning.PlanPath = planPaths[0] // First path for backward compatibility
+		}
 		planning.Success = true
 		results.Steps["planning"] = planning
 
@@ -384,6 +421,24 @@ func (p *PlanningPipeline) ResumeFromCheckpoint(checkpoint *Checkpoint, resumePh
 
 // runFromMemorySync runs pipeline from memory sync step onwards.
 func (p *PlanningPipeline) runFromMemorySync(results *PipelineResults, research *StepResult) *PipelineResults {
+	// Use existing session directory if available, otherwise create a new one
+	sessionDir := results.SessionDir
+	if sessionDir == "" {
+		sessionTimestamp := time.Now().Format("2006-01-02-1504") // YYYY-MM-DD-HHMM
+		sessionName := fmt.Sprintf("%s-planning-session", sessionTimestamp)
+		sessionDir = filepath.Join(p.config.ProjectPath, "thoughts", "searchable", "shared", "plans", sessionName)
+
+		if err := CreateDir(sessionDir); err != nil {
+			results.Success = false
+			results.FailedAt = "session_setup"
+			results.Error = fmt.Sprintf("failed to create session directory: %v", err)
+			return results
+		}
+
+		results.SessionDir = sessionDir
+		fmt.Printf("\n📁 Session directory: %s\n", sessionDir)
+	}
+
 	// Step 2: Memory Sync
 	fmt.Println("\n" + strings.Repeat("=", 60))
 	fmt.Println("STEP 2/8: MEMORY SYNC")
@@ -408,7 +463,7 @@ func (p *PlanningPipeline) runFromMemorySync(results *PipelineResults, research 
 	fmt.Println("STEP 3/8: REQUIREMENT DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	reqDecomp := StepRequirementDecomposition(p.config.ProjectPath, research.ResearchPath)
+	reqDecomp := StepRequirementDecompositionWithSession(p.config.ProjectPath, research.ResearchPath, sessionDir)
 	results.Steps["requirement_decomposition"] = reqDecomp
 
 	if reqDecomp.Success {
@@ -424,11 +479,12 @@ func (p *PlanningPipeline) runFromMemorySync(results *PipelineResults, research 
 	fmt.Println("STEP 4/8: CONTEXT GENERATION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	contextGen := StepContextGeneration(p.config.ProjectPath, 100)
+	contextGen := StepContextGenerationWithSession(p.config.ProjectPath, sessionDir, 100)
 	results.Steps["context_generation"] = contextGen
 
 	if contextGen.Success {
 		fmt.Println("  ✓ Context generated successfully")
+		fmt.Printf("  ✓ Context directory: %s\n", contextGen.OutputDir)
 	} else {
 		fmt.Printf("  ⚠ Context generation failed: %s\n", contextGen.Error)
 		fmt.Println("  → Continuing without context (non-blocking)")
@@ -467,7 +523,14 @@ func (p *PlanningPipeline) runFromPhaseDecomposition(results *PipelineResults, p
 	fmt.Println("STEP 6/8: PHASE DECOMPOSITION")
 	fmt.Println(strings.Repeat("=", 60))
 
-	decomposition := StepPhaseDecomposition(p.config.ProjectPath, planning.PlanPath)
+	// Use PlanPaths if available, otherwise fall back to single PlanPath for backward compatibility
+	planPaths := planning.PlanPaths
+	if len(planPaths) == 0 && planning.PlanPath != "" {
+		planPaths = []string{planning.PlanPath}
+	}
+	fmt.Printf("Processing %d plan file(s)\n", len(planPaths))
+
+	decomposition := StepPhaseDecompositionMulti(p.config.ProjectPath, planPaths)
 	results.Steps["decomposition"] = decomposition
 
 	if !decomposition.Success {
@@ -641,6 +704,53 @@ func StepRequirementDecomposition(projectPath, researchPath string) *Requirement
 	return result
 }
 
+// StepRequirementDecompositionWithSession decomposes research into structured requirements,
+// saving to a session directory.
+func StepRequirementDecompositionWithSession(projectPath, researchPath, sessionDir string) *RequirementDecompositionResult {
+	result := &RequirementDecompositionResult{Success: true}
+
+	// Read research content
+	fullPath := researchPath
+	if !filepath.IsAbs(researchPath) {
+		fullPath = filepath.Join(projectPath, researchPath)
+	}
+
+	content, err := ReadFileContent(fullPath)
+	if err != nil {
+		result.Success = false
+		result.Error = fmt.Sprintf("failed to read research: %v", err)
+		return result
+	}
+
+	// Use decomposition function
+	hierarchy, decompositionErr := DecomposeRequirements(content, projectPath, nil, nil, nil)
+	if decompositionErr != nil {
+		result.Success = false
+		result.Error = decompositionErr.Message
+		return result
+	}
+
+	// Count requirements
+	result.RequirementCount = len(hierarchy.Requirements)
+	for _, req := range hierarchy.Requirements {
+		result.RequirementCount += len(req.Children)
+	}
+
+	// Save hierarchy to session directory under requirements/ subdirectory
+	requirementsDir := filepath.Join(sessionDir, "requirements")
+	hierarchyPath := filepath.Join(requirementsDir, "hierarchy.json")
+
+	if err := SaveHierarchy(hierarchy, hierarchyPath); err != nil {
+		result.Success = false
+		result.Error = fmt.Sprintf("failed to save hierarchy: %v", err)
+		return result
+	}
+
+	result.HierarchyPath = hierarchyPath
+	fmt.Printf("  ✓ Saved hierarchy: %s\n", hierarchyPath)
+	return result
+}
+
 // ContextGenerationResult contains results from context generation.
 type ContextGenerationResult struct {
 	Success   bool   `json:"success"`
@@ -657,6 +767,25 @@ func StepContextGeneration(projectPath string, maxFiles int) *ContextGenerationR
 
 	dateStr := time.Now().Format("2006-01-02")
 	outputDir := filepath.Join(projectPath, "thoughts", "searchable", "shared", "context", dateStr)
+
+	// Create output directory
+	if err := CreateDir(outputDir); err != nil {
+		result.Success = false
+		result.Error = fmt.Sprintf("failed to create output directory: %v", err)
+		return result
+	}
+
+	result.OutputDir = outputDir
+	return result
+}
+
+// StepContextGenerationWithSession generates tech stack and file group context,
+// saving to a session directory.
+func StepContextGenerationWithSession(projectPath, sessionDir string, maxFiles int) *ContextGenerationResult {
+	result := &ContextGenerationResult{Success: true}
+
+	// Save context to session directory under context/ subdirectory
+	outputDir := filepath.Join(sessionDir, "context")
 
 	// Create output directory
 	if err := CreateDir(outputDir); err != nil {

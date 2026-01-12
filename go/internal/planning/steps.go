@@ -16,7 +16,8 @@ type StepResult struct {
 	Error         string                 `json:"error,omitempty"`
 	Output        string                 `json:"output,omitempty"`
 	ResearchPath  string                 `json:"research_path,omitempty"`
-	PlanPath      string                 `json:"plan_path,omitempty"`
+	PlanPath      string                 `json:"plan_path,omitempty"`       // Single plan path (first found, for backward compatibility)
+	PlanPaths     []string               `json:"plan_paths,omitempty"`      // All plan paths when multiple files are created
 	PhaseFiles    []string               `json:"phase_files,omitempty"`
 	OpenQuestions []string               `json:"open_questions,omitempty"`
 	Data          map[string]interface{} `json:"data,omitempty"`
@@ -200,13 +201,16 @@ func StepPlanning(projectPath, researchPath, additionalContext string) *StepResu
 		}
 
 		result.Output = claudeResult.Output
-		result.PlanPath = ExtractFilePath(claudeResult.Output, "plan")
+		result.PlanPaths = ExtractAllFilePaths(claudeResult.Output, "plan")
+		if len(result.PlanPaths) > 0 {
+			result.PlanPath = result.PlanPaths[0] // First path for backward compatibility
+		}
 
-		fmt.Printf("[DEBUG] Extracted plan path: '%s'\n", result.PlanPath)
+		fmt.Printf("[DEBUG] Extracted plan paths: %v\n", result.PlanPaths)
 
-		// Success - plan file found
-		if result.PlanPath != "" {
-			fmt.Println("[DEBUG] Plan file found, returning success")
+		// Success - plan file(s) found
+		if len(result.PlanPaths) > 0 {
+			fmt.Printf("[DEBUG] Found %d plan file(s), returning success\n", len(result.PlanPaths))
 			return result
 		}
 
@@ -257,22 +261,50 @@ Now create the plan file. Output the plan file path when complete.
 }
 
 // StepPhaseDecomposition decomposes a plan into separate phase files.
+// planPath can be a single path (backward compatible) or the first of multiple paths.
+// Use StepPhaseDecompositionMulti for explicit multi-plan support.
 func StepPhaseDecomposition(projectPath, planPath string) *StepResult {
+	return StepPhaseDecompositionMulti(projectPath, []string{planPath})
+}
+
+// StepPhaseDecompositionMulti decomposes multiple plan files into separate phase files.
+func StepPhaseDecompositionMulti(projectPath string, planPaths []string) *StepResult {
 	result := NewStepResult()
 
-	if planPath == "" {
-		result.SetError(fmt.Errorf("plan_path is required but was empty"))
+	// Filter out empty paths
+	var validPaths []string
+	for _, p := range planPaths {
+		if p != "" {
+			validPaths = append(validPaths, p)
+		}
+	}
+
+	if len(validPaths) == 0 {
+		result.SetError(fmt.Errorf("plan_paths is required but was empty"))
 		return result
 	}
 
-	planDir := filepath.Dir(planPath)
+	// Use the directory of the first plan file for output
+	planDir := filepath.Dir(validPaths[0])
+
+	// Build the plan files section of the prompt
+	var planFilesSection string
+	if len(validPaths) == 1 {
+		planFilesSection = fmt.Sprintf("Read the plan file at: %s", validPaths[0])
+	} else {
+		planFilesSection = "Read all the following plan files:\n"
+		for i, path := range validPaths {
+			planFilesSection += fmt.Sprintf("%d. %s\n", i+1, path)
+		}
+		planFilesSection += "\nCombine the phases from ALL plan files into a unified set of phase files."
+	}
 
 	prompt := fmt.Sprintf(`# Phase Decomposition Task
 
-Read the plan file at: %s
+%s
 
 ## Instructions
-Create distinct phase files based on the plan. Each phase should end with 1 human-testable function.
+Create distinct phase files based on the plan(s). Each phase should end with 1 human-testable function.
 
 ## Output Structure
 Create files at: %s/
@@ -290,7 +322,7 @@ Each phase file must contain:
 - Success Criteria
 
 After creating all files, list the created file paths.
-`, planPath, planDir)
+`, planFilesSection, planDir)
 
 	claudeResult := RunClaudeSync(prompt, 1200, true, projectPath)
 	if !claudeResult.Success {
