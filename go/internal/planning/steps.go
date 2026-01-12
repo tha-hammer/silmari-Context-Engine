@@ -219,7 +219,7 @@ func StepPlanning(projectPath, researchPath, additionalContext string) *StepResu
 			fmt.Println("CLAUDE NEEDS CLARIFICATION")
 			fmt.Println(strings.Repeat("=", 60))
 			fmt.Println("\nClaude's response did not produce a plan file.")
-			fmt.Println("Please provide additional context or answers:\n")
+			fmt.Println("Please provide additional context or answers:")
 
 			// Collect user input
 			fmt.Print("> ")
@@ -236,7 +236,7 @@ func StepPlanning(projectPath, researchPath, additionalContext string) *StepResu
 
 Now create the plan file. Output the plan file path when complete.
 `, prompt, attempt+2, userResponse)
-				fmt.Println("\nSending additional context to Claude...")
+				fmt.Print("\nSending additional context to Claude...")
 				continue
 			}
 			fmt.Println("[DEBUG] No user response provided, continuing loop")

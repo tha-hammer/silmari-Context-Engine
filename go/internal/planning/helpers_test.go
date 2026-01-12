@@ -37,6 +37,36 @@ func TestExtractFilePath(t *testing.T) {
 			fileType: "research",
 			want:     "thoughts/searchable/shared/research/first.md",
 		},
+		{
+			name:     "path in backticks",
+			text:     "Created file: `thoughts/searchable/shared/research/2026-01-09-test.md`",
+			fileType: "research",
+			want:     "thoughts/searchable/shared/research/2026-01-09-test.md",
+		},
+		{
+			name:     "path in double quotes",
+			text:     "The file is located at \"thoughts/searchable/shared/research/2026-01-09-test.md\"",
+			fileType: "research",
+			want:     "thoughts/searchable/shared/research/2026-01-09-test.md",
+		},
+		{
+			name:     "path in single quotes",
+			text:     "Output saved to 'thoughts/searchable/plans/2026-01-09-feature.md'",
+			fileType: "plans",
+			want:     "thoughts/searchable/plans/2026-01-09-feature.md",
+		},
+		{
+			name:     "path with surrounding text",
+			text:     "I've created the research file at thoughts/searchable/research/2026-01-09-pipeline-research.md for your review.",
+			fileType: "research",
+			want:     "thoughts/searchable/research/2026-01-09-pipeline-research.md",
+		},
+		{
+			name:     "path in markdown code block",
+			text:     "File created:\n```\nthoughts/searchable/shared/research/test.md\n```",
+			fileType: "research",
+			want:     "thoughts/searchable/shared/research/test.md",
+		},
 	}
 
 	for _, tt := range tests {
