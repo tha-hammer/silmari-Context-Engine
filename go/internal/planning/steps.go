@@ -421,10 +421,10 @@ func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle str
 	// Create epic
 	cmd := exec.Command("bd", "create", "--title", epicTitle, "--type", "epic")
 	cmd.Dir = projectPath
-	output, err := cmd.Output()
+	output, err := cmd.CombinedOutput()
 	if err != nil {
 		result.Success = false
-		result.Error = fmt.Sprintf("failed to create epic: %v", err)
+		result.Error = fmt.Sprintf("failed to create epic: %v\nOutput: %s", err, string(output))
 		return result
 	}
 
@@ -452,11 +452,14 @@ func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle str
 
 		cmd := exec.Command("bd", "create", "--title", title, "--type", "task", "--priority", "2")
 		cmd.Dir = projectPath
-		output, err := cmd.Output()
+		output, err := cmd.CombinedOutput()
 
 		var issueID string
 		if err == nil {
 			issueID = extractBeadsID(string(output))
+		} else {
+			// Log the error but continue with other phases
+			fmt.Fprintf(os.Stderr, "Warning: failed to create phase issue: %v\nOutput: %s\n", err, string(output))
 		}
 
 		result.PhaseIssues = append(result.PhaseIssues, PhaseIssue{
