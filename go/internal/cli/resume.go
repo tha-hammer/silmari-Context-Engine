@@ -19,6 +19,30 @@ var (
 	resumeEpicTitle         string
 )
 
+// findProjectRoot walks up the directory tree to find the project root
+// (the directory containing .beads/)
+func findProjectRoot() (string, error) {
+	dir, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+
+	// Walk up the directory tree
+	for {
+		beadsPath := filepath.Join(dir, ".beads")
+		if info, err := os.Stat(beadsPath); err == nil && info.IsDir() {
+			return dir, nil
+		}
+
+		// Check if we've reached the root
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return "", fmt.Errorf("no .beads directory found in current or parent directories")
+		}
+		dir = parent
+	}
+}
+
 // Valid step names for resume
 var validSteps = []string{"research", "planning", "decomposition", "beads"}
 
@@ -107,6 +131,12 @@ func init() {
 
 // runResumePlanning handles the resume planning command
 func runResumePlanning(cmd *cobra.Command, args []string) error {
+	// Find project root
+	projectPath, err := findProjectRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w (hint: run from a directory containing .beads/)", err)
+	}
+
 	// Validate research path
 	absPath, err := filepath.Abs(resumeResearchPath)
 	if err != nil {
@@ -118,11 +148,13 @@ func runResumePlanning(cmd *cobra.Command, args []string) error {
 
 	if debug {
 		fmt.Println("[DEBUG] Resume planning configuration:")
+		fmt.Printf("  Project path: %s\n", projectPath)
 		fmt.Printf("  Research path: %s\n", absPath)
 		fmt.Printf("  Additional context: %s\n", resumeAdditionalContext)
 	}
 
 	fmt.Println("Resuming from planning step...")
+	fmt.Printf("Project: %s\n", projectPath)
 	fmt.Printf("Research document: %s\n", absPath)
 
 	// TODO: Implement actual resume planning logic
@@ -131,6 +163,12 @@ func runResumePlanning(cmd *cobra.Command, args []string) error {
 
 // runResumeDecomposition handles the resume decomposition command
 func runResumeDecomposition(cmd *cobra.Command, args []string) error {
+	// Find project root
+	projectPath, err := findProjectRoot()
+	if err != nil {
+		return fmt.Errorf("failed to find project root: %w (hint: run from a directory containing .beads/)", err)
+	}
+
 	// Validate plan path
 	absPath, err := filepath.Abs(resumePlanPath)
 	if err != nil {
@@ -142,10 +180,12 @@ func runResumeDecomposition(cmd *cobra.Command, args []string) error {
 
 	if debug {
 		fmt.Println("[DEBUG] Resume decomposition configuration:")
+		fmt.Printf("  Project path: %s\n", projectPath)
 		fmt.Printf("  Plan path: %s\n", absPath)
 	}
 
 	fmt.Println("Resuming from decomposition step...")
+	fmt.Printf("Project: %s\n", projectPath)
 	fmt.Printf("Plan document: %s\n", absPath)
 
 	// TODO: Implement actual resume decomposition logic
@@ -167,10 +207,10 @@ func runResumeBeads(cmd *cobra.Command, args []string) error {
 		validPaths = append(validPaths, absPath)
 	}
 
-	// Get project path
-	projectPath, err := os.Getwd()
+	// Get project path - find the directory containing .beads
+	projectPath, err := findProjectRoot()
 	if err != nil {
-		return fmt.Errorf("failed to get working directory: %w", err)
+		return fmt.Errorf("failed to find project root: %w (hint: run from a directory containing .beads/)", err)
 	}
 
 	if debug {
