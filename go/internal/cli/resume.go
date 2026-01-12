@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/silmari/context-engine/go/internal/planning"
 	"github.com/spf13/cobra"
 )
 
@@ -166,16 +167,55 @@ func runResumeBeads(cmd *cobra.Command, args []string) error {
 		validPaths = append(validPaths, absPath)
 	}
 
+	// Get project path
+	projectPath, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("failed to get working directory: %w", err)
+	}
+
 	if debug {
 		fmt.Println("[DEBUG] Resume beads configuration:")
+		fmt.Printf("  Project path: %s\n", projectPath)
 		fmt.Printf("  Phase files: %v\n", validPaths)
 		fmt.Printf("  Epic title: %s\n", resumeEpicTitle)
 	}
 
-	fmt.Println("Resuming from beads integration step...")
-	fmt.Printf("Phase files: %v\n", validPaths)
+	fmt.Println("\n============================================================")
+	fmt.Println("RESUMING: BEADS INTEGRATION")
+	fmt.Println("============================================================")
 	fmt.Printf("Epic title: %s\n", resumeEpicTitle)
+	fmt.Printf("Phase files: %d\n", len(validPaths))
 
-	// TODO: Implement actual resume beads logic
+	// Run beads integration
+	result := planning.StepBeadsIntegration(projectPath, validPaths, resumeEpicTitle)
+
+	if !result.Success {
+		fmt.Printf("\n❌ Beads integration failed: %s\n", result.Error)
+		return fmt.Errorf("beads integration failed: %s", result.Error)
+	}
+
+	fmt.Printf("\n✅ Beads integration complete\n")
+	fmt.Printf("Epic ID: %s\n", result.EpicID)
+	fmt.Printf("Phase issues created: %d\n", len(result.PhaseIssues))
+
+	if len(result.FilesAnnotated) > 0 {
+		fmt.Printf("Files annotated: %d\n", len(result.FilesAnnotated))
+	}
+
+	// Print phase details
+	fmt.Println("\nPhase Issues:")
+	for _, pi := range result.PhaseIssues {
+		if pi.IssueID != "" {
+			fmt.Printf("  Phase %d: %s → %s\n", pi.Phase, filepath.Base(pi.File), pi.IssueID)
+		} else {
+			fmt.Printf("  Phase %d: %s → (failed to create)\n", pi.Phase, filepath.Base(pi.File))
+		}
+	}
+
+	fmt.Println("\n💡 Next steps:")
+	fmt.Println("  1. Run 'bd list --status=open' to see created issues")
+	fmt.Printf("  2. Run 'bd show %s' to see the epic\n", result.EpicID)
+	fmt.Println("  3. Use 'bd update <issue-id> --status=in_progress' to start work")
+
 	return nil
 }
