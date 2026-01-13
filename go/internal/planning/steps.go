@@ -414,13 +414,91 @@ type PhaseIssue struct {
 	IssueID string
 }
 
+// ensureBeadsDatabase checks for .beads directory and initializes if needed.
+// Returns the path to the .beads directory or an error.
+func ensureBeadsDatabase(projectPath string) (string, error) {
+	beadsDir := filepath.Join(projectPath, ".beads")
+
+	// Check if .beads directory exists
+	if info, err := os.Stat(beadsDir); err == nil && info.IsDir() {
+		// Verify db.sqlite exists
+		dbPath := filepath.Join(beadsDir, "db.sqlite")
+		if _, err := os.Stat(dbPath); err == nil {
+			return beadsDir, nil
+		}
+	}
+
+	// .beads not found or incomplete - initialize it
+	fmt.Println("\n⚠️  No beads database found. Initializing...")
+	fmt.Printf("Running: bd init in %s\n\n", projectPath)
+
+	cmd := exec.Command("bd", "init")
+	cmd.Dir = projectPath
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed to initialize beads: %w", err)
+	}
+
+	// Run bd doctor --fix with automatic "Y" response
+	fmt.Println("\n🔧 Running bd doctor --fix...")
+	cmd = exec.Command("bd", "doctor", "--fix")
+	cmd.Dir = projectPath
+	cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
+
+	// Create a pipe to send "Y" to stdin
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		return "", fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	if err := cmd.Start(); err != nil {
+		return "", fmt.Errorf("failed to start bd doctor: %w", err)
+	}
+
+	// Send "Y" to confirm fixes
+	if _, err := stdin.Write([]byte("Y\n")); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: failed to send Y to bd doctor: %v\n", err)
+	}
+	stdin.Close()
+
+	if err := cmd.Wait(); err != nil {
+		// bd doctor may exit non-zero even on success, so just log warning
+		fmt.Fprintf(os.Stderr, "Warning: bd doctor exited with: %v\n", err)
+	}
+
+	// Run bd ready to show available work
+	fmt.Println("\n📋 Checking for ready work...")
+	cmd = exec.Command("bd", "ready")
+	cmd.Dir = projectPath
+	cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run() // Ignore error, this is informational
+
+	fmt.Println("\n✓ Beads database initialized successfully")
+	return beadsDir, nil
+}
+
 // StepBeadsIntegration creates beads issues for plan phases.
 func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle string) *BeadsIntegrationResult {
 	result := &BeadsIntegrationResult{Success: true}
 
-	// Create epic
+	// Ensure beads database exists
+	beadsDir, err := ensureBeadsDatabase(projectPath)
+	if err != nil {
+		result.Success = false
+		result.Error = fmt.Sprintf("failed to ensure beads database: %v", err)
+		return result
+	}
+
+	// Create epic with BEADS_DIR set
 	cmd := exec.Command("bd", "create", "--title", epicTitle, "--type", "epic")
 	cmd.Dir = projectPath
+	cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		result.Success = false
@@ -452,6 +530,7 @@ func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle str
 
 		cmd := exec.Command("bd", "create", "--title", title, "--type", "task", "--priority", "2")
 		cmd.Dir = projectPath
+		cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
 		output, err := cmd.CombinedOutput()
 
 		var issueID string
@@ -472,6 +551,7 @@ func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle str
 		if prevIssueID != "" && issueID != "" {
 			cmd = exec.Command("bd", "dep", "add", issueID, prevIssueID)
 			cmd.Dir = projectPath
+			cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
 			cmd.Run()
 		}
 		prevIssueID = issueID
@@ -480,6 +560,7 @@ func StepBeadsIntegration(projectPath string, phaseFiles []string, epicTitle str
 	// Sync beads
 	cmd = exec.Command("bd", "sync")
 	cmd.Dir = projectPath
+	cmd.Env = append(os.Environ(), fmt.Sprintf("BEADS_DIR=%s", beadsDir))
 	cmd.Run()
 
 	// Annotate files with bd commands using Claude
@@ -542,12 +623,36 @@ func annotateOverviewFile(projectPath, overviewFile, epicID string, phases []Pha
 	// Build phase list for prompt
 	var phaseList strings.Builder
 	for _, p := range phases {
-		phaseList.WriteString(fmt.Sprintf("- Phase %d: %s -> Issue ID: %s\n", p.Phase, p.File, p.IssueID))
+		basename := filepath.Base(p.File)
+		phaseList.WriteString(fmt.Sprintf("- Phase %d: %s -> Issue ID: %s\n", p.Phase, basename, p.IssueID))
 	}
 
-	prompt := fmt.Sprintf(`# Task: Add Beads Issue References to Overview File
+	prompt := fmt.Sprintf(`# Task: Add Beads Tracking Information to Plan Overview File
 
-You need to add bd command references to a plan overview file.
+## Context: Understanding the Work Hierarchy
+
+This overview file describes an entire project/feature. The work is organized in a 3-level hierarchy:
+
+1. **Epic** (This overview) - The entire project/feature
+   - Epic ID: %s
+   - Contains multiple phases that must be completed sequentially
+
+2. **Phases** (Individual phase files) - Sequential steps in the epic
+   - Each phase has its own beads issue ID
+   - Phase 2 depends on Phase 1, Phase 3 depends on Phase 2, etc.
+   - Each phase contains multiple behaviors
+
+3. **Behaviors** (Within phase files) - Testable units within a phase
+   - NOT tracked individually in beads
+   - All behaviors in a phase share that phase's issue ID
+   - Example: "Behavior 1.1", "Behavior 1.2", etc.
+
+## Your Task
+
+Add comprehensive beads tracking information to the overview file so developers can:
+1. See the epic issue ID
+2. Find all phase issue IDs
+3. Understand the sequential workflow
 
 ## File to Edit
 Path: %s
@@ -555,27 +660,46 @@ Path: %s
 ## Current Content
 %s
 
-## Issue Information
-- Epic ID: %s
-- Phase Issues:
+## Tracking Information
+
+**Epic Issue ID**: %s
+
+**Phase Issues** (%d phases total):
 %s
 
 ## Instructions
 
-1. Add a "Beads Tracking" section at the top of the file (after the title) with:
-   - Epic reference: bd show %s
-   - List of phase issues with their IDs
+Add a "Beads Tracking" section near the top of the file (after the main title/description).
 
-2. In the phase list/links section, add the issue ID next to each phase reference.
+The section should include:
 
-3. Add helpful bd commands in a "Workflow Commands" subsection:
-   - bd ready - see available work
-   - bd update <id> --status=in_progress - start a phase
-   - bd close <id> - complete a phase
+1. **Epic Issue subsection**: Show the epic ID (%s) with bd commands:
+   - bd show %s (to view the epic)
+   - bd list --status=open (to view all issues)
+   - bd ready (to see ready work)
 
-Edit the file at %s with these additions.
-Only add the beads information, do not change the existing plan content.
-`, overviewFile, string(content), epicID, phaseList.String(), epicID, overviewFile)
+2. **Phase Issues subsection**: List all %d phases with their issue IDs:
+%s
+
+3. **Workflow Commands subsection**: Include these command examples in a bash code block:
+   - bd show <phase-issue-id> (review phase details)
+   - bd update <phase-issue-id> --status=in_progress (start work)
+   - bd close <phase-issue-id> (mark complete)
+   - bd ready (see ready phases)
+   - bd list --status=in_progress (see active work)
+   - bd blocked (see blocked work)
+
+4. **Important Note**: Clarify that all behaviors within a phase (e.g., Behavior 1.1, 1.2) are tracked under that phase's single issue ID.
+
+### Important Guidelines
+
+1. **Placement**: Add tracking section AFTER the main title and high-level description, but BEFORE detailed phase descriptions
+2. **Preserve Content**: Do NOT modify existing content - only add the tracking section
+3. **Use Actual IDs**: Use the actual issue IDs provided above in the tracking section
+4. **Format Phase List**: In the "Phase Issues" subsection, list each phase with its issue ID in a clear, scannable format
+
+Now edit the file at %s to add this comprehensive tracking section.
+`, epicID, overviewFile, string(content), epicID, len(phases), phaseList.String(), epicID, epicID, len(phases), phaseList.String(), overviewFile)
 
 	claudeResult := RunClaudeSync(prompt, 120, true, projectPath)
 	return claudeResult.Success
@@ -593,9 +717,29 @@ func annotatePhaseFile(projectPath, phaseFile, issueID string, phaseNum int) boo
 		return false
 	}
 
-	prompt := fmt.Sprintf(`# Task: Add Beads Issue Reference to Phase File
+	prompt := fmt.Sprintf(`# Task: Add Beads Issue Tracking to Phase File
 
-You need to add a bd command reference to a plan phase file.
+## Context: Understanding the Work Hierarchy
+
+This project uses a 3-level hierarchy for tracking work:
+
+1. **Epic** (Top level) - The entire project/feature being built
+   - Tracked with a single beads issue ID (e.g., beads-abc1)
+   - Contains multiple sequential phases
+
+2. **Phase** (Middle level) - A sequential step in the epic
+   - Each phase is tracked with its own beads issue ID (e.g., beads-xyz2)
+   - Phases depend on previous phases (Phase 2 depends on Phase 1, etc.)
+   - Each phase contains multiple behaviors
+
+3. **Behavior** (Bottom level) - A testable unit within a phase
+   - NOT tracked individually in beads (tracked as part of the phase)
+   - Each behavior ends with 1 human-testable function
+   - Example: "Behavior 7.1: Complete User Flow Works"
+
+## Your Task
+
+Add beads tracking information to a phase file so developers know how to track their work.
 
 ## File to Edit
 Path: %s
@@ -603,21 +747,34 @@ Path: %s
 ## Current Content
 %s
 
-## Issue Information
-- Phase %d Issue ID: %s
+## This Phase's Tracking Information
+- Phase Number: %d
+- Phase Issue ID: %s
+- All behaviors in this phase are tracked under issue: %s
 
 ## Instructions
 
-1. Add a small "Tracking" section at the top of the file (after the title) with:
-   - Issue reference: %s
-   - Start command: bd update %s --status=in_progress
-   - Complete command: bd close %s
+Add a "Tracking" section at the top of the file (right after the phase title and metadata).
 
-2. Keep it minimal - just 3-4 lines showing how to track this phase.
+The tracking section should include:
 
-Edit the file at %s with these additions.
-Only add the tracking information, do not change the existing phase content.
-`, phaseFile, string(content), phaseNum, issueID, issueID, issueID, issueID, phaseFile)
+1. **Phase Issue**: Display the issue ID (%s)
+
+2. **Quick Commands**: List these bd commands:
+   - View: bd show %s
+   - Start work: bd update %s --status=in_progress
+   - Complete phase: bd close %s
+
+3. **Note**: Clarify that all behaviors in this phase (e.g., Behavior %d.1, %d.2, etc.) are tracked under this single phase issue.
+
+### Important Guidelines
+
+1. **Placement**: Add the tracking section AFTER the phase title and metadata (dependencies, effort) but BEFORE the "Overview" section
+2. **Preserve Content**: Do NOT modify any existing content - only add the tracking section
+3. **Reference Behaviors**: Make it clear that all behaviors in this phase share the same tracking issue
+
+Now edit the file at %s to add this tracking section.
+`, phaseFile, string(content), phaseNum, issueID, issueID, issueID, issueID, issueID, issueID, phaseNum, phaseNum, phaseFile)
 
 	claudeResult := RunClaudeSync(prompt, 120, true, projectPath)
 	return claudeResult.Success
