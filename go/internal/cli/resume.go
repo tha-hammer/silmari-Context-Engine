@@ -19,25 +19,40 @@ var (
 	resumeEpicTitle         string
 )
 
-// findProjectRoot walks up the directory tree to find the project root
-// (the directory containing .beads/)
+// findProjectRoot determines the project root directory.
+// If in a Git repository, returns the repository root.
+// If not in a Git repository, returns the current working directory.
+// Beads is always locked to the project directory - it does NOT search parent directories.
 func findProjectRoot() (string, error) {
 	dir, err := os.Getwd()
 	if err != nil {
 		return "", err
 	}
 
-	// Walk up the directory tree
+	// Try to find Git repository root
+	gitRoot, err := findGitRoot(dir)
+	if err == nil {
+		// In a Git repository - use the Git root
+		return gitRoot, nil
+	}
+
+	// Not in a Git repository - use current working directory (local mode)
+	return dir, nil
+}
+
+// findGitRoot finds the root of the Git repository
+func findGitRoot(startDir string) (string, error) {
+	dir := startDir
 	for {
-		beadsPath := filepath.Join(dir, ".beads")
-		if info, err := os.Stat(beadsPath); err == nil && info.IsDir() {
+		gitPath := filepath.Join(dir, ".git")
+		if info, err := os.Stat(gitPath); err == nil && info.IsDir() {
 			return dir, nil
 		}
 
 		// Check if we've reached the root
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("no .beads directory found in current or parent directories")
+			return "", fmt.Errorf("not in a git repository")
 		}
 		dir = parent
 	}
