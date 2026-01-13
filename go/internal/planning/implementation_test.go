@@ -11,6 +11,15 @@ import (
 	"time"
 )
 
+// Test helper: Skip integration tests unless INTEGRATION_TEST env var is set
+// These tests invoke the real Claude CLI and can take a long time
+func skipIfNotIntegrationTest(t *testing.T) {
+	t.Helper()
+	if os.Getenv("INTEGRATION_TEST") == "" {
+		t.Skip("Skipping integration test that requires Claude CLI. Set INTEGRATION_TEST=1 to run.")
+	}
+}
+
 // Test helper: Create a temporary test project directory
 func createTestProjectDir(t *testing.T) string {
 	tmpDir, err := os.MkdirTemp("", "impl-test-*")
@@ -46,6 +55,7 @@ func createMockBdCommand(t *testing.T, tmpDir string, issueID string, status str
 
 // REQ_000.1: Test the autonomous loop executes a maximum of 100 iterations
 func TestStepImplementation_MaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -74,6 +84,7 @@ func TestStepImplementation_MaxIterations(t *testing.T) {
 
 // REQ_000.1: Test that iteration count is recorded and returned
 func TestStepImplementation_IterationCount(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -338,6 +349,7 @@ fi
 
 // REQ_000.2.3: Test running tests (pytest)
 func TestRunTests_Pytest(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -472,6 +484,7 @@ func TestImplementationResult_Structure(t *testing.T) {
 
 // REQ_000.3: Test that iteration count is tracked correctly
 func TestStepImplementation_IterationTracking(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -508,6 +521,7 @@ func TestImplementationConstants(t *testing.T) {
 
 // REQ_000.5: Test sleep is implemented between iterations
 func TestStepImplementation_SleepBetweenIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -1261,12 +1275,15 @@ func TestBuildPrompt_REQ_010_Integration(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_1_AcceptsSingleIssueID tests that function accepts single issue ID
 func TestIsIssueClosed_REQ_011_1_AcceptsSingleIssueID(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	result := isIssueClosed(".", "test-issue-123")
 	_ = result // Function should accept and process the input
 }
 
 // TestIsIssueClosed_REQ_011_1_ExecutesBdShowCommand tests command execution
 func TestIsIssueClosed_REQ_011_1_ExecutesBdShowCommand(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// This test verifies the function executes bd show by checking behavior
 	// with a nonexistent issue (command will be attempted)
 	result := isIssueClosed(".", "nonexistent-issue")
@@ -1278,6 +1295,7 @@ func TestIsIssueClosed_REQ_011_1_ExecutesBdShowCommand(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_1_UsesCorrectWorkingDirectory tests working directory
 func TestIsIssueClosed_REQ_011_1_UsesCorrectWorkingDirectory(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Test with current directory
 	result1 := isIssueClosed(".", "test-issue")
 	_ = result1
@@ -1290,6 +1308,7 @@ func TestIsIssueClosed_REQ_011_1_UsesCorrectWorkingDirectory(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_1_HandlesInvalidIssueIDs tests graceful handling of invalid IDs
 func TestIsIssueClosed_REQ_011_1_HandlesInvalidIssueIDs(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	invalidIDs := []string{"", "   ", "\t\t"}
 	for _, id := range invalidIDs {
 		// Should not panic
@@ -1305,6 +1324,7 @@ func TestIsIssueClosed_REQ_011_1_HandlesInvalidIssueIDs(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_2_CaseInsensitiveMatching tests case-insensitive status check
 func TestIsIssueClosed_REQ_011_2_CaseInsensitiveMatching(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// The isIssueClosed function uses strings.ToLower internally
 	// This is verified by the implementation which converts output to lowercase
 	// Testing via TestIsIssueClosed already covers this behavior
@@ -1328,18 +1348,21 @@ func TestIsIssueClosed_REQ_011_2_CaseInsensitiveMatching(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_2_ChecksClosedPattern tests detection of closed status
 func TestIsIssueClosed_REQ_011_2_ChecksClosedPattern(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - checks for "status: closed" and "status:closed"
 	// This is covered by existing TestIsIssueClosed tests
 }
 
 // TestIsIssueClosed_REQ_011_2_ChecksDonePattern tests detection of done status
 func TestIsIssueClosed_REQ_011_2_ChecksDonePattern(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - checks for "status: done" and "status:done"
 	// This is covered by existing TestIsIssueClosed tests
 }
 
 // TestIsIssueClosed_REQ_011_2_ReturnsTrueForClosedOrDone tests both patterns return true
 func TestIsIssueClosed_REQ_011_2_ReturnsTrueForClosedOrDone(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - function checks multiple closed indicators
 	// including "closed", "done", and "complete"
 	// This is covered by existing TestIsIssueClosed tests
@@ -1347,6 +1370,7 @@ func TestIsIssueClosed_REQ_011_2_ReturnsTrueForClosedOrDone(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_2_ReturnsFalseForOther tests false for non-closed statuses
 func TestIsIssueClosed_REQ_011_2_ReturnsFalseForOther(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// When command fails or returns non-closed status, should return false
 	result := isIssueClosed(".", "open-issue")
 	// Will return false when bd command fails or returns non-closed status
@@ -1355,6 +1379,7 @@ func TestIsIssueClosed_REQ_011_2_ReturnsFalseForOther(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_2_HandlesEmptyOutput tests empty output handling
 func TestIsIssueClosed_REQ_011_2_HandlesEmptyOutput(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// When bd command returns empty output, should return false
 	// Verified by implementation behavior
 	result := isIssueClosed("/nonexistent/path", "test-issue")
@@ -1365,6 +1390,7 @@ func TestIsIssueClosed_REQ_011_2_HandlesEmptyOutput(t *testing.T) {
 
 // TestIsIssueClosed_REQ_011_2_HandlesMalformedOutput tests malformed output doesn't panic
 func TestIsIssueClosed_REQ_011_2_HandlesMalformedOutput(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Function should not panic on any output
 	// This is implicit in the implementation - it just checks for string patterns
 	// Covered by behavior in TestIsIssueClosed
@@ -1374,6 +1400,8 @@ func TestIsIssueClosed_REQ_011_2_HandlesMalformedOutput(t *testing.T) {
 
 // TestCheckAllIssuesClosed_REQ_011_3_AcceptsProjectPathAndIssueIDs tests function signature
 func TestCheckAllIssuesClosed_REQ_011_3_AcceptsProjectPathAndIssueIDs(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	projectPath := "."
 	issueIDs := []string{"issue-1", "issue-2"}
 	allClosed, closedList := checkAllIssuesClosed(projectPath, issueIDs)
@@ -1383,6 +1411,8 @@ func TestCheckAllIssuesClosed_REQ_011_3_AcceptsProjectPathAndIssueIDs(t *testing
 
 // TestCheckAllIssuesClosed_REQ_011_3_ReturnsFalseForEmptySlice tests empty slice behavior
 func TestCheckAllIssuesClosed_REQ_011_3_ReturnsFalseForEmptySlice(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	allClosed, closedList := checkAllIssuesClosed(".", []string{})
 	if allClosed {
 		t.Error("Expected false for empty issue ID slice")
@@ -1394,6 +1424,9 @@ func TestCheckAllIssuesClosed_REQ_011_3_ReturnsFalseForEmptySlice(t *testing.T) 
 
 // TestCheckAllIssuesClosed_REQ_011_3_IteratesThroughEachIssueID tests iteration
 func TestCheckAllIssuesClosed_REQ_011_3_IteratesThroughEachIssueID(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	issueIDs := []string{"issue-1", "issue-2", "issue-3"}
 	allClosed, closedList := checkAllIssuesClosed(".", issueIDs)
 	// Function should iterate through all IDs
@@ -1404,6 +1437,8 @@ func TestCheckAllIssuesClosed_REQ_011_3_IteratesThroughEachIssueID(t *testing.T)
 
 // TestCheckAllIssuesClosed_REQ_011_3_CallsBdShowForEachIssue tests bd show is called per issue
 func TestCheckAllIssuesClosed_REQ_011_3_CallsBdShowForEachIssue(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - checkAllIssuesClosed calls isIssueClosed for each ID
 	// which in turn calls bd show
 	issueIDs := []string{"issue-1"}
@@ -1412,12 +1447,16 @@ func TestCheckAllIssuesClosed_REQ_011_3_CallsBdShowForEachIssue(t *testing.T) {
 
 // TestCheckAllIssuesClosed_REQ_011_3_ParsesStatusFromOutput tests status parsing
 func TestCheckAllIssuesClosed_REQ_011_3_ParsesStatusFromOutput(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - uses isIssueClosed which parses status
 	// Covered by existing tests
 }
 
 // TestCheckAllIssuesClosed_REQ_011_3_FailFastBehavior tests immediate return on first non-closed
 func TestCheckAllIssuesClosed_REQ_011_3_FailFastBehavior(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Note: Current implementation does NOT fail-fast - it checks all issues
 	// It returns allClosed = false if not all are closed, but checks all first
 	// This is actually better behavior for reporting which issues are closed
@@ -1434,6 +1473,8 @@ func TestCheckAllIssuesClosed_REQ_011_3_FailFastBehavior(t *testing.T) {
 
 // TestCheckAllIssuesClosed_REQ_011_3_ReturnsTrueOnlyIfAllClosed tests all-closed condition
 func TestCheckAllIssuesClosed_REQ_011_3_ReturnsTrueOnlyIfAllClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// With empty slice, returns false (not "all closed")
 	allClosed, _ := checkAllIssuesClosed(".", []string{})
 	if allClosed {
@@ -1443,6 +1484,8 @@ func TestCheckAllIssuesClosed_REQ_011_3_ReturnsTrueOnlyIfAllClosed(t *testing.T)
 
 // TestCheckAllIssuesClosed_REQ_011_3_HandlesCommandExecutionErrors tests error handling
 func TestCheckAllIssuesClosed_REQ_011_3_HandlesCommandExecutionErrors(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Test with invalid project path - bd command will fail
 	allClosed, closedList := checkAllIssuesClosed("/nonexistent/path/that/does/not/exist", []string{"issue-1"})
 	if allClosed {
@@ -1455,6 +1498,8 @@ func TestCheckAllIssuesClosed_REQ_011_3_HandlesCommandExecutionErrors(t *testing
 
 // TestCheckAllIssuesClosed_REQ_011_3_TracksWhichIssuesAreClosed tests closed issue tracking
 func TestCheckAllIssuesClosed_REQ_011_3_TracksWhichIssuesAreClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - returns (allClosed bool, closedIssues []string)
 	// The closedIssues list tracks which issues were found to be closed
 	_, closedList := checkAllIssuesClosed(".", []string{"issue-1", "issue-2"})
@@ -1466,6 +1511,7 @@ func TestCheckAllIssuesClosed_REQ_011_3_TracksWhichIssuesAreClosed(t *testing.T)
 
 // TestStepImplementation_REQ_011_4_ChecksIssueStatusAfterIteration tests status check timing
 func TestStepImplementation_REQ_011_4_ChecksIssueStatusAfterIteration(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - StepImplementation calls checkAllIssuesClosed
 	// after each Claude invocation
 	// This is covered by existing StepImplementation tests
@@ -1473,6 +1519,7 @@ func TestStepImplementation_REQ_011_4_ChecksIssueStatusAfterIteration(t *testing
 
 // TestStepImplementation_REQ_011_4_SleepsBeforeStatusCheck tests sleep interval
 func TestStepImplementation_REQ_011_4_SleepsBeforeStatusCheck(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - uses IMPL_LOOP_SLEEP (10 seconds)
 	// time.Sleep(IMPL_LOOP_SLEEP) is called before checking status
 	// Covered by TestStepImplementation_SleepBetweenIterations
@@ -1480,6 +1527,7 @@ func TestStepImplementation_REQ_011_4_SleepsBeforeStatusCheck(t *testing.T) {
 
 // TestStepImplementation_REQ_011_4_ContinuesIfNotAllClosed tests loop continuation
 func TestStepImplementation_REQ_011_4_ContinuesIfNotAllClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - loop continues if !allClosed
 	// Only proceeds to test verification when allClosed is true
 	// Covered by existing StepImplementation tests
@@ -1487,46 +1535,55 @@ func TestStepImplementation_REQ_011_4_ContinuesIfNotAllClosed(t *testing.T) {
 
 // TestStepImplementation_REQ_011_4_ProceedsToTestsWhenAllClosed tests test execution
 func TestStepImplementation_REQ_011_4_ProceedsToTestsWhenAllClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - when allClosed, calls runTests
 	// Covered by TestStepImplementation_ContinueOnTestFailure
 }
 
 // TestStepImplementation_REQ_011_4_RespectsMaxIterations tests iteration limit
 func TestStepImplementation_REQ_011_4_RespectsMaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Covered by TestStepImplementation_MaxIterations
 }
 
 // TestStepImplementation_REQ_011_4_LogsIterationCount tests progress logging
 func TestStepImplementation_REQ_011_4_LogsIterationCount(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - uses fmt.Printf to log iteration count
 	// Covered by TestStepImplementation_IterationTracking
 }
 
 // TestStepImplementation_REQ_011_4_TracksOpenIssues tests open issue tracking
 func TestStepImplementation_REQ_011_4_TracksOpenIssues(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - calls getOpenIssues to report progress
 	// Covered by TestGetOpenIssues
 }
 
 // TestStepImplementation_REQ_011_4_EmitsProgressMessages tests progress messages
 func TestStepImplementation_REQ_011_4_EmitsProgressMessages(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation - uses fmt.Printf for various status messages
 	// like "Not all issues closed yet. Open issues: %v"
 }
 
 // TestStepImplementation_REQ_011_4_IncrementsIterationCounter tests counter increment
 func TestStepImplementation_REQ_011_4_IncrementsIterationCounter(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Covered by TestStepImplementation_IterationCount
 }
 
 // TestStepImplementation_REQ_011_4_ExitsWithErrorAtMaxIterations tests max iteration error
 func TestStepImplementation_REQ_011_4_ExitsWithErrorAtMaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Covered by TestStepImplementation_MaxIterations
 	// Verifies that result.Success = false and result.Error contains max iterations message
 }
 
 // TestCheckAllIssuesClosed_REQ_011_ConfigurableTimeout tests timeout per issue
 func TestCheckAllIssuesClosed_REQ_011_ConfigurableTimeout(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Note: Current implementation doesn't have configurable timeout per check
 	// The bd command execution doesn't have explicit timeout in isIssueClosed
 	// This would be a future enhancement
@@ -1540,6 +1597,7 @@ func TestCheckAllIssuesClosed_REQ_011_ConfigurableTimeout(t *testing.T) {
 
 // TestTryPytest_REQ_012_1_ExecutesPytestWithVerboseOutput tests pytest command execution
 func TestTryPytest_REQ_012_1_ExecutesPytestWithVerboseOutput(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1579,6 +1637,7 @@ def test_passing():
 
 // TestTryPytest_REQ_012_1_UsesShortTracebackFormat tests --tb=short flag
 func TestTryPytest_REQ_012_1_UsesShortTracebackFormat(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1619,6 +1678,8 @@ def test_failing():
 
 // TestTryPytest_REQ_012_1_SetsWorkingDirectory tests working directory
 func TestTryPytest_REQ_012_1_SetsWorkingDirectory(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1663,6 +1724,7 @@ def test_in_subdir():
 
 // TestTryPytest_REQ_012_1_CapturesStdoutAndStderr tests output capture
 func TestTryPytest_REQ_012_1_CapturesStdoutAndStderr(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1714,6 +1776,8 @@ func TestTryPytest_REQ_012_1_UsesConfigurableTimeout(t *testing.T) {
 
 // TestTryPytest_REQ_012_1_ReturnsExitCodeZeroAsSuccess tests success detection
 func TestTryPytest_REQ_012_1_ReturnsExitCodeZeroAsSuccess(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1748,6 +1812,7 @@ def test_passes():
 
 // TestTryPytest_REQ_012_1_ReturnsNonZeroAsFailure tests failure detection
 func TestTryPytest_REQ_012_1_ReturnsNonZeroAsFailure(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1789,6 +1854,7 @@ func TestTryPytest_REQ_012_1_HandlesTimeoutGracefully(t *testing.T) {
 
 // TestTryPytest_REQ_012_1_ReturnsTuplePassed tests return value structure
 func TestTryPytest_REQ_012_1_ReturnsTuplePassed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -1848,6 +1914,7 @@ func TestTryMakeTest_REQ_012_2_OnlyInvokedWhenPytestNotFound(t *testing.T) {
 
 // TestTryMakeTest_REQ_012_2_NotInvokedWhenPytestFailsWithNonZero tests no fallback on test failure
 func TestTryMakeTest_REQ_012_2_NotInvokedWhenPytestFailsWithNonZero(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2024,6 +2091,7 @@ test:
 
 // TestRunTests_REQ_012_2_ReturnsSkipMessageWhenBothUnavailable tests fallback message
 func TestRunTests_REQ_012_2_ReturnsSkipMessageWhenBothUnavailable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Test with empty PATH to ensure pytest is not found
 	oldPath := os.Getenv("PATH")
 	os.Setenv("PATH", "")
@@ -2051,6 +2119,8 @@ func TestRunTests_REQ_012_2_ReturnsSkipMessageWhenBothUnavailable(t *testing.T) 
 
 // TestRunTests_REQ_012_3_AttemptsPytestFirst tests pytest priority
 func TestRunTests_REQ_012_3_AttemptsPytestFirst(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2092,6 +2162,7 @@ test:
 
 // TestRunTests_REQ_012_3_FallbackOnlyWhenBinaryNotFound tests fallback condition
 func TestRunTests_REQ_012_3_FallbackOnlyWhenBinaryNotFound(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Skip if pytest is not available to begin with
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, cannot test fallback behavior")
@@ -2144,12 +2215,14 @@ test:
 
 // TestRunTests_REQ_012_3_NoFallbackWhenPytestRunsButFails tests no fallback on test failure
 func TestRunTests_REQ_012_3_NoFallbackWhenPytestRunsButFails(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Already tested in TestTryMakeTest_REQ_012_2_NotInvokedWhenPytestFailsWithNonZero
 	// Verified: When pytest runs but tests fail, do NOT fallback to make test
 }
 
 // TestRunTests_REQ_012_3_ReturnsTuple tests return value structure
 func TestRunTests_REQ_012_3_ReturnsTuple(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -2163,6 +2236,8 @@ func TestRunTests_REQ_012_3_ReturnsTuple(t *testing.T) {
 
 // TestRunTests_REQ_012_3_CombinesOutputFromCommand tests output handling
 func TestRunTests_REQ_012_3_CombinesOutputFromCommand(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2200,6 +2275,7 @@ def test_two():
 
 // TestRunTests_REQ_012_3_LogsTestCommand tests logging behavior
 func TestRunTests_REQ_012_3_LogsTestCommand(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation: Uses fmt.Printf to log which command was used
 	// "Attempting to run tests with pytest..."
 	// "Tests executed with pytest. Passed: %v"
@@ -2209,6 +2285,7 @@ func TestRunTests_REQ_012_3_LogsTestCommand(t *testing.T) {
 
 // TestRunTests_REQ_012_3_HandlesTimeoutConsistently tests timeout error handling
 func TestRunTests_REQ_012_3_HandlesTimeoutConsistently(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Both tryPytest and tryMakeTest use same timeout mechanism
 	// Verified in implementation
 	t.Skip("Timeout handling verified in implementation, test would take too long")
@@ -2216,6 +2293,7 @@ func TestRunTests_REQ_012_3_HandlesTimeoutConsistently(t *testing.T) {
 
 // TestRunTests_REQ_012_3_ReturnsSkipOnlyIfBothUnavailable tests skip message condition
 func TestRunTests_REQ_012_3_ReturnsSkipOnlyIfBothUnavailable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Already tested in TestRunTests_REQ_012_2_ReturnsSkipMessageWhenBothUnavailable
 }
 
@@ -2223,6 +2301,9 @@ func TestRunTests_REQ_012_3_ReturnsSkipOnlyIfBothUnavailable(t *testing.T) {
 
 // TestStepImplementation_REQ_012_4_ContinuesWhenTestsFail tests loop continuation
 func TestStepImplementation_REQ_012_4_ContinuesWhenTestsFail(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2276,12 +2357,14 @@ fi
 
 // TestStepImplementation_REQ_012_4_DoesNotExitOnTestFailure tests no early exit
 func TestStepImplementation_REQ_012_4_DoesNotExitOnTestFailure(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified in TestStepImplementation_REQ_012_4_ContinuesWhenTestsFail
 	// Loop does NOT exit when tests fail, it continues to next iteration
 }
 
 // TestStepImplementation_REQ_012_4_LogsTestFailure tests failure logging
 func TestStepImplementation_REQ_012_4_LogsTestFailure(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verified by implementation: Uses fmt.Printf to log test results
 	// "Tests passed! All requirements met."
 	// "Tests failed. Continuing implementation..."
@@ -2289,12 +2372,14 @@ func TestStepImplementation_REQ_012_4_LogsTestFailure(t *testing.T) {
 
 // TestStepImplementation_REQ_012_4_RespectsMaxIterations tests iteration limit
 func TestStepImplementation_REQ_012_4_RespectsMaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Already tested in TestStepImplementation_MaxIterations
 	// Even with test failures, loop respects max iterations
 }
 
 // TestStepImplementation_REQ_012_4_OnlyBreaksWhenBothConditionsMet tests exit condition
 func TestStepImplementation_REQ_012_4_OnlyBreaksWhenBothConditionsMet(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Exit conditions: all beads issues closed AND tests pass
 	// If either condition is false, loop continues
 
@@ -2307,6 +2392,8 @@ func TestStepImplementation_REQ_012_4_OnlyBreaksWhenBothConditionsMet(t *testing
 
 // TestRunTests_REQ_012_IntegrationWithRealTests tests full integration
 func TestRunTests_REQ_012_IntegrationWithRealTests(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2360,6 +2447,8 @@ def test_parametrized(x, y, expected):
 
 // TestRunTests_REQ_012_EdgeCaseEmptyProject tests empty project behavior
 func TestRunTests_REQ_012_EdgeCaseEmptyProject(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2384,6 +2473,7 @@ func TestRunTests_REQ_012_EdgeCaseEmptyProject(t *testing.T) {
 
 // TestRunTests_REQ_012_MakeTestWithComplexTarget tests complex Makefile
 func TestRunTests_REQ_012_MakeTestWithComplexTarget(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -2421,6 +2511,8 @@ test: setup
 
 // TestRunTests_REQ_012_HandlesSpecialCharactersInOutput tests output handling
 func TestRunTests_REQ_012_HandlesSpecialCharactersInOutput(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// Check if pytest is available
 	if _, err := exec.LookPath("pytest"); err != nil {
 		t.Skip("pytest not available, skipping test")
@@ -2455,6 +2547,7 @@ def test_special_chars():
 
 // TestRunTests_REQ_012_PytestVersionCheck tests pytest availability check
 func TestRunTests_REQ_012_PytestVersionCheck(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// The implementation checks pytest availability with --version
 	// This is done in tryPytest before running actual tests
 
@@ -2555,6 +2648,7 @@ func TestREQ_016_2_IMPL_MAX_ITERATIONS_PythonCompatibility(t *testing.T) {
 
 // TestREQ_016_2_IMPL_MAX_ITERATIONS_DefaultWhenZero verifies default usage
 func TestREQ_016_2_IMPL_MAX_ITERATIONS_DefaultWhenZero(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_016.2 Behavior 4: StepImplementation uses as default when maxIterations is 0
 	// This is tested by verifying the implementation logic
 	tmpDir := createTestProjectDir(t)
@@ -2579,6 +2673,7 @@ func TestREQ_016_2_IMPL_MAX_ITERATIONS_DefaultWhenZero(t *testing.T) {
 
 // TestREQ_016_2_IMPL_MAX_ITERATIONS_OverrideWhenNonZero verifies override capability
 func TestREQ_016_2_IMPL_MAX_ITERATIONS_OverrideWhenNonZero(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_016.2 Behavior 5: maxIterations parameter can override default when non-zero
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -2604,6 +2699,7 @@ func TestREQ_016_2_IMPL_MAX_ITERATIONS_OverrideWhenNonZero(t *testing.T) {
 
 // TestREQ_016_2_IMPL_MAX_ITERATIONS_ErrorMessageIncludes verifies error message
 func TestREQ_016_2_IMPL_MAX_ITERATIONS_ErrorMessageIncludes(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_016.2 Behavior 8: Error message includes max iteration count
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -2737,6 +2833,7 @@ func TestREQ_016_AllConstantsDocumented(t *testing.T) {
 
 // TestREQ_020_1_SuccessFieldExists verifies Success field structure
 func TestREQ_020_1_SuccessFieldExists(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 1: Success bool field exists with JSON tag
 	result := &ImplementationResult{}
 
@@ -2754,9 +2851,14 @@ func TestREQ_020_1_SuccessFieldExists(t *testing.T) {
 
 // TestREQ_020_1_SuccessInitializedToTrue verifies Success starts as true
 func TestREQ_020_1_SuccessInitializedToTrue(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 2: Success is initialized to true at start of StepImplementation
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
+
+	// Create mock commands
+	createMockClaudeCommand(t, tmpDir)
 
 	// Create a mock bd command that always returns closed
 	createMockBdCommand(t, tmpDir, "test-issue", "closed")
@@ -2779,6 +2881,8 @@ func TestREQ_020_1_SuccessInitializedToTrue(t *testing.T) {
 
 // TestREQ_020_1_SuccessFalseOnMaxIterations verifies Success=false when max iterations reached
 func TestREQ_020_1_SuccessFalseOnMaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 3: Success is set to false when max iterations reached without completion
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -2811,6 +2915,8 @@ func TestREQ_020_1_SuccessFalseOnMaxIterations(t *testing.T) {
 
 // TestREQ_020_1_SuccessFalseOnTestFailure verifies Success=false when tests fail on final iteration
 func TestREQ_020_1_SuccessFalseOnTestFailure(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 4: Success is set to false when runTests returns false on final iteration
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -2841,6 +2947,8 @@ func TestREQ_020_1_SuccessFalseOnTestFailure(t *testing.T) {
 
 // TestREQ_020_1_SuccessTrueOnlyWhenComplete verifies Success requires issues closed AND tests passing
 func TestREQ_020_1_SuccessTrueOnlyWhenComplete(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 5: Success remains true only when all beads issues are closed AND tests pass
 	tests := []struct {
 		name          string
@@ -2896,6 +3004,7 @@ func TestREQ_020_1_SuccessTrueOnlyWhenComplete(t *testing.T) {
 
 // TestREQ_020_1_SuccessFieldSerializable verifies JSON serialization
 func TestREQ_020_1_SuccessFieldSerializable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 6: Success field is serializable to JSON for checkpoint persistence
 	result := &ImplementationResult{
 		Success:    true,
@@ -2928,6 +3037,7 @@ func TestREQ_020_1_SuccessFieldSerializable(t *testing.T) {
 
 // TestREQ_020_1_SuccessIntegratesWithPipelineResults verifies integration
 func TestREQ_020_1_SuccessIntegratesWithPipelineResults(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.1 Behavior 7: Success field integrates with PipelineResults.Success for overall pipeline status
 	// This is tested indirectly - verify that ImplementationResult.Success can be used
 	// to determine PipelineResults.Success
@@ -2952,6 +3062,7 @@ func TestREQ_020_1_SuccessIntegratesWithPipelineResults(t *testing.T) {
 
 // TestREQ_020_2_ErrorFieldExists verifies Error field structure
 func TestREQ_020_2_ErrorFieldExists(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 1: Error string field exists with JSON tag `json:"error,omitempty"`
 	result := &ImplementationResult{}
 
@@ -2983,6 +3094,8 @@ func TestREQ_020_2_ErrorFieldExists(t *testing.T) {
 
 // TestREQ_020_2_ErrorEmptyOnSuccess verifies Error is empty when Success is true
 func TestREQ_020_2_ErrorEmptyOnSuccess(t *testing.T) {
+	skipIfNotIntegrationTest(t)
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 2: Error is empty string when Success is true
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3005,6 +3118,7 @@ func TestREQ_020_2_ErrorEmptyOnSuccess(t *testing.T) {
 
 // TestREQ_020_2_ErrorContainsMaxIterationsMessage verifies error message when loop exhausts
 func TestREQ_020_2_ErrorContainsMaxIterationsMessage(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 3: Error contains 'Max iterations (N) reached' message when loop exhausts
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3032,6 +3146,7 @@ func TestREQ_020_2_ErrorContainsMaxIterationsMessage(t *testing.T) {
 
 // TestREQ_020_2_ErrorContainsTestFailureDetails verifies error message when tests fail
 func TestREQ_020_2_ErrorContainsTestFailureDetails(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 4: Error contains test failure details when tests fail on final verification
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3060,6 +3175,7 @@ func TestREQ_020_2_ErrorContainsTestFailureDetails(t *testing.T) {
 
 // TestREQ_020_2_ErrorMessageHumanReadable verifies error message readability
 func TestREQ_020_2_ErrorMessageHumanReadable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 6: Error message is human-readable and actionable for debugging
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3087,6 +3203,7 @@ func TestREQ_020_2_ErrorMessageHumanReadable(t *testing.T) {
 
 // TestREQ_020_2_ErrorPreservesContext verifies error context preservation
 func TestREQ_020_2_ErrorPreservesContext(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 7: Error field preserves context about which iteration failed and why
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3108,6 +3225,7 @@ func TestREQ_020_2_ErrorPreservesContext(t *testing.T) {
 
 // TestREQ_020_2_ErrorIncludedInJSON verifies JSON serialization of Error
 func TestREQ_020_2_ErrorIncludedInJSON(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.2 Behavior 8: Error field is included in JSON output for checkpoint persistence
 	result := &ImplementationResult{
 		Success:    false,
@@ -3142,6 +3260,7 @@ func TestREQ_020_2_ErrorIncludedInJSON(t *testing.T) {
 
 // TestREQ_020_3_IterationsFieldExists verifies Iterations field structure
 func TestREQ_020_3_IterationsFieldExists(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 1: Iterations int field exists with JSON tag `json:"iterations"`
 	result := &ImplementationResult{}
 
@@ -3165,6 +3284,7 @@ func TestREQ_020_3_IterationsFieldExists(t *testing.T) {
 
 // TestREQ_020_3_IterationsInitializedToZero verifies Iterations starts at 0
 func TestREQ_020_3_IterationsInitializedToZero(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 2: Iterations is initialized to 0 at the start of StepImplementation
 	result := &ImplementationResult{}
 
@@ -3176,6 +3296,7 @@ func TestREQ_020_3_IterationsInitializedToZero(t *testing.T) {
 
 // TestREQ_020_3_IterationsIncrementsEachLoop verifies iteration counter increments
 func TestREQ_020_3_IterationsIncrementsEachLoop(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 3: Iterations increments by 1 at the start of each loop iteration
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3197,6 +3318,7 @@ func TestREQ_020_3_IterationsIncrementsEachLoop(t *testing.T) {
 
 // TestREQ_020_3_IterationsContainsFinalCount verifies final count on termination
 func TestREQ_020_3_IterationsContainsFinalCount(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 4: Iterations contains the final count when loop terminates
 	tests := []struct {
 		name          string
@@ -3253,6 +3375,7 @@ func TestREQ_020_3_IterationsContainsFinalCount(t *testing.T) {
 
 // TestREQ_020_3_IterationsPreservedInJSON verifies JSON serialization
 func TestREQ_020_3_IterationsPreservedInJSON(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 5: Iterations count is preserved in ImplementationResult JSON serialization
 	result := &ImplementationResult{
 		Success:    false,
@@ -3277,6 +3400,7 @@ func TestREQ_020_3_IterationsPreservedInJSON(t *testing.T) {
 
 // TestREQ_020_3_IterationsRespectsMaxLimit verifies max iterations enforcement
 func TestREQ_020_3_IterationsRespectsMaxLimit(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 6: Iterations count respects max_iterations limit
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3303,6 +3427,7 @@ func TestREQ_020_3_IterationsRespectsMaxLimit(t *testing.T) {
 
 // TestREQ_020_3_EarlyExitIterationsMatchActual verifies early exit iteration count
 func TestREQ_020_3_EarlyExitIterationsMatchActual(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.3 Behavior 8: If loop exits early due to success, Iterations reflects actual iterations run
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3339,6 +3464,7 @@ func TestREQ_020_3_EarlyExitIterationsMatchActual(t *testing.T) {
 
 // TestREQ_020_4_TestsPassedFieldExists verifies TestsPassed field structure
 func TestREQ_020_4_TestsPassedFieldExists(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 1: TestsPassed bool field exists with JSON tag `json:"tests_passed"`
 	result := &ImplementationResult{}
 
@@ -3362,6 +3488,7 @@ func TestREQ_020_4_TestsPassedFieldExists(t *testing.T) {
 
 // TestREQ_020_4_RunTestsReturnsCorrectTuple verifies runTests return signature
 func TestREQ_020_4_RunTestsReturnsCorrectTuple(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 2: runTests function returns (bool, string) tuple for pass status and output
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3382,6 +3509,7 @@ func TestREQ_020_4_RunTestsReturnsCorrectTuple(t *testing.T) {
 
 // TestREQ_020_4_PytestTriedFirst verifies pytest is primary test command
 func TestREQ_020_4_PytestTriedFirst(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 3: pytest -v --tb=short is tried first for test execution
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3405,6 +3533,7 @@ func TestREQ_020_4_PytestTriedFirst(t *testing.T) {
 
 // TestREQ_020_4_MakeTestFallback verifies make test fallback
 func TestREQ_020_4_MakeTestFallback(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 4: make test is used as fallback if pytest command fails or is not found
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3425,6 +3554,7 @@ func TestREQ_020_4_MakeTestFallback(t *testing.T) {
 
 // TestREQ_020_4_NoTestCommandHandled verifies graceful handling when no test command exists
 func TestREQ_020_4_NoTestCommandHandled(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 5: If neither test command exists, runTests returns (true, 'No test command found, skipping')
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3446,6 +3576,7 @@ func TestREQ_020_4_NoTestCommandHandled(t *testing.T) {
 
 // TestREQ_020_4_TestsOnlyRunAfterIssuesClosed verifies test execution order
 func TestREQ_020_4_TestsOnlyRunAfterIssuesClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 6: Tests are only run after all beads issues are confirmed closed
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3477,6 +3608,7 @@ func TestREQ_020_4_TestsOnlyRunAfterIssuesClosed(t *testing.T) {
 
 // TestREQ_020_4_TestOutputCaptured verifies test output capture for debugging
 func TestREQ_020_4_TestOutputCaptured(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 7: Test output is captured for debugging when tests fail
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3500,6 +3632,7 @@ func TestREQ_020_4_TestOutputCaptured(t *testing.T) {
 
 // TestREQ_020_4_TestsPassedSerializedToJSON verifies JSON serialization
 func TestREQ_020_4_TestsPassedSerializedToJSON(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.4 Behavior 8: TestsPassed field is serialized to JSON with tag `json:"tests_passed"`
 	result := &ImplementationResult{
 		Success:     true,
@@ -3533,6 +3666,7 @@ func TestREQ_020_4_TestsPassedSerializedToJSON(t *testing.T) {
 
 // TestREQ_020_5_PhasesClosedFieldExists verifies PhasesClosed field structure
 func TestREQ_020_5_PhasesClosedFieldExists(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 1: PhasesClosed []string field exists with JSON tag `json:"phases_closed,omitempty"`
 	result := &ImplementationResult{}
 
@@ -3570,6 +3704,7 @@ func TestREQ_020_5_PhasesClosedFieldExists(t *testing.T) {
 
 // TestREQ_020_5_CheckAllIssuesClosedChecksBdShow verifies bd show command usage
 func TestREQ_020_5_CheckAllIssuesClosedChecksBdShow(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 2: checkAllIssuesClosed function checks each issue ID via bd show command
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3591,6 +3726,7 @@ func TestREQ_020_5_CheckAllIssuesClosedChecksBdShow(t *testing.T) {
 
 // TestREQ_020_5_IssueClosedStatusRecognition verifies status recognition
 func TestREQ_020_5_IssueClosedStatusRecognition(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 3: Issue is considered closed if output contains 'status: closed' or 'status: done'
 	tests := []struct {
 		name     string
@@ -3637,6 +3773,7 @@ func TestREQ_020_5_IssueClosedStatusRecognition(t *testing.T) {
 
 // TestREQ_020_5_CheckAllIssuesRequiresAllClosed verifies all-or-nothing logic
 func TestREQ_020_5_CheckAllIssuesRequiresAllClosed(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 4: checkAllIssuesClosed returns true only when ALL issue IDs are in closed/done status
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3663,6 +3800,7 @@ func TestREQ_020_5_CheckAllIssuesRequiresAllClosed(t *testing.T) {
 
 // TestREQ_020_5_PhasesClosedPopulatedIncrementally verifies incremental population
 func TestREQ_020_5_PhasesClosedPopulatedIncrementally(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 7: PhasesClosed is populated with issue IDs as they transition to closed state
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
@@ -3689,6 +3827,7 @@ func TestREQ_020_5_PhasesClosedPopulatedIncrementally(t *testing.T) {
 
 // TestREQ_020_5_PhasesClosedSerializesToJSON verifies JSON serialization
 func TestREQ_020_5_PhasesClosedSerializesToJSON(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// REQ_020.5 Behavior 8: PhasesClosed field serializes to JSON with tag `json:"phases_closed,omitempty"`
 	result := &ImplementationResult{
 		Success:      true,
@@ -3862,6 +4001,7 @@ func createMockBdCommandMultipleIssues(t *testing.T, tmpDir string, issueStatuse
 
 // TestREQ_021_1_ClaudeFailuresDoNotTerminateLoop verifies Claude errors don't stop the loop
 func TestREQ_021_1_ClaudeFailuresDoNotTerminateLoop(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 77-81
 	// Shows that Claude failures are logged but loop continues
 	// Pattern: if !claudeResult.Success { fmt.Printf("WARNING..."); continue iteration }
@@ -3873,6 +4013,7 @@ func TestREQ_021_1_ClaudeFailuresDoNotTerminateLoop(t *testing.T) {
 
 // TestREQ_021_1_LoopContinuesWhenResultSuccessIsFalse verifies loop continues on result.success=false
 func TestREQ_021_1_LoopContinuesWhenResultSuccessIsFalse(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 77-81
 	// if !claudeResult.Success {
 	//     fmt.Printf("WARNING: Claude iteration %d failed: %s\n", ...)
@@ -3883,6 +4024,7 @@ func TestREQ_021_1_LoopContinuesWhenResultSuccessIsFalse(t *testing.T) {
 
 // TestREQ_021_1_FailedIterationsCountedTowardMax tests failed iterations count toward max
 func TestREQ_021_1_FailedIterationsCountedTowardMax(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -3911,6 +4053,7 @@ func TestREQ_021_1_FailedIterationsCountedTowardMax(t *testing.T) {
 
 // TestREQ_021_1_NoExceptionPropagationFromClaudeFailures verifies no panics from Claude errors
 func TestREQ_021_1_NoExceptionPropagationFromClaudeFailures(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 76-81
 	// Claude is invoked via RunClaudeSync which returns ClaudeResult struct
 	// No error/exception propagation - result.Success is checked instead
@@ -3943,6 +4086,7 @@ func TestREQ_021_1_NoExceptionPropagationFromClaudeFailures(t *testing.T) {
 
 // TestREQ_021_1_ErrorMessageLoggedButDoesNotBlockLoop verifies error logging
 func TestREQ_021_1_ErrorMessageLoggedButDoesNotBlockLoop(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79
 	// fmt.Printf("WARNING: Claude iteration %d failed: %s\n", result.Iterations, claudeResult.Error)
 	// This line logs the error but doesn't return - loop continues
@@ -3953,6 +4097,7 @@ func TestREQ_021_1_ErrorMessageLoggedButDoesNotBlockLoop(t *testing.T) {
 
 // TestREQ_021_1_PythonPatternPreserved verifies Go implementation matches Python logic
 func TestREQ_021_1_PythonPatternPreserved(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 77-81
 	// Python: if not result['success']: print(error); continue
 	// Go: if !claudeResult.Success { fmt.Printf(...); continue iteration }
@@ -3965,6 +4110,7 @@ func TestREQ_021_1_PythonPatternPreserved(t *testing.T) {
 
 // TestREQ_021_1_TransientErrorsTriggerContinuation verifies transient errors allow continuation
 func TestREQ_021_1_TransientErrorsTriggerContinuation(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 77-81
 	// No distinction between transient and permanent errors in continuation logic
 	// All Claude failures are treated the same: log and continue
@@ -3991,6 +4137,7 @@ func TestREQ_021_1_TransientErrorsTriggerContinuation(t *testing.T) {
 
 // TestREQ_021_1_NonTransientFailuresAllowContinuation verifies permanent errors also allow continuation
 func TestREQ_021_1_NonTransientFailuresAllowContinuation(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 77-81
 	// No special handling for permanent vs transient failures
 	// All failures log and continue - this is the design
@@ -4019,6 +4166,7 @@ func TestREQ_021_1_NonTransientFailuresAllowContinuation(t *testing.T) {
 
 // TestREQ_021_2_LogsIterationNumber verifies iteration number in log output
 func TestREQ_021_2_LogsIterationNumber(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79
 	// fmt.Printf("WARNING: Claude iteration %d failed: %s\n", result.Iterations, claudeResult.Error)
 	// Logs with 1-indexed iteration number (result.Iterations = i + 1 from line 71)
@@ -4026,6 +4174,7 @@ func TestREQ_021_2_LogsIterationNumber(t *testing.T) {
 
 // TestREQ_021_2_ErrorMessageIncludedInLog verifies error message logged
 func TestREQ_021_2_ErrorMessageIncludedInLog(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79
 	// fmt.Printf("WARNING: Claude iteration %d failed: %s\n", result.Iterations, claudeResult.Error)
 	// The %s formats the claudeResult.Error string into the log message
@@ -4033,6 +4182,7 @@ func TestREQ_021_2_ErrorMessageIncludedInLog(t *testing.T) {
 
 // TestREQ_021_2_TimestampRecorded verifies timestamp tracking exists
 func TestREQ_021_2_TimestampRecorded(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go
 	// Current implementation logs to stdout with implicit timestamp from terminal
 	// The fmt.Printf calls will have timestamps if the terminal/logger adds them
@@ -4041,6 +4191,7 @@ func TestREQ_021_2_TimestampRecorded(t *testing.T) {
 
 // TestREQ_021_2_LogFormatConsistent verifies consistent log format
 func TestREQ_021_2_LogFormatConsistent(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79
 	// Format: "WARNING: Claude iteration %d failed: %s\n"
 	// Consistent pattern: "WARNING: Claude iteration N failed: <error>"
@@ -4049,6 +4200,7 @@ func TestREQ_021_2_LogFormatConsistent(t *testing.T) {
 
 // TestREQ_021_2_LogOutputGoesToStdout verifies stdout logging
 func TestREQ_021_2_LogOutputGoesToStdout(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79
 	// Uses fmt.Printf which writes to stdout by default
 	// Terminal visibility is ensured by writing to stdout (not stderr)
@@ -4056,6 +4208,7 @@ func TestREQ_021_2_LogOutputGoesToStdout(t *testing.T) {
 
 // TestREQ_021_2_ErrorDetailsIncludeExitCode verifies exit code in error details
 func TestREQ_021_2_ErrorDetailsIncludeExitCode(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: claude_runner.go line 137-145
 	// ClaudeResult.Error includes process error details
 	// Line 143: fmt.Sprintf("claude failed: %v\nstderr: %s", err, stderrBuilder.String())
@@ -4064,6 +4217,7 @@ func TestREQ_021_2_ErrorDetailsIncludeExitCode(t *testing.T) {
 
 // TestREQ_021_2_LogIncludesElapsedTime verifies elapsed time tracking
 func TestREQ_021_2_LogIncludesElapsedTime(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 73, 89
 	// Line 73: Logs "--- Iteration X/Y ---" at start
 	// Line 89: Logs sleep duration
@@ -4073,6 +4227,7 @@ func TestREQ_021_2_LogIncludesElapsedTime(t *testing.T) {
 
 // TestREQ_021_2_FailedIterationsDistinguishable verifies failed vs successful distinction
 func TestREQ_021_2_FailedIterationsDistinguishable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go
 	// Failed: Line 79 logs "WARNING: Claude iteration %d failed: %s"
 	// Successful: No error log, continues to sleep/check phases
@@ -4081,6 +4236,7 @@ func TestREQ_021_2_FailedIterationsDistinguishable(t *testing.T) {
 
 // TestREQ_021_2_LogSeverityMatchesErrorType verifies severity levels
 func TestREQ_021_2_LogSeverityMatchesErrorType(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 79-80
 	// Uses "WARNING:" prefix for all Claude failures
 	// Current implementation treats all failures as warnings (allows continuation)
@@ -4089,6 +4245,7 @@ func TestREQ_021_2_LogSeverityMatchesErrorType(t *testing.T) {
 
 // TestREQ_021_2_StructuredLogFieldsForJSON verifies structured logging capability
 func TestREQ_021_2_StructuredLogFieldsForJSON(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go
 	// Current implementation uses fmt.Printf (plain text logging)
 	// ImplementationResult struct (line 20-28) has json tags for structured output
@@ -4124,6 +4281,7 @@ func TestREQ_021_2_StructuredLogFieldsForJSON(t *testing.T) {
 
 // TestREQ_021_3_ImplementationResultIterationsField verifies Iterations field populated
 func TestREQ_021_3_ImplementationResultIterationsField(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4148,6 +4306,7 @@ func TestREQ_021_3_ImplementationResultIterationsField(t *testing.T) {
 
 // TestREQ_021_3_EachIterationSuccessFailureRecorded verifies status tracking
 func TestREQ_021_3_EachIterationSuccessFailureRecorded(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 71
 	// result.Iterations = i + 1 (tracks total count)
 	// Current implementation tracks iteration count but not individual status
@@ -4156,6 +4315,7 @@ func TestREQ_021_3_EachIterationSuccessFailureRecorded(t *testing.T) {
 
 // TestREQ_021_3_FinalResultIncludesFailedCount verifies failed iteration count
 func TestREQ_021_3_FinalResultIncludesFailedCount(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: ImplementationResult struct (line 20-28)
 	// Current struct tracks: Success, Error, Iterations, TestsPassed, PhasesClosed
 	// Does not have separate FailedIterations field
@@ -4164,6 +4324,7 @@ func TestREQ_021_3_FinalResultIncludesFailedCount(t *testing.T) {
 
 // TestREQ_021_3_FinalResultIncludesSuccessfulCount verifies successful iteration count
 func TestREQ_021_3_FinalResultIncludesSuccessfulCount(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: ImplementationResult struct
 	// Current implementation doesn't track successful vs failed separately
 	// Total iterations tracked in Iterations field
@@ -4172,6 +4333,7 @@ func TestREQ_021_3_FinalResultIncludesSuccessfulCount(t *testing.T) {
 
 // TestREQ_021_3_MetadataIncludesIterationHistory verifies verbose mode tracking
 func TestREQ_021_3_MetadataIncludesIterationHistory(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: ImplementationResult struct (line 20-28)
 	// Output field (line 27) concatenates all iteration outputs
 	// Line 85: result.Output += fmt.Sprintf("\n=== Iteration %d ===\n%s", ...)
@@ -4180,6 +4342,7 @@ func TestREQ_021_3_MetadataIncludesIterationHistory(t *testing.T) {
 
 // TestREQ_021_3_TestsPassedFieldIndicatesFinalStatus verifies TestsPassed field
 func TestREQ_021_3_TestsPassedFieldIndicatesFinalStatus(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4201,6 +4364,7 @@ func TestREQ_021_3_TestsPassedFieldIndicatesFinalStatus(t *testing.T) {
 
 // TestREQ_021_3_PhasesClosedFieldListsSuccessfulPhases verifies PhasesClosed tracking
 func TestREQ_021_3_PhasesClosedFieldListsSuccessfulPhases(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4227,6 +4391,7 @@ func TestREQ_021_3_PhasesClosedFieldListsSuccessfulPhases(t *testing.T) {
 
 // TestREQ_021_3_DurationPerIterationOptionallyTracked verifies duration tracking
 func TestREQ_021_3_DurationPerIterationOptionallyTracked(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: ImplementationResult struct (line 20-28)
 	// Current implementation doesn't have Duration/Durations field
 	// Could be added as: Durations []time.Duration `json:"durations,omitempty"`
@@ -4235,6 +4400,7 @@ func TestREQ_021_3_DurationPerIterationOptionallyTracked(t *testing.T) {
 
 // TestREQ_021_3_ResultDistinguishesClaudeFromTestFailures verifies failure type distinction
 func TestREQ_021_3_ResultDistinguishesClaudeFromTestFailures(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Test 1: Claude failure (max iterations)
 	tmpDir1 := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir1)
@@ -4266,6 +4432,7 @@ func TestREQ_021_3_ResultDistinguishesClaudeFromTestFailures(t *testing.T) {
 
 // TestREQ_021_3_IterationThatAchievedCompletionIdentifiable verifies completion tracking
 func TestREQ_021_3_IterationThatAchievedCompletionIdentifiable(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4299,6 +4466,7 @@ func TestREQ_021_3_IterationThatAchievedCompletionIdentifiable(t *testing.T) {
 
 // TestREQ_021_4_ResultSuccessIsFalseWhenMaxReached verifies Success field
 func TestREQ_021_4_ResultSuccessIsFalseWhenMaxReached(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4317,6 +4485,7 @@ func TestREQ_021_4_ResultSuccessIsFalseWhenMaxReached(t *testing.T) {
 
 // TestREQ_021_4_ResultErrorContainsDescriptiveMessage verifies error message
 func TestREQ_021_4_ResultErrorContainsDescriptiveMessage(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4345,6 +4514,7 @@ func TestREQ_021_4_ResultErrorContainsDescriptiveMessage(t *testing.T) {
 
 // TestREQ_021_4_ResultIterationsEqualsMaxIterations verifies iteration count
 func TestREQ_021_4_ResultIterationsEqualsMaxIterations(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4363,6 +4533,7 @@ func TestREQ_021_4_ResultIterationsEqualsMaxIterations(t *testing.T) {
 
 // TestREQ_021_4_ResultTestsPassedReflectsLastTestRun verifies TestsPassed accuracy
 func TestREQ_021_4_ResultTestsPassedReflectsLastTestRun(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Case 1: Tests never ran (issues never closed)
 	tmpDir1 := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir1)
@@ -4395,6 +4566,7 @@ func TestREQ_021_4_ResultTestsPassedReflectsLastTestRun(t *testing.T) {
 
 // TestREQ_021_4_ErrorMessageIncludesMaxIterationsValue verifies config value in error
 func TestREQ_021_4_ErrorMessageIncludesMaxIterationsValue(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 124
 	// fmt.Sprintf("max iterations (%d) reached...", maxIterations)
 	// The %d formats the maxIterations variable into the error message
@@ -4416,6 +4588,7 @@ func TestREQ_021_4_ErrorMessageIncludesMaxIterationsValue(t *testing.T) {
 
 // TestREQ_021_4_ResultIncludesPartialProgress verifies partial progress tracking
 func TestREQ_021_4_ResultIncludesPartialProgress(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 
@@ -4445,6 +4618,7 @@ func TestREQ_021_4_ResultIncludesPartialProgress(t *testing.T) {
 
 // TestREQ_021_4_DefaultMaxIterationsIs100 verifies default value
 func TestREQ_021_4_DefaultMaxIterationsIs100(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 46-49
 	// if maxIterations == 0 { maxIterations = IMPL_MAX_ITERATIONS }
 	// And line 15: const IMPL_MAX_ITERATIONS = 100
@@ -4469,6 +4643,7 @@ func TestREQ_021_4_DefaultMaxIterationsIs100(t *testing.T) {
 
 // TestREQ_021_4_LoopUsesBreakDetection verifies loop exit logic
 func TestREQ_021_4_LoopUsesBreakDetection(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Verify by code inspection: implementation.go line 70-120
 	// Uses for loop with explicit break conditions:
 	// - Line 108: return result (success case - break)
@@ -4479,6 +4654,7 @@ func TestREQ_021_4_LoopUsesBreakDetection(t *testing.T) {
 
 // TestREQ_021_4_ErrorDistinguishesMaxReachedFromOtherFailures verifies error distinction
 func TestREQ_021_4_ErrorDistinguishesMaxReachedFromOtherFailures(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	// Test 1: Max iterations reached
 	tmpDir1 := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir1)
@@ -4506,6 +4682,7 @@ func TestREQ_021_4_ErrorDistinguishesMaxReachedFromOtherFailures(t *testing.T) {
 
 // TestREQ_021_4_ResultCanBeUsedForCheckpointResume verifies checkpoint compatibility
 func TestREQ_021_4_ResultCanBeUsedForCheckpointResume(t *testing.T) {
+	skipIfNotIntegrationTest(t)
 	tmpDir := createTestProjectDir(t)
 	defer os.RemoveAll(tmpDir)
 

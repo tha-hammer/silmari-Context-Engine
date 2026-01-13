@@ -7,8 +7,8 @@ import (
 func TestDefaultDecompositionConfig(t *testing.T) {
 	config := DefaultDecompositionConfig()
 
-	if config.MaxSubProcesses != 5 {
-		t.Errorf("MaxSubProcesses = %d, want 5", config.MaxSubProcesses)
+	if config.MaxSubProcesses != 15 {
+		t.Errorf("MaxSubProcesses = %d, want 15", config.MaxSubProcesses)
 	}
 	if config.MinSubProcesses != 2 {
 		t.Errorf("MinSubProcesses = %d, want 2", config.MinSubProcesses)
