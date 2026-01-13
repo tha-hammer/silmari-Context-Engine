@@ -2367,3 +2367,1310 @@ func GetReviewExitCode(result *ReviewResult) int {
 	}
 	return 0 // All pass
 }
+
+// =============================================================================
+// REQ_006: Review Loop Architecture (Phase 7)
+// =============================================================================
+
+// TerminationReason describes why the review loop terminated.
+type TerminationReason string
+
+const (
+	TerminationMaxIterations    TerminationReason = "max_iterations"
+	TerminationAllComplete      TerminationReason = "all_complete"
+	TerminationCriticalBlocking TerminationReason = "critical_blocking"
+	TerminationTimeout          TerminationReason = "timeout"
+	TerminationUserCancelled    TerminationReason = "user_cancelled"
+)
+
+// PhaseState represents the state of a phase in the state machine.
+type PhaseState string
+
+const (
+	PhaseStatePending    PhaseState = "pending"
+	PhaseStateInProgress PhaseState = "in_progress"
+	PhaseStateComplete   PhaseState = "complete"
+	PhaseStateFailed     PhaseState = "failed"
+)
+
+// DefaultMaxRecursionDepth is the default maximum depth for requirement tree traversal.
+const DefaultMaxRecursionDepth = 10
+
+// DefaultMaxIterations is the default maximum number of loop iterations.
+const DefaultMaxIterations = 100
+
+// DefaultMaxRetries is the default number of retries for failed phases.
+const DefaultMaxRetries = 3
+
+// DefaultReviewTimeout is the default timeout for overall review (10 minutes).
+const DefaultReviewTimeout = 10 * time.Minute
+
+// ReviewLoopConfig holds configuration for the review loop execution.
+// REQ_006.1: Loop configuration for phase iteration
+type ReviewLoopConfig struct {
+	// PlanPath is the path to the plan document.
+	PlanPath string `json:"plan_path"`
+
+	// ProjectPath is the path to the project directory.
+	ProjectPath string `json:"project_path"`
+
+	// AutonomyMode controls checkpointing and pause behavior.
+	AutonomyMode AutonomyMode `json:"autonomy_mode"`
+
+	// MaxIterations is the maximum number of loop iterations (default: 100).
+	MaxIterations int `json:"max_iterations"`
+
+	// MaxRetries is the number of retries for failed phases (default: 3).
+	MaxRetries int `json:"max_retries"`
+
+	// MaxRecursionDepth limits requirement tree traversal depth (default: 10).
+	MaxRecursionDepth int `json:"max_recursion_depth"`
+
+	// Timeout is the overall review timeout duration.
+	Timeout time.Duration `json:"timeout"`
+
+	// StopOnCritical terminates if any critical findings exist.
+	StopOnCritical bool `json:"stop_on_critical"`
+
+	// StepsToRun specifies which review steps to execute (empty = all).
+	StepsToRun []ReviewStep `json:"steps_to_run,omitempty"`
+
+	// PhasesToReview specifies which phases to review (empty = all).
+	PhasesToReview []PhaseType `json:"phases_to_review,omitempty"`
+
+	// ResumeFromPhaseIdx resumes from a specific phase index (for checkpoint resume).
+	ResumeFromPhaseIdx int `json:"resume_from_phase_idx"`
+
+	// GitCommit is the git commit hash for metadata.
+	GitCommit string `json:"git_commit,omitempty"`
+
+	// Reviewer is the reviewer name for metadata.
+	Reviewer string `json:"reviewer,omitempty"`
+}
+
+// NewReviewLoopConfig creates a new ReviewLoopConfig with defaults.
+func NewReviewLoopConfig(planPath, projectPath string) *ReviewLoopConfig {
+	return &ReviewLoopConfig{
+		PlanPath:          planPath,
+		ProjectPath:       projectPath,
+		AutonomyMode:      AutonomyCheckpoint,
+		MaxIterations:     DefaultMaxIterations,
+		MaxRetries:        DefaultMaxRetries,
+		MaxRecursionDepth: DefaultMaxRecursionDepth,
+		Timeout:           DefaultReviewTimeout,
+		StopOnCritical:    true,
+		StepsToRun:        AllReviewSteps(),
+		PhasesToReview:    AllPhases(),
+	}
+}
+
+// ReviewLoopResult holds the comprehensive result of a review loop execution.
+// REQ_006.4: Results map structure for storing review findings
+// REQ_006.5: Loop termination tracking
+type ReviewLoopResult struct {
+	// Success indicates if the review completed successfully.
+	Success bool `json:"success"`
+
+	// Error contains error message if failed.
+	Error string `json:"error,omitempty"`
+
+	// TerminationReason explains why the loop terminated.
+	TerminationReason TerminationReason `json:"termination_reason"`
+
+	// Iterations is the number of iterations completed.
+	Iterations int `json:"iterations"`
+
+	// Results is the nested map: phase -> step -> *ReviewStepResult.
+	// REQ_006.4: Results stored in map[PhaseType]map[ReviewStep]*ReviewStepResult
+	Results map[PhaseType]map[ReviewStep]*ReviewStepResult `json:"results"`
+
+	// PhaseStates tracks the state of each phase.
+	PhaseStates map[PhaseType]PhaseState `json:"phase_states"`
+
+	// PhaseCounts aggregates counts per phase.
+	PhaseCounts map[PhaseType]SeverityCounts `json:"phase_counts"`
+
+	// TotalCounts aggregates all findings across phases.
+	TotalCounts SeverityCounts `json:"total_counts"`
+
+	// ReviewedPhases is the list of phases that were reviewed.
+	ReviewedPhases []PhaseType `json:"reviewed_phases"`
+
+	// ReviewedSteps is the list of steps that were executed.
+	ReviewedSteps []ReviewStep `json:"reviewed_steps"`
+
+	// CurrentPhaseIdx is the current phase index for resume.
+	CurrentPhaseIdx int `json:"current_phase_idx"`
+
+	// Metadata contains additional information.
+	Metadata ReviewLoopMetadata `json:"metadata"`
+
+	// StartTime is when the review started.
+	StartTime time.Time `json:"start_time"`
+
+	// EndTime is when the review ended.
+	EndTime time.Time `json:"end_time"`
+
+	// DurationSeconds is the total duration in seconds.
+	DurationSeconds float64 `json:"duration_seconds"`
+
+	// RetryCount tracks retries per phase.
+	RetryCount map[PhaseType]int `json:"retry_count,omitempty"`
+}
+
+// ReviewLoopMetadata contains metadata about the review.
+// REQ_006.4: Results include metadata: timestamp, plan path, git commit, reviewer
+type ReviewLoopMetadata struct {
+	Timestamp   time.Time `json:"timestamp"`
+	PlanPath    string    `json:"plan_path"`
+	ProjectPath string    `json:"project_path"`
+	GitCommit   string    `json:"git_commit,omitempty"`
+	Reviewer    string    `json:"reviewer,omitempty"`
+}
+
+// NewReviewLoopResult creates a new empty ReviewLoopResult.
+func NewReviewLoopResult() *ReviewLoopResult {
+	return &ReviewLoopResult{
+		Success:         true,
+		Results:         make(map[PhaseType]map[ReviewStep]*ReviewStepResult),
+		PhaseStates:     make(map[PhaseType]PhaseState),
+		PhaseCounts:     make(map[PhaseType]SeverityCounts),
+		ReviewedPhases:  make([]PhaseType, 0),
+		ReviewedSteps:   make([]ReviewStep, 0),
+		RetryCount:      make(map[PhaseType]int),
+		StartTime:       time.Now(),
+	}
+}
+
+// HasBlockingIssues returns true if there are any Critical findings.
+// REQ_006.4: hasBlockingIssues(results) returns true if any Critical findings
+func (r *ReviewLoopResult) HasBlockingIssues() bool {
+	return r.TotalCounts.Critical > 0
+}
+
+// CountBySeverity returns a map of severity level to count.
+// REQ_006.4: countBySeverity(results) returns map[SeverityLevel]int
+func (r *ReviewLoopResult) CountBySeverity() map[Severity]int {
+	return map[Severity]int{
+		SeverityWellDefined: r.TotalCounts.WellDefined,
+		SeverityWarning:     r.TotalCounts.Warning,
+		SeverityCritical:    r.TotalCounts.Critical,
+	}
+}
+
+// FilterBySeverity returns findings filtered by severity.
+// REQ_006.4: filterBySeverity(results, severity) returns filtered results
+func (r *ReviewLoopResult) FilterBySeverity(severity Severity) []ReviewFinding {
+	var findings []ReviewFinding
+	for _, phaseResults := range r.Results {
+		for _, stepResult := range phaseResults {
+			for _, finding := range stepResult.Findings {
+				if finding.Severity == severity {
+					findings = append(findings, finding)
+				}
+			}
+		}
+	}
+	return findings
+}
+
+// FilterByPhase returns results for a specific phase.
+// REQ_006.4: filterByPhase(results, phase) returns phase-specific results
+func (r *ReviewLoopResult) FilterByPhase(phase PhaseType) map[ReviewStep]*ReviewStepResult {
+	if results, ok := r.Results[phase]; ok {
+		return results
+	}
+	return nil
+}
+
+// FilterByStep returns results for a specific step across all phases.
+// REQ_006.4: filterByStep(results, step) returns step-specific results
+func (r *ReviewLoopResult) FilterByStep(step ReviewStep) []*ReviewStepResult {
+	var results []*ReviewStepResult
+	for _, phaseResults := range r.Results {
+		if stepResult, ok := phaseResults[step]; ok {
+			results = append(results, stepResult)
+		}
+	}
+	return results
+}
+
+// ToJSON serializes the result to JSON.
+// REQ_006.4: Results serializable to JSON for checkpoint persistence
+func (r *ReviewLoopResult) ToJSON() ([]byte, error) {
+	return json.MarshalIndent(r, "", "  ")
+}
+
+// ToMarkdown exports results to REVIEW.md markdown format.
+// REQ_006.4: Results exportable to REVIEW.md markdown format
+func (r *ReviewLoopResult) ToMarkdown() string {
+	var sb strings.Builder
+
+	sb.WriteString("# Plan Review Report\n\n")
+	sb.WriteString(fmt.Sprintf("**Plan**: %s\n", r.Metadata.PlanPath))
+	sb.WriteString(fmt.Sprintf("**Timestamp**: %s\n", r.Metadata.Timestamp.Format(time.RFC3339)))
+	if r.Metadata.GitCommit != "" {
+		sb.WriteString(fmt.Sprintf("**Git Commit**: %s\n", r.Metadata.GitCommit))
+	}
+	if r.Metadata.Reviewer != "" {
+		sb.WriteString(fmt.Sprintf("**Reviewer**: %s\n", r.Metadata.Reviewer))
+	}
+	sb.WriteString(fmt.Sprintf("**Duration**: %.2f seconds\n\n", r.DurationSeconds))
+
+	// Summary
+	sb.WriteString("## Summary\n\n")
+	sb.WriteString(fmt.Sprintf("- %s Well-defined: %d\n", SeverityWellDefined.Emoji(), r.TotalCounts.WellDefined))
+	sb.WriteString(fmt.Sprintf("- %s Warnings: %d\n", SeverityWarning.Emoji(), r.TotalCounts.Warning))
+	sb.WriteString(fmt.Sprintf("- %s Critical: %d\n", SeverityCritical.Emoji(), r.TotalCounts.Critical))
+	sb.WriteString(fmt.Sprintf("\n**Termination**: %s\n", r.TerminationReason))
+	sb.WriteString(fmt.Sprintf("**Iterations**: %d\n\n", r.Iterations))
+
+	// Per-phase results
+	sb.WriteString("## Phase Results\n\n")
+	for _, phase := range r.ReviewedPhases {
+		if counts, ok := r.PhaseCounts[phase]; ok {
+			sb.WriteString(fmt.Sprintf("### %s\n\n", phase.String()))
+			sb.WriteString(fmt.Sprintf("- Well-defined: %d\n", counts.WellDefined))
+			sb.WriteString(fmt.Sprintf("- Warnings: %d\n", counts.Warning))
+			sb.WriteString(fmt.Sprintf("- Critical: %d\n\n", counts.Critical))
+		}
+	}
+
+	// Critical findings section
+	if r.TotalCounts.Critical > 0 {
+		sb.WriteString("## Critical Issues\n\n")
+		for phase, phaseResults := range r.Results {
+			for step, stepResult := range phaseResults {
+				for _, finding := range stepResult.Findings {
+					if finding.Severity == SeverityCritical {
+						sb.WriteString(fmt.Sprintf("### %s - %s: %s\n", phase.String(), step.String(), finding.ID))
+						sb.WriteString(fmt.Sprintf("- **Description**: %s\n", finding.Description))
+						if finding.ResolutionNeeded != "" {
+							sb.WriteString(fmt.Sprintf("- **Resolution**: %s\n", finding.ResolutionNeeded))
+						}
+						sb.WriteString("\n")
+					}
+				}
+			}
+		}
+	}
+
+	return sb.String()
+}
+
+// ReviewLoopExecutor manages the execution of the review loop.
+type ReviewLoopExecutor struct {
+	config       *ReviewLoopConfig
+	orchestrator *ReviewOrchestrator
+	plan         *PlanDocument
+	analyzers    map[ReviewStep]Analyzer
+	visitedNodes map[string]bool // For circular dependency detection
+}
+
+// NewReviewLoopExecutor creates a new review loop executor.
+func NewReviewLoopExecutor(config *ReviewLoopConfig) *ReviewLoopExecutor {
+	return &ReviewLoopExecutor{
+		config:       config,
+		orchestrator: NewReviewOrchestrator(config.AutonomyMode, config.PlanPath, config.ProjectPath),
+		analyzers: map[ReviewStep]Analyzer{
+			StepContracts:  &ContractAnalyzer{},
+			StepInterfaces: &InterfaceAnalyzer{},
+			StepPromises:   &PromiseAnalyzer{},
+			StepDataModels: &DataModelAnalyzer{},
+			StepAPIs:       &APIAnalyzer{},
+		},
+		visitedNodes: make(map[string]bool),
+	}
+}
+
+// AreDependenciesMet checks if a phase's dependencies are satisfied.
+// REQ_006.1: areDependenciesMet(phase) is called before processing each phase
+func (e *ReviewLoopExecutor) AreDependenciesMet(phase PhaseType, result *ReviewLoopResult) bool {
+	// Define phase dependencies
+	dependencies := map[PhaseType][]PhaseType{
+		PhaseResearch:       {}, // No dependencies
+		PhaseDecomposition:  {PhaseResearch},
+		PhaseTDDPlanning:    {PhaseDecomposition},
+		PhaseMultiDoc:       {PhaseTDDPlanning},
+		PhaseBeadsSync:      {PhaseMultiDoc},
+		PhaseImplementation: {PhaseBeadsSync},
+	}
+
+	deps, ok := dependencies[phase]
+	if !ok {
+		return true
+	}
+
+	for _, dep := range deps {
+		state, exists := result.PhaseStates[dep]
+		if !exists || state != PhaseStateComplete {
+			return false
+		}
+	}
+
+	return true
+}
+
+// TransitionPhaseState handles the state machine transitions.
+// REQ_006.1: Phase transition follows valid state machine
+func (e *ReviewLoopExecutor) TransitionPhaseState(phase PhaseType, newState PhaseState, result *ReviewLoopResult) error {
+	currentState := result.PhaseStates[phase]
+
+	// Valid transitions
+	validTransitions := map[PhaseState][]PhaseState{
+		PhaseStatePending:    {PhaseStateInProgress},
+		PhaseStateInProgress: {PhaseStateComplete, PhaseStateFailed},
+		PhaseStateFailed:     {PhaseStateInProgress}, // Retry
+		PhaseStateComplete:   {},                     // Terminal state
+	}
+
+	allowed := validTransitions[currentState]
+	for _, validState := range allowed {
+		if newState == validState {
+			result.PhaseStates[phase] = newState
+			return nil
+		}
+	}
+
+	// Allow setting pending state for initialization
+	if currentState == "" && newState == PhaseStatePending {
+		result.PhaseStates[phase] = newState
+		return nil
+	}
+
+	return fmt.Errorf("invalid state transition: %s -> %s for phase %s", currentState, newState, phase.String())
+}
+
+// RunReviewStep executes a single review step for a phase.
+// REQ_006.2: runReviewStep(phase, step) captures ReviewStepResult
+func (e *ReviewLoopExecutor) RunReviewStep(phase PhaseType, step ReviewStep, result *ReviewLoopResult) (*ReviewStepResult, error) {
+	startTime := time.Now()
+
+	stepResult := NewReviewStepResult(step, phase)
+
+	analyzer, ok := e.analyzers[step]
+	if !ok {
+		return nil, fmt.Errorf("no analyzer for step: %s", step.String())
+	}
+
+	// Analyze requirements if available
+	if e.plan != nil && e.plan.Requirements != nil {
+		for _, req := range e.plan.Requirements.Requirements {
+			// Reset visited nodes for each top-level requirement
+			e.visitedNodes = make(map[string]bool)
+			findings := e.ReviewRequirements(req, step, 0)
+			for _, finding := range findings {
+				stepResult.AddFinding(finding)
+			}
+		}
+	} else {
+		// Run analyzer without requirements
+		analysisResult, err := analyzer.Analyze(e.plan, phase, nil)
+		if err != nil {
+			return nil, fmt.Errorf("analyzer error: %w", err)
+		}
+
+		// Convert analysis result to findings
+		if stepResult := e.extractFindings(analysisResult, stepResult); stepResult != nil {
+			// Findings already added
+		}
+	}
+
+	// Generate recommendations
+	stepResult.GenerateRecommendationsForResult()
+
+	// Track execution time (placeholder for actual metric)
+	_ = time.Since(startTime)
+
+	return stepResult, nil
+}
+
+// extractFindings extracts ReviewFindings from various analysis result types.
+func (e *ReviewLoopExecutor) extractFindings(analysisResult interface{}, stepResult *ReviewStepResult) *ReviewStepResult {
+	switch r := analysisResult.(type) {
+	case *ContractAnalysisResult:
+		for _, f := range r.Findings {
+			stepResult.AddFinding(f.ReviewFinding)
+		}
+	case *InterfaceAnalysisResult:
+		for _, f := range r.Findings {
+			stepResult.AddFinding(f.ReviewFinding)
+		}
+	case *PromiseAnalysisResult:
+		for _, f := range r.Findings {
+			stepResult.AddFinding(f.ReviewFinding)
+		}
+	case *DataModelAnalysisResult:
+		for _, f := range r.Findings {
+			stepResult.AddFinding(f.ReviewFinding)
+		}
+	case *APIAnalysisResult:
+		for _, f := range r.Findings {
+			stepResult.AddFinding(f.ReviewFinding)
+		}
+	}
+	return stepResult
+}
+
+// ReviewRequirements recursively reviews a requirement tree.
+// REQ_006.3: reviewRequirements(node *RequirementNode, step ReviewStep) []ReviewFinding
+func (e *ReviewLoopExecutor) ReviewRequirements(node *RequirementNode, step ReviewStep, depth int) []ReviewFinding {
+	var findings []ReviewFinding
+
+	if node == nil {
+		return findings
+	}
+
+	// REQ_006.3: Maximum recursion depth limit
+	if depth > e.config.MaxRecursionDepth {
+		findings = append(findings, ReviewFinding{
+			ID:          fmt.Sprintf("%s-depth-exceeded", node.ID),
+			Component:   node.ID,
+			Description: "Maximum recursion depth exceeded",
+			Severity:    SeverityWarning,
+		})
+		return findings
+	}
+
+	// REQ_006.3: Circular dependency detection
+	if e.visitedNodes[node.ID] {
+		findings = append(findings, ReviewFinding{
+			ID:          fmt.Sprintf("%s-circular", node.ID),
+			Component:   node.ID,
+			Description: "Circular dependency detected",
+			Severity:    SeverityCritical,
+			ResolutionNeeded: "Remove circular dependency in requirement hierarchy",
+		})
+		return findings
+	}
+	e.visitedNodes[node.ID] = true
+
+	// REQ_006.3: Base case - reviewNode(node, step)
+	nodeFindings := e.reviewNode(node, step)
+	findings = append(findings, nodeFindings...)
+
+	// REQ_006.3: Recursive case - iterate over node.Children
+	for _, child := range node.Children {
+		childFindings := e.ReviewRequirements(child, step, depth+1)
+		findings = append(findings, childFindings...)
+	}
+
+	// REQ_006.3: Empty Children slice terminates recursion at leaf nodes
+	return findings
+}
+
+// reviewNode analyzes a single requirement node for a specific step.
+// REQ_006.3: Node type influences which review criteria apply
+func (e *ReviewLoopExecutor) reviewNode(node *RequirementNode, step ReviewStep) []ReviewFinding {
+	var findings []ReviewFinding
+
+	// REQ_006.3: Findings include node.ID for traceability
+	baseFinding := ReviewFinding{
+		Component:   node.ID,
+		RelatedIDs:  []string{node.ID},
+	}
+
+	switch step {
+	case StepContracts:
+		// REQ_006.2: Contract analysis checks
+		findings = append(findings, e.analyzeContracts(node, baseFinding)...)
+
+	case StepInterfaces:
+		// REQ_006.2: Interface analysis checks
+		findings = append(findings, e.analyzeInterfaces(node, baseFinding)...)
+
+	case StepPromises:
+		// REQ_006.2: Promise analysis checks
+		findings = append(findings, e.analyzePromises(node, baseFinding)...)
+
+	case StepDataModels:
+		// REQ_006.2: Data model analysis checks
+		findings = append(findings, e.analyzeDataModels(node, baseFinding)...)
+
+	case StepAPIs:
+		// REQ_006.2: API analysis checks
+		findings = append(findings, e.analyzeAPIs(node, baseFinding)...)
+	}
+
+	// REQ_006.3: AcceptanceCriteria field validation
+	if len(node.AcceptanceCriteria) == 0 && node.Type == "implementation" {
+		findings = append(findings, ReviewFinding{
+			ID:               fmt.Sprintf("%s-no-criteria", node.ID),
+			Component:        node.ID,
+			Description:      "Implementation requirement missing acceptance criteria",
+			Severity:         SeverityWarning,
+			Reason:           "Acceptance criteria required for testability",
+			RelatedIDs:       []string{node.ID},
+		})
+	}
+
+	// REQ_006.3: TestableProperties field validation
+	if len(node.TestableProperties) == 0 && node.Type == "implementation" {
+		findings = append(findings, ReviewFinding{
+			ID:          fmt.Sprintf("%s-no-testable", node.ID),
+			Component:   node.ID,
+			Description: "Implementation requirement missing testable properties",
+			Severity:    SeverityWarning,
+			Reason:      "Testable properties ensure verification",
+			RelatedIDs:  []string{node.ID},
+		})
+	}
+
+	// REQ_006.3: Implementation.Components validation for implementation-level nodes
+	if node.Type == "implementation" && node.Implementation == nil {
+		findings = append(findings, ReviewFinding{
+			ID:               fmt.Sprintf("%s-no-impl", node.ID),
+			Component:        node.ID,
+			Description:      "Implementation requirement missing component definitions",
+			Severity:         SeverityCritical,
+			ResolutionNeeded: "Define implementation components (frontend, backend, middleware, shared)",
+			RelatedIDs:       []string{node.ID},
+		})
+	}
+
+	return findings
+}
+
+// analyzeContracts performs contract-specific analysis.
+// REQ_006.2: Contract analysis checks
+func (e *ReviewLoopExecutor) analyzeContracts(node *RequirementNode, base ReviewFinding) []ReviewFinding {
+	var findings []ReviewFinding
+
+	hasInputContract := false
+	hasOutputContract := false
+	hasErrorContract := false
+	hasPrecondition := false
+	hasPostcondition := false
+	hasInvariant := false
+
+	for _, criterion := range node.AcceptanceCriteria {
+		lower := strings.ToLower(criterion)
+
+		if strings.Contains(lower, "input") || strings.Contains(lower, "accepts") ||
+			strings.Contains(lower, "receives") || strings.Contains(lower, "takes") {
+			hasInputContract = true
+		}
+		if strings.Contains(lower, "output") || strings.Contains(lower, "returns") ||
+			strings.Contains(lower, "produces") {
+			hasOutputContract = true
+		}
+		if strings.Contains(lower, "error") || strings.Contains(lower, "exception") ||
+			strings.Contains(lower, "fails") || strings.Contains(lower, "throws") {
+			hasErrorContract = true
+		}
+		if strings.Contains(lower, "must be") || strings.Contains(lower, "requires") ||
+			strings.Contains(lower, "prerequisite") || strings.Contains(lower, "before") {
+			hasPrecondition = true
+		}
+		if strings.Contains(lower, "ensures") || strings.Contains(lower, "guarantees") ||
+			strings.Contains(lower, "after") || strings.Contains(lower, "will be") {
+			hasPostcondition = true
+		}
+		if strings.Contains(lower, "always") || strings.Contains(lower, "invariant") ||
+			strings.Contains(lower, "never") || strings.Contains(lower, "must remain") {
+			hasInvariant = true
+		}
+	}
+
+	// Check for component boundaries
+	if node.Implementation != nil {
+		components := len(node.Implementation.Frontend) + len(node.Implementation.Backend) +
+			len(node.Implementation.Middleware) + len(node.Implementation.Shared)
+
+		finding := base
+		finding.ID = fmt.Sprintf("%s-contract-boundaries", node.ID)
+		finding.Description = fmt.Sprintf("Component boundaries defined: %d components", components)
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Validate I/O contracts for non-parent nodes
+	if node.Type != "parent" {
+		if !hasInputContract && !hasOutputContract {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-contract-io", node.ID)
+			finding.Description = "Missing explicit input/output contracts"
+			finding.Severity = SeverityWarning
+			finding.Reason = "I/O contracts needed for clear component interface"
+			findings = append(findings, finding)
+		} else {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-contract-io", node.ID)
+			finding.Description = "Input/output contracts defined"
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		}
+	}
+
+	// Note: error contracts, pre/post conditions, invariants are optional
+	// but we record their presence
+	if hasErrorContract {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-contract-error", node.ID)
+		finding.Description = "Error contracts defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	if hasPrecondition || hasPostcondition || hasInvariant {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-contract-conditions", node.ID)
+		finding.Description = "Preconditions/postconditions/invariants defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	return findings
+}
+
+// analyzeInterfaces performs interface-specific analysis.
+// REQ_006.2: Interface analysis checks
+func (e *ReviewLoopExecutor) analyzeInterfaces(node *RequirementNode, base ReviewFinding) []ReviewFinding {
+	var findings []ReviewFinding
+
+	if node.Implementation == nil {
+		return findings
+	}
+
+	// Check public method definitions (backend + shared = public API)
+	publicMethods := len(node.Implementation.Backend) + len(node.Implementation.Shared)
+	if publicMethods > 0 {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-interface-public", node.ID)
+		finding.Description = fmt.Sprintf("Public methods defined: %d", publicMethods)
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Check naming conventions
+	for _, component := range node.Implementation.Backend {
+		namingConvention := "unknown"
+		if strings.Contains(component, "_") {
+			namingConvention = "snake_case"
+		} else if len(component) > 0 && component[0] >= 'A' && component[0] <= 'Z' {
+			namingConvention = "PascalCase"
+		} else {
+			namingConvention = "camelCase"
+		}
+
+		finding := base
+		finding.ID = fmt.Sprintf("%s-interface-naming-%s", node.ID, component)
+		finding.Description = fmt.Sprintf("Component %s uses %s naming", component, namingConvention)
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Check for extension points
+	for _, component := range node.Implementation.Backend {
+		lower := strings.ToLower(component)
+		if strings.Contains(lower, "handler") || strings.Contains(lower, "provider") ||
+			strings.Contains(lower, "factory") || strings.Contains(lower, "interface") {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-interface-extension-%s", node.ID, component)
+			finding.Description = fmt.Sprintf("Extension point identified: %s", component)
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		}
+	}
+
+	return findings
+}
+
+// analyzePromises performs promise-specific analysis.
+// REQ_006.2: Promise analysis checks
+func (e *ReviewLoopExecutor) analyzePromises(node *RequirementNode, base ReviewFinding) []ReviewFinding {
+	var findings []ReviewFinding
+
+	hasTimeout := false
+	hasCancellation := false
+	hasResourceCleanup := false
+	hasIdempotency := false
+	hasAsync := false
+
+	for _, criterion := range node.AcceptanceCriteria {
+		lower := strings.ToLower(criterion)
+
+		if strings.Contains(lower, "timeout") {
+			hasTimeout = true
+		}
+		if strings.Contains(lower, "cancel") || strings.Contains(lower, "context") {
+			hasCancellation = true
+		}
+		if strings.Contains(lower, "cleanup") || strings.Contains(lower, "defer") ||
+			strings.Contains(lower, "close") || strings.Contains(lower, "release") {
+			hasResourceCleanup = true
+		}
+		if strings.Contains(lower, "idempotent") || strings.Contains(lower, "same result") {
+			hasIdempotency = true
+		}
+		if strings.Contains(lower, "async") || strings.Contains(lower, "concurrent") ||
+			strings.Contains(lower, "parallel") || strings.Contains(lower, "goroutine") {
+			hasAsync = true
+		}
+	}
+
+	// Check testable properties for promise types
+	for _, prop := range node.TestableProperties {
+		if prop.PropertyType == "idempotence" {
+			hasIdempotency = true
+		}
+	}
+
+	// Behavioral guarantees
+	if hasIdempotency {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-promise-idempotent", node.ID)
+		finding.Description = "Idempotency guarantee documented"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Async/concurrent operations need synchronization
+	if hasAsync {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-promise-async", node.ID)
+		finding.Description = "Async/concurrent operations defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+
+		// Async should have timeout handling
+		if !hasTimeout {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-promise-no-timeout", node.ID)
+			finding.Description = "Async operation missing timeout handling"
+			finding.Severity = SeverityWarning
+			finding.Reason = "Async operations should specify timeout behavior"
+			findings = append(findings, finding)
+		}
+
+		// Async should have cancellation
+		if !hasCancellation {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-promise-no-cancel", node.ID)
+			finding.Description = "Async operation missing cancellation handling"
+			finding.Severity = SeverityWarning
+			finding.Reason = "Async operations should support cancellation"
+			findings = append(findings, finding)
+		}
+	}
+
+	// Resource cleanup
+	if hasResourceCleanup {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-promise-cleanup", node.ID)
+		finding.Description = "Resource cleanup documented"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	return findings
+}
+
+// analyzeDataModels performs data model-specific analysis.
+// REQ_006.2: Data model analysis checks
+func (e *ReviewLoopExecutor) analyzeDataModels(node *RequirementNode, base ReviewFinding) []ReviewFinding {
+	var findings []ReviewFinding
+
+	hasRelationship := false
+	hasValidation := false
+	hasMigration := false
+
+	descLower := strings.ToLower(node.Description)
+
+	// Check for relationship types
+	if strings.Contains(descLower, "one-to-one") || strings.Contains(descLower, "1:1") {
+		hasRelationship = true
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-rel-1to1", node.ID)
+		finding.Description = "1:1 relationship defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+	if strings.Contains(descLower, "one-to-many") || strings.Contains(descLower, "1:n") {
+		hasRelationship = true
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-rel-1toN", node.ID)
+		finding.Description = "1:N relationship defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+	if strings.Contains(descLower, "many-to-many") || strings.Contains(descLower, "n:m") {
+		hasRelationship = true
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-rel-NtoM", node.ID)
+		finding.Description = "N:M relationship defined"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Check for validation
+	if strings.Contains(descLower, "validate") || strings.Contains(descLower, "constraint") ||
+		strings.Contains(descLower, "required") || strings.Contains(descLower, "optional") {
+		hasValidation = true
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-validation", node.ID)
+		finding.Description = "Field definitions with validation rules"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Check for migration compatibility
+	if strings.Contains(descLower, "migration") || strings.Contains(descLower, "backward compatible") {
+		hasMigration = true
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-migration", node.ID)
+		finding.Description = "Migration compatibility considered"
+		finding.Severity = SeverityWellDefined
+		findings = append(findings, finding)
+	}
+
+	// Check for breaking changes
+	if strings.Contains(descLower, "remove field") || strings.Contains(descLower, "change type") ||
+		strings.Contains(descLower, "rename") {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-datamodel-breaking", node.ID)
+		finding.Description = "Potential breaking schema change"
+		finding.Severity = SeverityWarning
+		finding.Reason = "Ensure backward compatibility or migration strategy"
+		findings = append(findings, finding)
+	}
+
+	// Check shared components for data models
+	if node.Implementation != nil && len(node.Implementation.Shared) > 0 {
+		for _, component := range node.Implementation.Shared {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-datamodel-%s", node.ID, component)
+			finding.Description = fmt.Sprintf("Data structure: %s", component)
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		}
+	}
+
+	_, _, _ = hasRelationship, hasValidation, hasMigration // Use variables
+
+	return findings
+}
+
+// analyzeAPIs performs API-specific analysis.
+// REQ_006.2: API analysis checks
+func (e *ReviewLoopExecutor) analyzeAPIs(node *RequirementNode, base ReviewFinding) []ReviewFinding {
+	var findings []ReviewFinding
+
+	hasEndpoint := false
+	hasVersioning := false
+	hasErrorResponse := false
+
+	for _, criterion := range node.AcceptanceCriteria {
+		lower := strings.ToLower(criterion)
+
+		// Check for endpoint definitions
+		if strings.Contains(lower, "/api/") || strings.Contains(lower, "/v1/") ||
+			strings.Contains(lower, "/v2/") || strings.Contains(criterion, "/{") {
+			hasEndpoint = true
+
+			// Extract HTTP method
+			httpMethod := ""
+			methods := []string{"GET", "POST", "PUT", "DELETE", "PATCH"}
+			for _, method := range methods {
+				if strings.Contains(strings.ToUpper(criterion), method) {
+					httpMethod = method
+					break
+				}
+			}
+
+			finding := base
+			finding.ID = fmt.Sprintf("%s-api-endpoint", node.ID)
+			finding.Description = fmt.Sprintf("API endpoint defined with %s method", httpMethod)
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		}
+
+		// Check for versioning
+		if strings.Contains(lower, "/v1/") || strings.Contains(lower, "/v2/") {
+			hasVersioning = true
+			finding := base
+			finding.ID = fmt.Sprintf("%s-api-version-url", node.ID)
+			finding.Description = "URL-based API versioning"
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		} else if strings.Contains(lower, "api-version") {
+			hasVersioning = true
+			finding := base
+			finding.ID = fmt.Sprintf("%s-api-version-header", node.ID)
+			finding.Description = "Header-based API versioning"
+			finding.Severity = SeverityWellDefined
+			findings = append(findings, finding)
+		}
+
+		// Check for error responses
+		if strings.Contains(lower, "400") || strings.Contains(lower, "401") ||
+			strings.Contains(lower, "403") || strings.Contains(lower, "404") ||
+			strings.Contains(lower, "500") || strings.Contains(lower, "error response") {
+			hasErrorResponse = true
+		}
+
+		// Check for deprecation
+		if strings.Contains(lower, "deprecated") || strings.Contains(lower, "sunset") {
+			finding := base
+			finding.ID = fmt.Sprintf("%s-api-deprecated", node.ID)
+			finding.Description = "Deprecated endpoint identified"
+			finding.Severity = SeverityWarning
+			finding.Reason = "Document deprecation timeline and migration path"
+			findings = append(findings, finding)
+		}
+	}
+
+	// API endpoints should have error handling
+	if hasEndpoint && !hasErrorResponse {
+		finding := base
+		finding.ID = fmt.Sprintf("%s-api-no-errors", node.ID)
+		finding.Description = "API endpoint missing error response definitions"
+		finding.Severity = SeverityWarning
+		finding.Reason = "API endpoints should define error response formats"
+		findings = append(findings, finding)
+	}
+
+	_, _ = hasVersioning, hasErrorResponse // Use variables
+
+	return findings
+}
+
+// ExecuteReviewLoop runs the complete review loop.
+// REQ_006.1: Outer loop - phase iteration
+// REQ_006.2: Middle loop - review steps
+// REQ_006.3: Inner recursive loop - requirement traversal
+func ExecuteReviewLoop(config *ReviewLoopConfig) *ReviewLoopResult {
+	result := NewReviewLoopResult()
+	result.Metadata = ReviewLoopMetadata{
+		Timestamp:   time.Now(),
+		PlanPath:    config.PlanPath,
+		ProjectPath: config.ProjectPath,
+		GitCommit:   config.GitCommit,
+		Reviewer:    config.Reviewer,
+	}
+
+	executor := NewReviewLoopExecutor(config)
+
+	// Load plan document
+	plan, err := LoadPlanDocument(config.PlanPath)
+	if err != nil {
+		result.Success = false
+		result.Error = fmt.Sprintf("failed to load plan: %v", err)
+		result.TerminationReason = TerminationCriticalBlocking
+		return result
+	}
+	executor.plan = plan
+
+	// Determine phases to review
+	phases := config.PhasesToReview
+	if len(phases) == 0 {
+		phases = AllPhases()
+	}
+
+	// REQ_006.1: Use AllPhases() method for consistent ordering
+	orderedPhases := make([]PhaseType, 0)
+	allPhasesOrder := AllPhases()
+	for _, p := range allPhasesOrder {
+		for _, requested := range phases {
+			if p == requested {
+				orderedPhases = append(orderedPhases, p)
+				break
+			}
+		}
+	}
+	phases = orderedPhases
+
+	// Determine steps to run
+	steps := config.StepsToRun
+	if len(steps) == 0 {
+		steps = AllReviewSteps()
+	}
+
+	// REQ_006.4: Empty results map initialized before iteration
+	for _, phase := range phases {
+		result.Results[phase] = make(map[ReviewStep]*ReviewStepResult)
+		result.PhaseStates[phase] = PhaseStatePending
+	}
+
+	// Set up timeout
+	deadline := time.Now().Add(config.Timeout)
+
+	// REQ_006.1: Loop tracks current phase index for checkpoint resume
+	startIdx := config.ResumeFromPhaseIdx
+	if startIdx < 0 || startIdx >= len(phases) {
+		startIdx = 0
+	}
+
+	// REQ_006.5: Iteration counter tracked
+	iteration := 0
+
+	// REQ_006.1: Outer loop - phase iteration
+	for phaseIdx := startIdx; phaseIdx < len(phases); phaseIdx++ {
+		phase := phases[phaseIdx]
+		iteration++
+		result.Iterations = iteration
+		result.CurrentPhaseIdx = phaseIdx
+
+		// REQ_006.5: Maximum iteration limit
+		if iteration > config.MaxIterations {
+			result.TerminationReason = TerminationMaxIterations
+			result.Success = false
+			result.Error = "maximum iterations exceeded"
+			break
+		}
+
+		// REQ_006.5: Timeout check
+		if time.Now().After(deadline) {
+			result.TerminationReason = TerminationTimeout
+			result.Success = false
+			result.Error = "review timeout exceeded"
+			break
+		}
+
+		// REQ_006.1: areDependenciesMet(phase) is called before processing
+		if !executor.AreDependenciesMet(phase, result) {
+			// Skip phases with unmet dependencies
+			continue
+		}
+
+		// REQ_006.1: Phase transition: pending -> in_progress
+		if err := executor.TransitionPhaseState(phase, PhaseStateInProgress, result); err != nil {
+			result.Success = false
+			result.Error = err.Error()
+			break
+		}
+
+		phaseCounts := SeverityCounts{}
+		phaseSuccess := true
+
+		// REQ_006.2: Middle loop - review steps (exactly 5 steps in order)
+		for _, step := range steps {
+			stepResult, err := executor.RunReviewStep(phase, step, result)
+			if err != nil {
+				// REQ_006.2: Failed step does not block subsequent steps
+				stepResult = NewReviewStepResult(step, phase)
+				stepResult.AddFinding(ReviewFinding{
+					ID:               fmt.Sprintf("%s-%s-error", phase.String(), step.String()),
+					Component:        "executor",
+					Description:      fmt.Sprintf("Step execution error: %v", err),
+					Severity:         SeverityCritical,
+					ResolutionNeeded: "Fix step execution error",
+				})
+			}
+
+			// REQ_006.4: Results stored in results[phase][step] map
+			result.Results[phase][step] = stepResult
+
+			// Aggregate counts
+			phaseCounts.WellDefined += stepResult.Counts.WellDefined
+			phaseCounts.Warning += stepResult.Counts.Warning
+			phaseCounts.Critical += stepResult.Counts.Critical
+
+			// Track reviewed steps
+			if !containsStep(result.ReviewedSteps, step) {
+				result.ReviewedSteps = append(result.ReviewedSteps, step)
+			}
+		}
+
+		// Update phase counts
+		result.PhaseCounts[phase] = phaseCounts
+		result.TotalCounts.WellDefined += phaseCounts.WellDefined
+		result.TotalCounts.Warning += phaseCounts.Warning
+		result.TotalCounts.Critical += phaseCounts.Critical
+
+		// REQ_006.1: Phase transition: in_progress -> complete/failed
+		if phaseCounts.Critical > 0 {
+			phaseSuccess = false
+		}
+
+		if phaseSuccess {
+			if err := executor.TransitionPhaseState(phase, PhaseStateComplete, result); err != nil {
+				result.Success = false
+				result.Error = err.Error()
+				break
+			}
+		} else {
+			if err := executor.TransitionPhaseState(phase, PhaseStateFailed, result); err != nil {
+				result.Success = false
+				result.Error = err.Error()
+				break
+			}
+
+			// REQ_006.5: Retry mechanism for failed phases
+			retries := result.RetryCount[phase]
+			if retries < config.MaxRetries {
+				result.RetryCount[phase]++
+				// Transition back to pending for retry
+				result.PhaseStates[phase] = PhaseStatePending
+				phaseIdx-- // Retry this phase
+				continue
+			}
+		}
+
+		// Track reviewed phases
+		result.ReviewedPhases = append(result.ReviewedPhases, phase)
+
+		// REQ_006.1: Phase results accumulated for dependency context
+		executor.orchestrator.AccumulatePhaseResult(phase, PhaseReviewResult{
+			Phase:       phase,
+			StepResults: make(map[ReviewStep]interface{}),
+			Counts:      phaseCounts,
+			Timestamp:   time.Now(),
+		})
+
+		// REQ_006.1: Checkpoint handling based on autonomy mode
+		if executor.orchestrator.ShouldWriteCheckpoint(phase) {
+			completedPhases := make([]PhaseType, 0)
+			pendingPhases := make([]PhaseType, 0)
+			for _, p := range phases {
+				if result.PhaseStates[p] == PhaseStateComplete {
+					completedPhases = append(completedPhases, p)
+				} else if result.PhaseStates[p] == PhaseStatePending {
+					pendingPhases = append(pendingPhases, p)
+				}
+			}
+
+			// Convert results to PhaseReviewResult format
+			phaseResults := make(map[PhaseType]PhaseReviewResult)
+			for p, stepResults := range result.Results {
+				stepResultsInterface := make(map[ReviewStep]interface{})
+				for s, sr := range stepResults {
+					stepResultsInterface[s] = sr
+				}
+				phaseResults[p] = PhaseReviewResult{
+					Phase:       p,
+					StepResults: stepResultsInterface,
+					Counts:      result.PhaseCounts[p],
+					Timestamp:   time.Now(),
+				}
+			}
+
+			_, _ = executor.orchestrator.SaveReviewCheckpoint(
+				phaseIdx,
+				completedPhases,
+				pendingPhases,
+				phaseResults,
+				result.TotalCounts,
+			)
+		}
+
+		// REQ_006.5: Early termination on critical issues
+		if config.StopOnCritical && result.HasBlockingIssues() {
+			result.TerminationReason = TerminationCriticalBlocking
+			result.Success = false
+			result.Error = fmt.Sprintf("%d critical issues found", result.TotalCounts.Critical)
+			break
+		}
+	}
+
+	// Set termination reason if not already set
+	if result.TerminationReason == "" {
+		if result.Success {
+			result.TerminationReason = TerminationAllComplete
+		}
+	}
+
+	// Record end time
+	result.EndTime = time.Now()
+	result.DurationSeconds = result.EndTime.Sub(result.StartTime).Seconds()
+
+	// Check final success status
+	if result.TotalCounts.Critical > 0 {
+		result.Success = false
+	}
+
+	return result
+}
+
+// containsStep checks if a step is in the slice.
+func containsStep(steps []ReviewStep, step ReviewStep) bool {
+	for _, s := range steps {
+		if s == step {
+			return true
+		}
+	}
+	return false
+}
+
+// CheckAllIssuesClosed checks if all beads issues are closed.
+// REQ_006.5: Closure check for beads issues
+func CheckAllIssuesClosed(projectPath string, beadsIssueIDs []string) (bool, []string) {
+	if len(beadsIssueIDs) == 0 {
+		return true, nil
+	}
+
+	closedIssues := make([]string, 0)
+	openIDs := make(map[string]bool)
+
+	// Check each issue file in .beads directory
+	beadsDir := filepath.Join(projectPath, ".beads")
+	for _, issueID := range beadsIssueIDs {
+		issuePath := filepath.Join(beadsDir, issueID+".json")
+		data, err := os.ReadFile(issuePath)
+		if err != nil {
+			// Issue file doesn't exist or can't be read - consider open
+			openIDs[issueID] = true
+			continue
+		}
+
+		// Parse issue to check status
+		var issue struct {
+			Status string `json:"status"`
+			DependsOnID string `json:"depends_on_id,omitempty"`
+		}
+		if err := json.Unmarshal(data, &issue); err != nil {
+			openIDs[issueID] = true
+			continue
+		}
+
+		if issue.Status == "closed" || issue.Status == "complete" {
+			closedIssues = append(closedIssues, issueID)
+		} else {
+			openIDs[issueID] = true
+		}
+	}
+
+	return len(openIDs) == 0, closedIssues
+}
+
+// CountBlockedIssues counts issues blocked by dependencies.
+// REQ_006.5: Blocking dependency detection
+func CountBlockedIssues(projectPath string, beadsIssueIDs []string) (int, map[string]string) {
+	blocked := 0
+	blockedBy := make(map[string]string)
+
+	// Get open issues
+	_, closedIssues := CheckAllIssuesClosed(projectPath, beadsIssueIDs)
+	closedSet := make(map[string]bool)
+	for _, id := range closedIssues {
+		closedSet[id] = true
+	}
+
+	beadsDir := filepath.Join(projectPath, ".beads")
+	for _, issueID := range beadsIssueIDs {
+		if closedSet[issueID] {
+			continue
+		}
+
+		issuePath := filepath.Join(beadsDir, issueID+".json")
+		data, err := os.ReadFile(issuePath)
+		if err != nil {
+			continue
+		}
+
+		var issue struct {
+			DependsOnID string `json:"depends_on_id,omitempty"`
+		}
+		if err := json.Unmarshal(data, &issue); err != nil {
+			continue
+		}
+
+		// REQ_006.5: Check if depends_on_id is in open_ids set
+		if issue.DependsOnID != "" && !closedSet[issue.DependsOnID] {
+			blocked++
+			blockedBy[issueID] = issue.DependsOnID
+		}
+	}
+
+	return blocked, blockedBy
+}

@@ -1,6 +1,7 @@
 package planning
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -2209,5 +2210,1061 @@ func TestNewReviewOrchestrator(t *testing.T) {
 	}
 	if ro.startTime.IsZero() {
 		t.Error("startTime should be set")
+	}
+}
+
+// =============================================================================
+// REQ_006: Review Loop Architecture Tests (Phase 7)
+// =============================================================================
+
+// TestNewReviewLoopConfig tests ReviewLoopConfig creation with defaults.
+// REQ_006.1: Loop configuration for phase iteration
+func TestNewReviewLoopConfig(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+
+	// REQ_006.1: Verify default values
+	if config.PlanPath != "/test/plan.md" {
+		t.Errorf("PlanPath = %s, want /test/plan.md", config.PlanPath)
+	}
+	if config.ProjectPath != "/test/project" {
+		t.Errorf("ProjectPath = %s, want /test/project", config.ProjectPath)
+	}
+	if config.AutonomyMode != AutonomyCheckpoint {
+		t.Errorf("AutonomyMode = %v, want AutonomyCheckpoint", config.AutonomyMode)
+	}
+	if config.MaxIterations != DefaultMaxIterations {
+		t.Errorf("MaxIterations = %d, want %d", config.MaxIterations, DefaultMaxIterations)
+	}
+	if config.MaxRetries != DefaultMaxRetries {
+		t.Errorf("MaxRetries = %d, want %d", config.MaxRetries, DefaultMaxRetries)
+	}
+	if config.MaxRecursionDepth != DefaultMaxRecursionDepth {
+		t.Errorf("MaxRecursionDepth = %d, want %d", config.MaxRecursionDepth, DefaultMaxRecursionDepth)
+	}
+	if config.Timeout != DefaultReviewTimeout {
+		t.Errorf("Timeout = %v, want %v", config.Timeout, DefaultReviewTimeout)
+	}
+	if !config.StopOnCritical {
+		t.Error("StopOnCritical should be true by default")
+	}
+	if len(config.StepsToRun) != 5 {
+		t.Errorf("StepsToRun should have 5 steps, got %d", len(config.StepsToRun))
+	}
+	if len(config.PhasesToReview) != 6 {
+		t.Errorf("PhasesToReview should have 6 phases, got %d", len(config.PhasesToReview))
+	}
+}
+
+// TestNewReviewLoopResult tests ReviewLoopResult initialization.
+// REQ_006.4: Results map structure for storing review findings
+func TestNewReviewLoopResult(t *testing.T) {
+	result := NewReviewLoopResult()
+
+	// REQ_006.4: Empty results map initialized
+	if result.Results == nil {
+		t.Error("Results should be initialized")
+	}
+	if result.PhaseStates == nil {
+		t.Error("PhaseStates should be initialized")
+	}
+	if result.PhaseCounts == nil {
+		t.Error("PhaseCounts should be initialized")
+	}
+	if result.ReviewedPhases == nil {
+		t.Error("ReviewedPhases should be initialized")
+	}
+	if result.ReviewedSteps == nil {
+		t.Error("ReviewedSteps should be initialized")
+	}
+	if result.RetryCount == nil {
+		t.Error("RetryCount should be initialized")
+	}
+	if !result.Success {
+		t.Error("Success should be true initially")
+	}
+	if result.StartTime.IsZero() {
+		t.Error("StartTime should be set")
+	}
+}
+
+// TestReviewLoopResultHasBlockingIssues tests critical issue detection.
+// REQ_006.4: hasBlockingIssues(results) returns true if any Critical findings
+func TestReviewLoopResultHasBlockingIssues(t *testing.T) {
+	tests := []struct {
+		name       string
+		counts     SeverityCounts
+		hasBlocking bool
+	}{
+		{
+			name:       "No critical issues",
+			counts:     SeverityCounts{WellDefined: 5, Warning: 3, Critical: 0},
+			hasBlocking: false,
+		},
+		{
+			name:       "One critical issue",
+			counts:     SeverityCounts{WellDefined: 5, Warning: 3, Critical: 1},
+			hasBlocking: true,
+		},
+		{
+			name:       "Multiple critical issues",
+			counts:     SeverityCounts{WellDefined: 2, Warning: 1, Critical: 5},
+			hasBlocking: true,
+		},
+		{
+			name:       "Only well-defined",
+			counts:     SeverityCounts{WellDefined: 10, Warning: 0, Critical: 0},
+			hasBlocking: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NewReviewLoopResult()
+			result.TotalCounts = tt.counts
+
+			if got := result.HasBlockingIssues(); got != tt.hasBlocking {
+				t.Errorf("HasBlockingIssues() = %v, want %v", got, tt.hasBlocking)
+			}
+		})
+	}
+}
+
+// TestReviewLoopResultCountBySeverity tests severity count aggregation.
+// REQ_006.4: countBySeverity(results) returns map[SeverityLevel]int
+func TestReviewLoopResultCountBySeverity(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.TotalCounts = SeverityCounts{
+		WellDefined: 10,
+		Warning:     5,
+		Critical:    2,
+	}
+
+	counts := result.CountBySeverity()
+
+	if counts[SeverityWellDefined] != 10 {
+		t.Errorf("WellDefined count = %d, want 10", counts[SeverityWellDefined])
+	}
+	if counts[SeverityWarning] != 5 {
+		t.Errorf("Warning count = %d, want 5", counts[SeverityWarning])
+	}
+	if counts[SeverityCritical] != 2 {
+		t.Errorf("Critical count = %d, want 2", counts[SeverityCritical])
+	}
+}
+
+// TestReviewLoopResultFilterBySeverity tests severity filtering.
+// REQ_006.4: filterBySeverity(results, severity) returns filtered results
+func TestReviewLoopResultFilterBySeverity(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.Results[PhaseResearch] = make(map[ReviewStep]*ReviewStepResult)
+
+	stepResult := NewReviewStepResult(StepContracts, PhaseResearch)
+	stepResult.AddFinding(ReviewFinding{ID: "f1", Severity: SeverityWellDefined})
+	stepResult.AddFinding(ReviewFinding{ID: "f2", Severity: SeverityWarning})
+	stepResult.AddFinding(ReviewFinding{ID: "f3", Severity: SeverityCritical})
+	stepResult.AddFinding(ReviewFinding{ID: "f4", Severity: SeverityWarning})
+	result.Results[PhaseResearch][StepContracts] = stepResult
+
+	// Test filter by Warning
+	warnings := result.FilterBySeverity(SeverityWarning)
+	if len(warnings) != 2 {
+		t.Errorf("FilterBySeverity(Warning) returned %d findings, want 2", len(warnings))
+	}
+
+	// Test filter by Critical
+	criticals := result.FilterBySeverity(SeverityCritical)
+	if len(criticals) != 1 {
+		t.Errorf("FilterBySeverity(Critical) returned %d findings, want 1", len(criticals))
+	}
+
+	// Test filter by WellDefined
+	wellDefined := result.FilterBySeverity(SeverityWellDefined)
+	if len(wellDefined) != 1 {
+		t.Errorf("FilterBySeverity(WellDefined) returned %d findings, want 1", len(wellDefined))
+	}
+}
+
+// TestReviewLoopResultFilterByPhase tests phase-specific filtering.
+// REQ_006.4: filterByPhase(results, phase) returns phase-specific results
+func TestReviewLoopResultFilterByPhase(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.Results[PhaseResearch] = make(map[ReviewStep]*ReviewStepResult)
+	result.Results[PhaseDecomposition] = make(map[ReviewStep]*ReviewStepResult)
+
+	stepResult1 := NewReviewStepResult(StepContracts, PhaseResearch)
+	stepResult1.AddFinding(ReviewFinding{ID: "f1"})
+	result.Results[PhaseResearch][StepContracts] = stepResult1
+
+	stepResult2 := NewReviewStepResult(StepInterfaces, PhaseDecomposition)
+	stepResult2.AddFinding(ReviewFinding{ID: "f2"})
+	result.Results[PhaseDecomposition][StepInterfaces] = stepResult2
+
+	// Test filter by Research phase
+	researchResults := result.FilterByPhase(PhaseResearch)
+	if researchResults == nil {
+		t.Error("FilterByPhase(Research) returned nil")
+	}
+	if len(researchResults) != 1 {
+		t.Errorf("FilterByPhase(Research) returned %d results, want 1", len(researchResults))
+	}
+
+	// Test filter by non-existent phase
+	tddResults := result.FilterByPhase(PhaseTDDPlanning)
+	if tddResults != nil {
+		t.Error("FilterByPhase for non-existent phase should return nil")
+	}
+}
+
+// TestReviewLoopResultFilterByStep tests step-specific filtering.
+// REQ_006.4: filterByStep(results, step) returns step-specific results
+func TestReviewLoopResultFilterByStep(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.Results[PhaseResearch] = make(map[ReviewStep]*ReviewStepResult)
+	result.Results[PhaseDecomposition] = make(map[ReviewStep]*ReviewStepResult)
+
+	stepResult1 := NewReviewStepResult(StepContracts, PhaseResearch)
+	result.Results[PhaseResearch][StepContracts] = stepResult1
+
+	stepResult2 := NewReviewStepResult(StepContracts, PhaseDecomposition)
+	result.Results[PhaseDecomposition][StepContracts] = stepResult2
+
+	stepResult3 := NewReviewStepResult(StepInterfaces, PhaseResearch)
+	result.Results[PhaseResearch][StepInterfaces] = stepResult3
+
+	// Test filter by Contracts step
+	contractResults := result.FilterByStep(StepContracts)
+	if len(contractResults) != 2 {
+		t.Errorf("FilterByStep(Contracts) returned %d results, want 2", len(contractResults))
+	}
+
+	// Test filter by Interfaces step
+	interfaceResults := result.FilterByStep(StepInterfaces)
+	if len(interfaceResults) != 1 {
+		t.Errorf("FilterByStep(Interfaces) returned %d results, want 1", len(interfaceResults))
+	}
+}
+
+// TestReviewLoopResultToJSON tests JSON serialization.
+// REQ_006.4: Results serializable to JSON for checkpoint persistence
+func TestReviewLoopResultToJSON(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.Metadata.PlanPath = "/test/plan.md"
+	result.Metadata.Reviewer = "test-reviewer"
+	result.TotalCounts = SeverityCounts{WellDefined: 5, Warning: 2, Critical: 1}
+
+	jsonData, err := result.ToJSON()
+	if err != nil {
+		t.Fatalf("ToJSON() error: %v", err)
+	}
+
+	// Verify JSON contains expected fields
+	jsonStr := string(jsonData)
+	if !strings.Contains(jsonStr, "plan_path") {
+		t.Error("JSON should contain plan_path")
+	}
+	if !strings.Contains(jsonStr, "reviewer") {
+		t.Error("JSON should contain reviewer")
+	}
+	if !strings.Contains(jsonStr, "well_defined") {
+		t.Error("JSON should contain well_defined")
+	}
+}
+
+// TestReviewLoopResultToMarkdown tests markdown export.
+// REQ_006.4: Results exportable to REVIEW.md markdown format
+func TestReviewLoopResultToMarkdown(t *testing.T) {
+	result := NewReviewLoopResult()
+	result.Metadata.PlanPath = "/test/plan.md"
+	result.Metadata.Timestamp = time.Now()
+	result.TotalCounts = SeverityCounts{WellDefined: 5, Warning: 2, Critical: 1}
+	result.TerminationReason = TerminationAllComplete
+	result.Iterations = 3
+	result.DurationSeconds = 12.5
+
+	markdown := result.ToMarkdown()
+
+	// Verify markdown contains expected sections
+	if !strings.Contains(markdown, "# Plan Review Report") {
+		t.Error("Markdown should contain header")
+	}
+	if !strings.Contains(markdown, "## Summary") {
+		t.Error("Markdown should contain Summary section")
+	}
+	if !strings.Contains(markdown, "Well-defined: 5") {
+		t.Error("Markdown should contain well-defined count")
+	}
+	if !strings.Contains(markdown, "Warnings: 2") {
+		t.Error("Markdown should contain warning count")
+	}
+	if !strings.Contains(markdown, "Critical: 1") {
+		t.Error("Markdown should contain critical count")
+	}
+}
+
+// TestReviewLoopExecutorAreDependenciesMet tests phase dependency checking.
+// REQ_006.1: areDependenciesMet(phase) is called before processing each phase
+func TestReviewLoopExecutorAreDependenciesMet(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	tests := []struct {
+		name           string
+		phase          PhaseType
+		phaseStates    map[PhaseType]PhaseState
+		expectedMet    bool
+	}{
+		{
+			name:  "Research has no dependencies",
+			phase: PhaseResearch,
+			phaseStates: map[PhaseType]PhaseState{},
+			expectedMet: true,
+		},
+		{
+			name:  "Decomposition depends on Research - not complete",
+			phase: PhaseDecomposition,
+			phaseStates: map[PhaseType]PhaseState{
+				PhaseResearch: PhaseStatePending,
+			},
+			expectedMet: false,
+		},
+		{
+			name:  "Decomposition depends on Research - complete",
+			phase: PhaseDecomposition,
+			phaseStates: map[PhaseType]PhaseState{
+				PhaseResearch: PhaseStateComplete,
+			},
+			expectedMet: true,
+		},
+		{
+			name:  "TDDPlanning depends on Decomposition - not complete",
+			phase: PhaseTDDPlanning,
+			phaseStates: map[PhaseType]PhaseState{
+				PhaseResearch:      PhaseStateComplete,
+				PhaseDecomposition: PhaseStateInProgress,
+			},
+			expectedMet: false,
+		},
+		{
+			name:  "Implementation depends on BeadsSync - complete",
+			phase: PhaseImplementation,
+			phaseStates: map[PhaseType]PhaseState{
+				PhaseBeadsSync: PhaseStateComplete,
+			},
+			expectedMet: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NewReviewLoopResult()
+			result.PhaseStates = tt.phaseStates
+
+			got := executor.AreDependenciesMet(tt.phase, result)
+			if got != tt.expectedMet {
+				t.Errorf("AreDependenciesMet(%s) = %v, want %v", tt.phase, got, tt.expectedMet)
+			}
+		})
+	}
+}
+
+// TestReviewLoopExecutorTransitionPhaseState tests state machine transitions.
+// REQ_006.1: Phase transition follows valid state machine
+func TestReviewLoopExecutorTransitionPhaseState(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	tests := []struct {
+		name         string
+		initialState PhaseState
+		newState     PhaseState
+		wantErr      bool
+	}{
+		// Valid transitions
+		{name: "Empty to Pending", initialState: "", newState: PhaseStatePending, wantErr: false},
+		{name: "Pending to InProgress", initialState: PhaseStatePending, newState: PhaseStateInProgress, wantErr: false},
+		{name: "InProgress to Complete", initialState: PhaseStateInProgress, newState: PhaseStateComplete, wantErr: false},
+		{name: "InProgress to Failed", initialState: PhaseStateInProgress, newState: PhaseStateFailed, wantErr: false},
+		{name: "Failed to InProgress (retry)", initialState: PhaseStateFailed, newState: PhaseStateInProgress, wantErr: false},
+
+		// Invalid transitions
+		{name: "Pending to Complete", initialState: PhaseStatePending, newState: PhaseStateComplete, wantErr: true},
+		{name: "Pending to Failed", initialState: PhaseStatePending, newState: PhaseStateFailed, wantErr: true},
+		{name: "Complete to any", initialState: PhaseStateComplete, newState: PhaseStateInProgress, wantErr: true},
+		{name: "InProgress to Pending", initialState: PhaseStateInProgress, newState: PhaseStatePending, wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := NewReviewLoopResult()
+			if tt.initialState != "" {
+				result.PhaseStates[PhaseResearch] = tt.initialState
+			}
+
+			err := executor.TransitionPhaseState(PhaseResearch, tt.newState, result)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("TransitionPhaseState() error = %v, wantErr %v", err, tt.wantErr)
+			}
+
+			// Verify state was updated on success
+			if err == nil {
+				if result.PhaseStates[PhaseResearch] != tt.newState {
+					t.Errorf("PhaseState = %v, want %v", result.PhaseStates[PhaseResearch], tt.newState)
+				}
+			}
+		})
+	}
+}
+
+// TestReviewLoopExecutorReviewRequirements tests recursive requirement traversal.
+// REQ_006.3: reviewRequirements(node *RequirementNode, step ReviewStep) []ReviewFinding
+func TestReviewLoopExecutorReviewRequirements(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	config.MaxRecursionDepth = 3
+	executor := NewReviewLoopExecutor(config)
+
+	t.Run("Nil node returns empty findings", func(t *testing.T) {
+		findings := executor.ReviewRequirements(nil, StepContracts, 0)
+		if len(findings) != 0 {
+			t.Errorf("ReviewRequirements(nil) returned %d findings, want 0", len(findings))
+		}
+	})
+
+	t.Run("Simple node produces findings", func(t *testing.T) {
+		executor.visitedNodes = make(map[string]bool)
+		node := &RequirementNode{
+			ID:          "REQ-001",
+			Type:        "implementation",
+			Description: "Test requirement",
+			AcceptanceCriteria: []string{
+				"Input must be validated",
+				"Output is JSON format",
+			},
+		}
+
+		findings := executor.ReviewRequirements(node, StepContracts, 0)
+		// Should have findings for I/O contracts
+		if len(findings) == 0 {
+			t.Error("Expected findings for contract analysis")
+		}
+	})
+
+	t.Run("Max recursion depth produces warning", func(t *testing.T) {
+		executor.visitedNodes = make(map[string]bool)
+		node := &RequirementNode{
+			ID:   "REQ-DEEP",
+			Type: "parent",
+		}
+
+		findings := executor.ReviewRequirements(node, StepContracts, config.MaxRecursionDepth+1)
+
+		hasDepthWarning := false
+		for _, f := range findings {
+			if strings.Contains(f.Description, "Maximum recursion depth exceeded") {
+				hasDepthWarning = true
+				break
+			}
+		}
+		if !hasDepthWarning {
+			t.Error("Expected depth exceeded warning")
+		}
+	})
+
+	t.Run("Circular dependency detection", func(t *testing.T) {
+		executor.visitedNodes = make(map[string]bool)
+		// First visit marks node as visited
+		executor.visitedNodes["REQ-CIRC"] = true
+
+		node := &RequirementNode{
+			ID:   "REQ-CIRC",
+			Type: "parent",
+		}
+
+		findings := executor.ReviewRequirements(node, StepContracts, 0)
+
+		hasCircularWarning := false
+		for _, f := range findings {
+			if strings.Contains(f.Description, "Circular dependency detected") {
+				hasCircularWarning = true
+				if f.Severity != SeverityCritical {
+					t.Errorf("Circular dependency should be Critical, got %v", f.Severity)
+				}
+				break
+			}
+		}
+		if !hasCircularWarning {
+			t.Error("Expected circular dependency warning")
+		}
+	})
+
+	t.Run("Recursive child traversal", func(t *testing.T) {
+		executor.visitedNodes = make(map[string]bool)
+		node := &RequirementNode{
+			ID:   "REQ-PARENT",
+			Type: "parent",
+			Children: []*RequirementNode{
+				{
+					ID:          "REQ-CHILD-1",
+					Type:        "implementation",
+					Description: "Child requirement 1",
+				},
+				{
+					ID:          "REQ-CHILD-2",
+					Type:        "implementation",
+					Description: "Child requirement 2",
+				},
+			},
+		}
+
+		findings := executor.ReviewRequirements(node, StepContracts, 0)
+
+		// Should have findings from parent and children
+		childFindings := 0
+		for _, f := range findings {
+			if strings.Contains(f.Component, "REQ-CHILD") {
+				childFindings++
+			}
+		}
+		if childFindings == 0 {
+			t.Error("Expected findings from child nodes")
+		}
+	})
+
+	t.Run("Three-tier hierarchy traversal", func(t *testing.T) {
+		executor.visitedNodes = make(map[string]bool)
+		// REQ_006.3: 3-tier hierarchy: parent → step → implementation
+		node := &RequirementNode{
+			ID:   "REQ-TOP",
+			Type: "parent",
+			Children: []*RequirementNode{
+				{
+					ID:   "REQ-MID",
+					Type: "step",
+					Children: []*RequirementNode{
+						{
+							ID:          "REQ-IMPL",
+							Type:        "implementation",
+							Description: "Implementation detail",
+						},
+					},
+				},
+			},
+		}
+
+		findings := executor.ReviewRequirements(node, StepContracts, 0)
+
+		// Should traverse all three levels
+		foundImpl := false
+		for _, f := range findings {
+			if strings.Contains(f.Component, "REQ-IMPL") {
+				foundImpl = true
+				break
+			}
+		}
+		if !foundImpl {
+			t.Error("Expected to traverse to implementation level")
+		}
+	})
+}
+
+// TestReviewLoopResultTerminationReasons tests termination reason constants.
+// REQ_006.5: Loop termination with clear reasons
+func TestReviewLoopResultTerminationReasons(t *testing.T) {
+	tests := []struct {
+		reason      TerminationReason
+		description string
+	}{
+		{TerminationMaxIterations, "max_iterations"},
+		{TerminationAllComplete, "all_complete"},
+		{TerminationCriticalBlocking, "critical_blocking"},
+		{TerminationTimeout, "timeout"},
+		{TerminationUserCancelled, "user_cancelled"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.reason), func(t *testing.T) {
+			if string(tt.reason) != tt.description {
+				t.Errorf("TerminationReason = %s, want %s", tt.reason, tt.description)
+			}
+		})
+	}
+}
+
+// TestPhaseStateConstants tests phase state constants.
+// REQ_006.1: Phase transition follows pending → in_progress → complete/failed
+func TestPhaseStateConstants(t *testing.T) {
+	tests := []struct {
+		state       PhaseState
+		description string
+	}{
+		{PhaseStatePending, "pending"},
+		{PhaseStateInProgress, "in_progress"},
+		{PhaseStateComplete, "complete"},
+		{PhaseStateFailed, "failed"},
+	}
+
+	for _, tt := range tests {
+		t.Run(string(tt.state), func(t *testing.T) {
+			if string(tt.state) != tt.description {
+				t.Errorf("PhaseState = %s, want %s", tt.state, tt.description)
+			}
+		})
+	}
+}
+
+// TestReviewLoopPhaseOrder tests that phases are processed in correct order.
+// REQ_006.1: Outer loop iterates through 6 phases in order
+func TestReviewLoopPhaseOrder(t *testing.T) {
+	expectedOrder := []PhaseType{
+		PhaseResearch,
+		PhaseDecomposition,
+		PhaseTDDPlanning,
+		PhaseMultiDoc,
+		PhaseBeadsSync,
+		PhaseImplementation,
+	}
+
+	phases := AllPhases()
+
+	if len(phases) != 6 {
+		t.Errorf("AllPhases() returned %d phases, want 6", len(phases))
+	}
+
+	for i, expected := range expectedOrder {
+		if phases[i] != expected {
+			t.Errorf("Phase at index %d = %s, want %s", i, phases[i], expected)
+		}
+	}
+}
+
+// TestReviewStepOrder tests that review steps are processed in correct order.
+// REQ_006.2: Middle loop iterates through 5 steps in order
+func TestReviewStepOrder(t *testing.T) {
+	expectedOrder := []ReviewStep{
+		StepContracts,
+		StepInterfaces,
+		StepPromises,
+		StepDataModels,
+		StepAPIs,
+	}
+
+	steps := AllReviewSteps()
+
+	if len(steps) != 5 {
+		t.Errorf("AllReviewSteps() returned %d steps, want 5", len(steps))
+	}
+
+	for i, expected := range expectedOrder {
+		if steps[i] != expected {
+			t.Errorf("Step at index %d = %s, want %s", i, steps[i], expected)
+		}
+	}
+}
+
+// TestDefaultConstants tests default constant values.
+// REQ_006.5: Configuration defaults
+func TestDefaultConstants(t *testing.T) {
+	if DefaultMaxRecursionDepth != 10 {
+		t.Errorf("DefaultMaxRecursionDepth = %d, want 10", DefaultMaxRecursionDepth)
+	}
+	if DefaultMaxIterations != 100 {
+		t.Errorf("DefaultMaxIterations = %d, want 100", DefaultMaxIterations)
+	}
+	if DefaultMaxRetries != 3 {
+		t.Errorf("DefaultMaxRetries = %d, want 3", DefaultMaxRetries)
+	}
+	if DefaultReviewTimeout != 10*time.Minute {
+		t.Errorf("DefaultReviewTimeout = %v, want 10 minutes", DefaultReviewTimeout)
+	}
+}
+
+// TestNewReviewLoopExecutor tests executor initialization.
+// REQ_006.1: Loop executor setup
+func TestNewReviewLoopExecutor(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	if executor.config != config {
+		t.Error("Executor config not set correctly")
+	}
+	if executor.orchestrator == nil {
+		t.Error("Executor orchestrator should be initialized")
+	}
+	if len(executor.analyzers) != 5 {
+		t.Errorf("Executor should have 5 analyzers, got %d", len(executor.analyzers))
+	}
+	if executor.visitedNodes == nil {
+		t.Error("Executor visitedNodes should be initialized")
+	}
+
+	// Verify all step analyzers are present
+	expectedSteps := []ReviewStep{StepContracts, StepInterfaces, StepPromises, StepDataModels, StepAPIs}
+	for _, step := range expectedSteps {
+		if _, ok := executor.analyzers[step]; !ok {
+			t.Errorf("Executor missing analyzer for step: %s", step)
+		}
+	}
+}
+
+// TestReviewLoopResultAggregation tests result aggregation across phases and steps.
+// REQ_006.4: Results stored in map[PhaseType]map[ReviewStep]*ReviewStepResult
+func TestReviewLoopResultAggregation(t *testing.T) {
+	result := NewReviewLoopResult()
+
+	// Initialize results for multiple phases and steps
+	phases := []PhaseType{PhaseResearch, PhaseDecomposition}
+	steps := []ReviewStep{StepContracts, StepInterfaces}
+
+	for _, phase := range phases {
+		result.Results[phase] = make(map[ReviewStep]*ReviewStepResult)
+		for _, step := range steps {
+			stepResult := NewReviewStepResult(step, phase)
+			stepResult.AddFinding(ReviewFinding{
+				ID:       fmt.Sprintf("%s-%s-finding", phase, step),
+				Severity: SeverityWarning,
+			})
+			result.Results[phase][step] = stepResult
+		}
+	}
+
+	// Verify structure
+	for _, phase := range phases {
+		phaseResults := result.Results[phase]
+		if phaseResults == nil {
+			t.Errorf("Missing results for phase: %s", phase)
+			continue
+		}
+		for _, step := range steps {
+			stepResult := phaseResults[step]
+			if stepResult == nil {
+				t.Errorf("Missing results for %s-%s", phase, step)
+			}
+		}
+	}
+}
+
+// TestReviewLoopMetadataFields tests metadata field population.
+// REQ_006.4: Results include metadata: timestamp, plan path, git commit, reviewer
+func TestReviewLoopMetadataFields(t *testing.T) {
+	result := NewReviewLoopResult()
+	now := time.Now()
+	result.Metadata = ReviewLoopMetadata{
+		Timestamp:   now,
+		PlanPath:    "/test/plan.md",
+		ProjectPath: "/test/project",
+		GitCommit:   "abc123",
+		Reviewer:    "test-reviewer",
+	}
+
+	if result.Metadata.Timestamp != now {
+		t.Error("Metadata timestamp not set correctly")
+	}
+	if result.Metadata.PlanPath != "/test/plan.md" {
+		t.Errorf("Metadata PlanPath = %s, want /test/plan.md", result.Metadata.PlanPath)
+	}
+	if result.Metadata.ProjectPath != "/test/project" {
+		t.Errorf("Metadata ProjectPath = %s, want /test/project", result.Metadata.ProjectPath)
+	}
+	if result.Metadata.GitCommit != "abc123" {
+		t.Errorf("Metadata GitCommit = %s, want abc123", result.Metadata.GitCommit)
+	}
+	if result.Metadata.Reviewer != "test-reviewer" {
+		t.Errorf("Metadata Reviewer = %s, want test-reviewer", result.Metadata.Reviewer)
+	}
+}
+
+// TestReviewLoopCheckAllIssuesClosed tests beads issue closure checking.
+// REQ_006.5: Closure check for beads issues
+func TestReviewLoopCheckAllIssuesClosed(t *testing.T) {
+	// Create temp directory with beads structure
+	tmpDir, err := os.MkdirTemp("", "review-closure-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("Failed to create beads dir: %v", err)
+	}
+
+	// Create closed issue
+	closedIssue := `{"status": "closed"}`
+	if err := os.WriteFile(filepath.Join(beadsDir, "issue-1.json"), []byte(closedIssue), 0644); err != nil {
+		t.Fatalf("Failed to create closed issue: %v", err)
+	}
+
+	// Create open issue
+	openIssue := `{"status": "open"}`
+	if err := os.WriteFile(filepath.Join(beadsDir, "issue-2.json"), []byte(openIssue), 0644); err != nil {
+		t.Fatalf("Failed to create open issue: %v", err)
+	}
+
+	t.Run("Empty list returns all closed", func(t *testing.T) {
+		allClosed, closed := CheckAllIssuesClosed(tmpDir, []string{})
+		if !allClosed {
+			t.Error("Empty list should return all closed")
+		}
+		if len(closed) != 0 {
+			t.Errorf("Empty list should return empty closed list, got %d", len(closed))
+		}
+	})
+
+	t.Run("All closed issues", func(t *testing.T) {
+		allClosed, closed := CheckAllIssuesClosed(tmpDir, []string{"issue-1"})
+		if !allClosed {
+			t.Error("Should return all closed for closed issues only")
+		}
+		if len(closed) != 1 {
+			t.Errorf("Should return 1 closed issue, got %d", len(closed))
+		}
+	})
+
+	t.Run("Mixed open and closed", func(t *testing.T) {
+		allClosed, closed := CheckAllIssuesClosed(tmpDir, []string{"issue-1", "issue-2"})
+		if allClosed {
+			t.Error("Should not return all closed when open issues exist")
+		}
+		if len(closed) != 1 {
+			t.Errorf("Should return 1 closed issue, got %d", len(closed))
+		}
+	})
+
+	t.Run("Non-existent issues are considered open", func(t *testing.T) {
+		allClosed, _ := CheckAllIssuesClosed(tmpDir, []string{"non-existent"})
+		if allClosed {
+			t.Error("Non-existent issues should be considered open")
+		}
+	})
+}
+
+// TestCountBlockedIssues tests blocked issue counting.
+// REQ_006.5: Blocking dependency detection
+func TestCountBlockedIssues(t *testing.T) {
+	// Create temp directory with beads structure
+	tmpDir, err := os.MkdirTemp("", "review-blocked-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	beadsDir := filepath.Join(tmpDir, ".beads")
+	if err := os.MkdirAll(beadsDir, 0755); err != nil {
+		t.Fatalf("Failed to create beads dir: %v", err)
+	}
+
+	// Create closed issue (no blocker)
+	closedIssue := `{"status": "closed"}`
+	if err := os.WriteFile(filepath.Join(beadsDir, "issue-1.json"), []byte(closedIssue), 0644); err != nil {
+		t.Fatalf("Failed to create closed issue: %v", err)
+	}
+
+	// Create open issue blocked by open dependency
+	blockedIssue := `{"status": "open", "depends_on_id": "issue-3"}`
+	if err := os.WriteFile(filepath.Join(beadsDir, "issue-2.json"), []byte(blockedIssue), 0644); err != nil {
+		t.Fatalf("Failed to create blocked issue: %v", err)
+	}
+
+	// Create the blocking open issue
+	blockingIssue := `{"status": "open"}`
+	if err := os.WriteFile(filepath.Join(beadsDir, "issue-3.json"), []byte(blockingIssue), 0644); err != nil {
+		t.Fatalf("Failed to create blocking issue: %v", err)
+	}
+
+	t.Run("Count blocked issues", func(t *testing.T) {
+		blocked, blockedBy := CountBlockedIssues(tmpDir, []string{"issue-1", "issue-2", "issue-3"})
+
+		if blocked != 1 {
+			t.Errorf("Should have 1 blocked issue, got %d", blocked)
+		}
+		if blockedBy["issue-2"] != "issue-3" {
+			t.Errorf("issue-2 should be blocked by issue-3, got %s", blockedBy["issue-2"])
+		}
+	})
+}
+
+// TestAnalyzeContracts tests contract analysis on requirement nodes.
+// REQ_006.2: Contract analysis checks
+func TestAnalyzeContracts(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	t.Run("Node with I/O contracts", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-001",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"Accepts JSON input",
+				"Returns structured output",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzeContracts(node, base)
+
+		hasIOContract := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "contract-io") && f.Severity == SeverityWellDefined {
+				hasIOContract = true
+			}
+		}
+		if !hasIOContract {
+			t.Error("Expected I/O contract to be well-defined")
+		}
+	})
+
+	t.Run("Node missing I/O contracts", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-002",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"Does something",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzeContracts(node, base)
+
+		hasMissingIO := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "contract-io") && f.Severity == SeverityWarning {
+				hasMissingIO = true
+			}
+		}
+		if !hasMissingIO {
+			t.Error("Expected warning for missing I/O contracts")
+		}
+	})
+}
+
+// TestAnalyzePromises tests promise analysis on requirement nodes.
+// REQ_006.2: Promise analysis checks
+func TestAnalyzePromises(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	t.Run("Async operation with timeout", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-001",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"Async operation with timeout handling",
+				"Supports cancellation via context",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzePromises(node, base)
+
+		hasAsync := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "promise-async") && f.Severity == SeverityWellDefined {
+				hasAsync = true
+			}
+		}
+		if !hasAsync {
+			t.Error("Expected async operation to be well-defined")
+		}
+	})
+
+	t.Run("Async operation missing timeout", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-002",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"Runs async operation in goroutine",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzePromises(node, base)
+
+		hasMissingTimeout := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "promise-no-timeout") && f.Severity == SeverityWarning {
+				hasMissingTimeout = true
+			}
+		}
+		if !hasMissingTimeout {
+			t.Error("Expected warning for missing timeout")
+		}
+	})
+}
+
+// TestAnalyzeAPIs tests API analysis on requirement nodes.
+// REQ_006.2: API analysis checks
+func TestAnalyzeAPIs(t *testing.T) {
+	config := NewReviewLoopConfig("/test/plan.md", "/test/project")
+	executor := NewReviewLoopExecutor(config)
+
+	t.Run("API endpoint with versioning", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-001",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"GET /api/v1/users returns 200 OK",
+				"Returns 404 for missing user",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzeAPIs(node, base)
+
+		hasEndpoint := false
+		hasVersioning := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "api-endpoint") {
+				hasEndpoint = true
+			}
+			if strings.Contains(f.ID, "api-version") {
+				hasVersioning = true
+			}
+		}
+		if !hasEndpoint {
+			t.Error("Expected API endpoint finding")
+		}
+		if !hasVersioning {
+			t.Error("Expected API versioning finding")
+		}
+	})
+
+	t.Run("API endpoint missing error handling", func(t *testing.T) {
+		node := &RequirementNode{
+			ID:   "REQ-002",
+			Type: "implementation",
+			AcceptanceCriteria: []string{
+				"POST /api/v1/items creates item",
+			},
+		}
+
+		base := ReviewFinding{Component: node.ID}
+		findings := executor.analyzeAPIs(node, base)
+
+		hasMissingErrors := false
+		for _, f := range findings {
+			if strings.Contains(f.ID, "api-no-errors") && f.Severity == SeverityWarning {
+				hasMissingErrors = true
+			}
+		}
+		if !hasMissingErrors {
+			t.Error("Expected warning for missing error definitions")
+		}
+	})
+}
+
+// TestContainsStep tests the helper function for checking step membership.
+func TestContainsStep(t *testing.T) {
+	steps := []ReviewStep{StepContracts, StepInterfaces, StepPromises}
+
+	if !containsStep(steps, StepContracts) {
+		t.Error("containsStep should find StepContracts")
+	}
+	if !containsStep(steps, StepInterfaces) {
+		t.Error("containsStep should find StepInterfaces")
+	}
+	if containsStep(steps, StepAPIs) {
+		t.Error("containsStep should not find StepAPIs")
+	}
+	if containsStep([]ReviewStep{}, StepContracts) {
+		t.Error("containsStep should return false for empty slice")
 	}
 }
