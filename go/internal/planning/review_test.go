@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestReviewStepEnum(t *testing.T) {
@@ -1571,5 +1572,642 @@ func TestSeverityClassificationIntegration(t *testing.T) {
 	// Verify prioritization - critical first
 	if result.Recommendations.Recommendations[0].Severity != SeverityCritical {
 		t.Error("First recommendation should be critical")
+	}
+}
+
+// =============================================================================
+// REQ_005: Review Autonomy Modes Tests (Phase 6)
+// =============================================================================
+
+// TestReviewOrchestratorCheckpointMode tests checkpoint mode behavior.
+// REQ_005.1: Checkpoint Mode - pause after each phase
+func TestReviewOrchestratorCheckpointMode(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, "/test/plan.md", "/test/project")
+
+	phases := []PhaseType{
+		PhaseResearch,
+		PhaseDecomposition,
+		PhaseTDDPlanning,
+		PhaseMultiDoc,
+		PhaseBeadsSync,
+		PhaseImplementation,
+	}
+
+	// REQ_005.1: All 6 phases must be reviewed individually before pausing
+	for _, phase := range phases {
+		if !ro.ShouldPauseAfterPhase(phase) {
+			t.Errorf("Checkpoint mode should pause after %s", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorCheckpointWritesAfterEachPhase tests checkpoint writes.
+// REQ_005.1: Checkpoint must be saved after each phase completes
+func TestReviewOrchestratorCheckpointWritesAfterEachPhase(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, "/test/plan.md", "/test/project")
+
+	phases := AllPhases()
+	for _, phase := range phases {
+		if !ro.ShouldWriteCheckpoint(phase) {
+			t.Errorf("Checkpoint mode should write checkpoint after %s", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorBatchMode tests batch mode behavior.
+// REQ_005.2: Batch Mode - group related phases together
+func TestReviewOrchestratorBatchMode(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	// REQ_005.2: Phases must be grouped into logical batches
+	testCases := []struct {
+		phase     PhaseType
+		wantGroup string
+	}{
+		{PhaseResearch, ReviewBatchGroupPlanning},
+		{PhaseDecomposition, ReviewBatchGroupPlanning},
+		{PhaseTDDPlanning, ReviewBatchGroupTDD},
+		{PhaseMultiDoc, ReviewBatchGroupTDD},
+		{PhaseBeadsSync, ReviewBatchGroupExecution},
+		{PhaseImplementation, ReviewBatchGroupExecution},
+	}
+
+	for _, tc := range testCases {
+		if got := ro.GetReviewBatchGroup(tc.phase); got != tc.wantGroup {
+			t.Errorf("GetReviewBatchGroup(%s) = %s, want %s", tc.phase.String(), got, tc.wantGroup)
+		}
+	}
+}
+
+// TestReviewOrchestratorBatchBoundaries tests batch boundary detection.
+// REQ_005.2: Pause only at defined group boundaries
+func TestReviewOrchestratorBatchBoundaries(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	// REQ_005.2: System must not pause between phases within the same batch
+	nonBoundaryPhases := []PhaseType{PhaseResearch, PhaseTDDPlanning, PhaseBeadsSync}
+	for _, phase := range nonBoundaryPhases {
+		if ro.ShouldPauseAfterPhase(phase) {
+			t.Errorf("Batch mode should NOT pause after %s (within batch)", phase.String())
+		}
+	}
+
+	// REQ_005.2: Pause only at defined group boundaries
+	boundaryPhases := []PhaseType{PhaseDecomposition, PhaseMultiDoc, PhaseImplementation}
+	for _, phase := range boundaryPhases {
+		if !ro.ShouldPauseAfterPhase(phase) {
+			t.Errorf("Batch mode should pause after %s (batch boundary)", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorBatchCheckpointBoundaries tests checkpoint writes at boundaries.
+// REQ_005.2: Checkpoint is written at group boundaries, not at individual phase boundaries
+func TestReviewOrchestratorBatchCheckpointBoundaries(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	// No checkpoint within batches
+	nonBoundaryPhases := []PhaseType{PhaseResearch, PhaseTDDPlanning, PhaseBeadsSync}
+	for _, phase := range nonBoundaryPhases {
+		if ro.ShouldWriteCheckpoint(phase) {
+			t.Errorf("Batch mode should NOT write checkpoint after %s (within batch)", phase.String())
+		}
+	}
+
+	// Checkpoint at batch boundaries
+	boundaryPhases := []PhaseType{PhaseDecomposition, PhaseMultiDoc, PhaseImplementation}
+	for _, phase := range boundaryPhases {
+		if !ro.ShouldWriteCheckpoint(phase) {
+			t.Errorf("Batch mode should write checkpoint after %s (batch boundary)", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorBatchGetPhasesInBatch tests batch phase grouping.
+// REQ_005.2: Group 1 (Research, Decomposition), Group 2 (TDDPlanning, MultiDoc), Group 3 (BeadsSync, Implementation)
+func TestReviewOrchestratorBatchGetPhasesInBatch(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	// Planning batch
+	planningBatch := ro.GetPhasesInBatch(PhaseResearch)
+	if len(planningBatch) != 2 {
+		t.Errorf("Planning batch should have 2 phases, got %d", len(planningBatch))
+	}
+	if planningBatch[0] != PhaseResearch || planningBatch[1] != PhaseDecomposition {
+		t.Error("Planning batch should contain Research, Decomposition")
+	}
+
+	// TDD batch
+	tddBatch := ro.GetPhasesInBatch(PhaseTDDPlanning)
+	if len(tddBatch) != 2 {
+		t.Errorf("TDD batch should have 2 phases, got %d", len(tddBatch))
+	}
+	if tddBatch[0] != PhaseTDDPlanning || tddBatch[1] != PhaseMultiDoc {
+		t.Error("TDD batch should contain TDDPlanning, MultiDoc")
+	}
+
+	// Execution batch
+	execBatch := ro.GetPhasesInBatch(PhaseImplementation)
+	if len(execBatch) != 2 {
+		t.Errorf("Execution batch should have 2 phases, got %d", len(execBatch))
+	}
+	if execBatch[0] != PhaseBeadsSync || execBatch[1] != PhaseImplementation {
+		t.Error("Execution batch should contain BeadsSync, Implementation")
+	}
+}
+
+// TestReviewOrchestratorFullyAutonomousMode tests fully autonomous mode behavior.
+// REQ_005.3: Fully Autonomous Mode - no pauses
+func TestReviewOrchestratorFullyAutonomousMode(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyFullyAutonomous, "/test/plan.md", "/test/project")
+
+	phases := AllPhases()
+
+	// REQ_005.3: All 6 phases must be reviewed sequentially without any pause
+	for _, phase := range phases {
+		if ro.ShouldPauseAfterPhase(phase) {
+			t.Errorf("Fully autonomous mode should NOT pause after %s", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorFullyAutonomousWritesCheckpoints tests checkpoint writes for crash recovery.
+// REQ_005.3: Checkpoint files are still written after each phase for crash recovery
+func TestReviewOrchestratorFullyAutonomousWritesCheckpoints(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyFullyAutonomous, "/test/plan.md", "/test/project")
+
+	phases := AllPhases()
+	for _, phase := range phases {
+		if !ro.ShouldWriteCheckpoint(phase) {
+			t.Errorf("Fully autonomous mode should write checkpoint after %s for crash recovery", phase.String())
+		}
+	}
+}
+
+// TestReviewOrchestratorAccumulateResults tests result accumulation.
+// REQ_005.2: Batch boundary checkpoint must aggregate all results
+func TestReviewOrchestratorAccumulateResults(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	// Add results for two phases
+	result1 := PhaseReviewResult{
+		Phase:  PhaseResearch,
+		Counts: SeverityCounts{WellDefined: 5, Warning: 2, Critical: 0},
+	}
+	result2 := PhaseReviewResult{
+		Phase:  PhaseDecomposition,
+		Counts: SeverityCounts{WellDefined: 3, Warning: 1, Critical: 1},
+	}
+
+	ro.AccumulatePhaseResult(PhaseResearch, result1)
+	ro.AccumulatePhaseResult(PhaseDecomposition, result2)
+
+	accumulated := ro.GetAccumulatedResults()
+	if len(accumulated) != 2 {
+		t.Errorf("Should have 2 accumulated results, got %d", len(accumulated))
+	}
+
+	if accumulated[PhaseResearch].Counts.WellDefined != 5 {
+		t.Error("Research result not properly accumulated")
+	}
+	if accumulated[PhaseDecomposition].Counts.Critical != 1 {
+		t.Error("Decomposition result not properly accumulated")
+	}
+
+	// Test clearing
+	ro.ClearAccumulatedResults()
+	accumulated = ro.GetAccumulatedResults()
+	if len(accumulated) != 0 {
+		t.Errorf("Should have 0 accumulated results after clear, got %d", len(accumulated))
+	}
+}
+
+// TestReviewCheckpointSaveAndLoad tests checkpoint persistence.
+// REQ_005.4: Implement saveCheckpoint() function for review operations
+func TestReviewCheckpointSaveAndLoad(t *testing.T) {
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "review-checkpoint-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a test plan file
+	planPath := filepath.Join(tmpDir, "test-plan.md")
+	if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test plan: %v", err)
+	}
+
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, planPath, tmpDir)
+
+	// REQ_005.4: Save checkpoint with all required data
+	completedPhases := []PhaseType{PhaseResearch, PhaseDecomposition}
+	pendingPhases := []PhaseType{PhaseTDDPlanning, PhaseMultiDoc, PhaseBeadsSync, PhaseImplementation}
+	phaseResults := map[PhaseType]PhaseReviewResult{
+		PhaseResearch: {
+			Phase:  PhaseResearch,
+			Counts: SeverityCounts{WellDefined: 10, Warning: 3, Critical: 0},
+		},
+		PhaseDecomposition: {
+			Phase:  PhaseDecomposition,
+			Counts: SeverityCounts{WellDefined: 8, Warning: 1, Critical: 1},
+		},
+	}
+	totalCounts := SeverityCounts{WellDefined: 18, Warning: 4, Critical: 1}
+
+	checkpointPath, err := ro.SaveReviewCheckpoint(2, completedPhases, pendingPhases, phaseResults, totalCounts)
+	if err != nil {
+		t.Fatalf("SaveReviewCheckpoint failed: %v", err)
+	}
+
+	// REQ_005.4: Checkpoint file must exist
+	if _, err := os.Stat(checkpointPath); os.IsNotExist(err) {
+		t.Error("Checkpoint file was not created")
+	}
+
+	// REQ_005.4: Load and verify checkpoint
+	loaded, err := LoadReviewCheckpoint(checkpointPath)
+	if err != nil {
+		t.Fatalf("LoadReviewCheckpoint failed: %v", err)
+	}
+
+	// Verify all fields
+	if loaded.PlanPath != planPath {
+		t.Errorf("PlanPath = %s, want %s", loaded.PlanPath, planPath)
+	}
+	if loaded.AutonomyMode != AutonomyCheckpoint {
+		t.Errorf("AutonomyMode = %v, want checkpoint", loaded.AutonomyMode)
+	}
+	if loaded.CurrentPhaseIdx != 2 {
+		t.Errorf("CurrentPhaseIdx = %d, want 2", loaded.CurrentPhaseIdx)
+	}
+	if len(loaded.CompletedPhases) != 2 {
+		t.Errorf("CompletedPhases = %d, want 2", len(loaded.CompletedPhases))
+	}
+	if len(loaded.PendingPhases) != 4 {
+		t.Errorf("PendingPhases = %d, want 4", len(loaded.PendingPhases))
+	}
+	if loaded.TotalCounts.Critical != 1 {
+		t.Errorf("TotalCounts.Critical = %d, want 1", loaded.TotalCounts.Critical)
+	}
+
+	// REQ_005.4: Plan hash should be present
+	if loaded.PlanHash == "" {
+		t.Error("PlanHash should not be empty")
+	}
+
+	// REQ_005.4: Timestamps should be present
+	if loaded.Timestamp == "" {
+		t.Error("Timestamp should not be empty")
+	}
+	if loaded.StartedAt == "" {
+		t.Error("StartedAt should not be empty")
+	}
+	if loaded.CumulativeSecs <= 0 {
+		t.Error("CumulativeSecs should be positive")
+	}
+}
+
+// TestReviewCheckpointPlanValidation tests plan hash validation.
+// REQ_005.4: loadCheckpoint() must validate plan hash matches before allowing resume
+func TestReviewCheckpointPlanValidation(t *testing.T) {
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "review-checkpoint-validation-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a test plan file
+	planPath := filepath.Join(tmpDir, "test-plan.md")
+	if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test plan: %v", err)
+	}
+
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, planPath, tmpDir)
+
+	// Save checkpoint
+	checkpointPath, err := ro.SaveReviewCheckpoint(0, nil, AllPhases(), nil, SeverityCounts{})
+	if err != nil {
+		t.Fatalf("SaveReviewCheckpoint failed: %v", err)
+	}
+
+	// Load checkpoint
+	loaded, err := LoadReviewCheckpoint(checkpointPath)
+	if err != nil {
+		t.Fatalf("LoadReviewCheckpoint failed: %v", err)
+	}
+
+	// Validate without changes - should pass
+	if err := ValidateCheckpointPlan(loaded); err != nil {
+		t.Errorf("ValidateCheckpointPlan should pass for unchanged plan: %v", err)
+	}
+
+	// Modify the plan file
+	if err := os.WriteFile(planPath, []byte("# Modified Test Plan\nNew content\n"), 0644); err != nil {
+		t.Fatalf("Failed to modify test plan: %v", err)
+	}
+
+	// Validate after changes - should fail
+	if err := ValidateCheckpointPlan(loaded); err == nil {
+		t.Error("ValidateCheckpointPlan should fail for modified plan")
+	}
+}
+
+// TestReviewCheckpointRotation tests checkpoint rotation.
+// REQ_005.4: Old checkpoints must be rotated: keep last 5
+func TestReviewCheckpointRotation(t *testing.T) {
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "review-checkpoint-rotation-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a test plan file
+	planPath := filepath.Join(tmpDir, "test-plan.md")
+	if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test plan: %v", err)
+	}
+
+	// Create checkpoint directory and add 7 test checkpoint files manually
+	// This avoids timing issues from fast consecutive saves
+	checkpointDir := filepath.Join(tmpDir, ".context-engine", "checkpoints")
+	if err := os.MkdirAll(checkpointDir, 0755); err != nil {
+		t.Fatalf("Failed to create checkpoint dir: %v", err)
+	}
+
+	// Create 7 checkpoint files with different timestamps in filename
+	for i := 0; i < 7; i++ {
+		filename := filepath.Join(checkpointDir, "review-test-plan-2026010"+string(rune('0'+i))+"-120000.json")
+		content := `{"id":"test-id","plan_path":"test","timestamp":"2026-01-0` + string(rune('0'+i)) + `T12:00:00Z"}`
+		if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+			t.Fatalf("Failed to create checkpoint file %d: %v", i, err)
+		}
+		// Set different mod times
+		modTime := time.Now().Add(time.Duration(-7+i) * time.Hour)
+		os.Chtimes(filename, modTime, modTime)
+	}
+
+	// Verify 7 files exist before rotation
+	files, _ := filepath.Glob(filepath.Join(checkpointDir, "review-*.json"))
+	if len(files) != 7 {
+		t.Fatalf("Should have 7 checkpoints before rotation, got %d", len(files))
+	}
+
+	// Now save one more checkpoint which should trigger rotation
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, planPath, tmpDir)
+	_, err = ro.SaveReviewCheckpoint(0, nil, AllPhases(), nil, SeverityCounts{})
+	if err != nil {
+		t.Fatalf("SaveReviewCheckpoint failed: %v", err)
+	}
+
+	// Count checkpoint files after rotation
+	files, err = filepath.Glob(filepath.Join(checkpointDir, "review-*.json"))
+	if err != nil {
+		t.Fatalf("Failed to glob checkpoints: %v", err)
+	}
+
+	// REQ_005.4: Should keep only 5 checkpoints (rotated oldest ones)
+	if len(files) != 5 {
+		t.Errorf("Should have 5 checkpoints after rotation, got %d", len(files))
+	}
+}
+
+// TestReviewCheckpointAtomicWrite tests atomic write pattern.
+// REQ_005.4: Atomic write pattern must be used
+func TestReviewCheckpointAtomicWrite(t *testing.T) {
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "review-checkpoint-atomic-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a test plan file
+	planPath := filepath.Join(tmpDir, "test-plan.md")
+	if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test plan: %v", err)
+	}
+
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, planPath, tmpDir)
+
+	// Save checkpoint
+	checkpointPath, err := ro.SaveReviewCheckpoint(0, nil, AllPhases(), nil, SeverityCounts{})
+	if err != nil {
+		t.Fatalf("SaveReviewCheckpoint failed: %v", err)
+	}
+
+	// Verify no temp files left behind
+	checkpointDir := filepath.Join(tmpDir, ".context-engine", "checkpoints")
+	tmpFiles, _ := filepath.Glob(filepath.Join(checkpointDir, "*.tmp"))
+	if len(tmpFiles) > 0 {
+		t.Error("Temp files should not be left behind after atomic write")
+	}
+
+	// REQ_005.4: Checkpoint file must be human-readable (pretty-printed JSON)
+	data, err := os.ReadFile(checkpointPath)
+	if err != nil {
+		t.Fatalf("Failed to read checkpoint: %v", err)
+	}
+
+	// Pretty-printed JSON should have indentation
+	if !strings.Contains(string(data), "\n  ") {
+		t.Error("Checkpoint JSON should be pretty-printed with indentation")
+	}
+}
+
+// TestReviewExitCode tests exit code determination.
+// REQ_005.3: Exit code must reflect overall review health
+func TestReviewExitCode(t *testing.T) {
+	tests := []struct {
+		name          string
+		counts        SeverityCounts
+		expectedCode  int
+	}{
+		{
+			name:         "all pass",
+			counts:       SeverityCounts{WellDefined: 10, Warning: 0, Critical: 0},
+			expectedCode: 0,
+		},
+		{
+			name:         "warnings only",
+			counts:       SeverityCounts{WellDefined: 10, Warning: 3, Critical: 0},
+			expectedCode: 1,
+		},
+		{
+			name:         "critical issues",
+			counts:       SeverityCounts{WellDefined: 10, Warning: 3, Critical: 1},
+			expectedCode: 2,
+		},
+		{
+			name:         "only critical",
+			counts:       SeverityCounts{WellDefined: 0, Warning: 0, Critical: 5},
+			expectedCode: 2,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := &ReviewResult{
+				TotalCounts: tt.counts,
+			}
+			if got := GetReviewExitCode(result); got != tt.expectedCode {
+				t.Errorf("GetReviewExitCode() = %d, want %d", got, tt.expectedCode)
+			}
+		})
+	}
+}
+
+// TestReviewReportGeneration tests report generation.
+// REQ_005.3: Final comprehensive report must include all findings
+func TestReviewReportGeneration(t *testing.T) {
+	result := &ReviewResult{
+		Success:         true,
+		TotalCounts:     SeverityCounts{WellDefined: 15, Warning: 5, Critical: 2},
+		ReviewedPhases:  []PhaseType{PhaseResearch, PhaseDecomposition},
+		ReviewedSteps:   AllReviewSteps(),
+		DurationSeconds: 12.5,
+		Timestamp:       time.Now(),
+		PhaseResults: map[PhaseType]PhaseReviewResult{
+			PhaseResearch: {
+				Phase:  PhaseResearch,
+				Counts: SeverityCounts{WellDefined: 10, Warning: 3, Critical: 1},
+			},
+			PhaseDecomposition: {
+				Phase:  PhaseDecomposition,
+				Counts: SeverityCounts{WellDefined: 5, Warning: 2, Critical: 1},
+			},
+		},
+	}
+
+	config := ReviewConfig{
+		PlanPath:     "/test/plan.md",
+		AutonomyMode: AutonomyFullyAutonomous,
+	}
+
+	report := GenerateReviewReport(result, config)
+
+	// REQ_005.3: Report must include plan info
+	if !strings.Contains(report, "/test/plan.md") {
+		t.Error("Report should contain plan path")
+	}
+
+	// REQ_005.3: Report must include mode
+	if !strings.Contains(report, "fully_autonomous") {
+		t.Error("Report should contain autonomy mode")
+	}
+
+	// REQ_005.3: Report must include duration
+	if !strings.Contains(report, "12.50 seconds") {
+		t.Error("Report should contain duration")
+	}
+
+	// REQ_005.3: Critical findings must be prominently highlighted
+	if !strings.Contains(report, "Critical Issues") {
+		t.Error("Report should prominently highlight critical issues")
+	}
+
+	// REQ_005.3: Report must include phase results
+	if !strings.Contains(report, "research") {
+		t.Error("Report should contain phase results")
+	}
+
+	// REQ_005.3: Report must include steps executed
+	if !strings.Contains(report, "contracts") {
+		t.Error("Report should contain steps executed")
+	}
+}
+
+// TestDetectReviewCheckpoint tests checkpoint detection.
+func TestDetectReviewCheckpoint(t *testing.T) {
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "review-checkpoint-detect-test")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Create a test plan file
+	planPath := filepath.Join(tmpDir, "test-plan.md")
+	if err := os.WriteFile(planPath, []byte("# Test Plan\n"), 0644); err != nil {
+		t.Fatalf("Failed to create test plan: %v", err)
+	}
+
+	// Initially no checkpoints should be found
+	checkpoint, err := DetectReviewCheckpoint(tmpDir)
+	if err != nil {
+		t.Fatalf("DetectReviewCheckpoint should not error: %v", err)
+	}
+	if checkpoint != nil {
+		t.Error("Should not find checkpoint when none exist")
+	}
+
+	// Create a checkpoint
+	ro := NewReviewOrchestrator(AutonomyCheckpoint, planPath, tmpDir)
+	_, err = ro.SaveReviewCheckpoint(1, []PhaseType{PhaseResearch}, AllPhases()[1:], nil, SeverityCounts{})
+	if err != nil {
+		t.Fatalf("SaveReviewCheckpoint failed: %v", err)
+	}
+
+	// Now should detect checkpoint
+	checkpoint, err = DetectReviewCheckpoint(tmpDir)
+	if err != nil {
+		t.Fatalf("DetectReviewCheckpoint failed: %v", err)
+	}
+	if checkpoint == nil {
+		t.Error("Should find checkpoint after creation")
+	}
+	if checkpoint.CurrentPhaseIdx != 1 {
+		t.Errorf("Detected checkpoint should have phase index 1, got %d", checkpoint.CurrentPhaseIdx)
+	}
+}
+
+// TestReviewOrchestratorIsReviewBatchBoundary tests batch boundary detection.
+func TestReviewOrchestratorIsReviewBatchBoundary(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	tests := []struct {
+		phase      PhaseType
+		isBoundary bool
+	}{
+		{PhaseResearch, false},
+		{PhaseDecomposition, true},    // End of planning batch
+		{PhaseTDDPlanning, false},
+		{PhaseMultiDoc, true},         // End of TDD batch
+		{PhaseBeadsSync, false},
+		{PhaseImplementation, true},   // End of execution batch
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.phase.String(), func(t *testing.T) {
+			if got := ro.IsReviewBatchBoundary(tt.phase); got != tt.isBoundary {
+				t.Errorf("IsReviewBatchBoundary(%s) = %v, want %v", tt.phase.String(), got, tt.isBoundary)
+			}
+		})
+	}
+}
+
+// TestNewReviewOrchestrator tests orchestrator creation.
+func TestNewReviewOrchestrator(t *testing.T) {
+	ro := NewReviewOrchestrator(AutonomyBatch, "/test/plan.md", "/test/project")
+
+	if ro.AutonomyMode != AutonomyBatch {
+		t.Errorf("AutonomyMode = %v, want AutonomyBatch", ro.AutonomyMode)
+	}
+	if ro.PlanPath != "/test/plan.md" {
+		t.Errorf("PlanPath = %s, want /test/plan.md", ro.PlanPath)
+	}
+	if ro.ProjectPath != "/test/project" {
+		t.Errorf("ProjectPath = %s, want /test/project", ro.ProjectPath)
+	}
+	if ro.checkpointMgr == nil {
+		t.Error("checkpointMgr should not be nil")
+	}
+	if ro.accumulatedResults == nil {
+		t.Error("accumulatedResults should not be nil")
+	}
+	if ro.startTime.IsZero() {
+		t.Error("startTime should be set")
 	}
 }

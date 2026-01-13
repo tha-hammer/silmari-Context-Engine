@@ -1,11 +1,17 @@
 package planning
 
 import (
+	"bufio"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 // ReviewStep represents the 5-step discrete analysis framework.
@@ -1868,4 +1874,496 @@ func (r *ReviewStepResult) FormatEmojiSummary() string {
 		sb.WriteString("  Status: BLOCKED - Critical issues must be resolved ❌\n")
 	}
 	return sb.String()
+}
+
+// =============================================================================
+// REQ_005: Review Autonomy Modes and Checkpointing (Phase 6)
+// =============================================================================
+
+// ReviewBatchGroup represents a logical group of review phases for batch mode.
+// REQ_005.2: Phases must be grouped into logical batches
+const (
+	ReviewBatchGroupPlanning  = "planning"  // Research, Decomposition
+	ReviewBatchGroupTDD       = "tdd"       // TDDPlanning, MultiDoc
+	ReviewBatchGroupExecution = "execution" // BeadsSync, Implementation
+)
+
+// ReviewOrchestrator manages review execution flow based on autonomy mode.
+// REQ_005: The system must support three autonomy modes for review execution
+type ReviewOrchestrator struct {
+	AutonomyMode     AutonomyMode
+	PlanPath         string
+	ProjectPath      string
+	checkpointMgr    *CheckpointManager
+	accumulatedResults map[PhaseType]PhaseReviewResult
+	startTime        time.Time
+}
+
+// NewReviewOrchestrator creates a new review orchestrator.
+func NewReviewOrchestrator(autonomyMode AutonomyMode, planPath, projectPath string) *ReviewOrchestrator {
+	return &ReviewOrchestrator{
+		AutonomyMode:       autonomyMode,
+		PlanPath:           planPath,
+		ProjectPath:        projectPath,
+		checkpointMgr:      NewCheckpointManager(projectPath),
+		accumulatedResults: make(map[PhaseType]PhaseReviewResult),
+		startTime:          time.Now(),
+	}
+}
+
+// GetReviewBatchGroup returns the batch group for a review phase.
+// REQ_005.2: Phases must be grouped into logical batches
+func (ro *ReviewOrchestrator) GetReviewBatchGroup(phase PhaseType) string {
+	switch phase {
+	case PhaseResearch, PhaseDecomposition:
+		return ReviewBatchGroupPlanning
+	case PhaseTDDPlanning, PhaseMultiDoc:
+		return ReviewBatchGroupTDD
+	case PhaseBeadsSync, PhaseImplementation:
+		return ReviewBatchGroupExecution
+	default:
+		return ""
+	}
+}
+
+// IsReviewBatchBoundary returns true if the phase is the last in its batch group.
+// REQ_005.2: Pause only at defined group boundaries for consolidated approval
+func (ro *ReviewOrchestrator) IsReviewBatchBoundary(phase PhaseType) bool {
+	switch phase {
+	case PhaseDecomposition: // End of Planning batch
+		return true
+	case PhaseMultiDoc: // End of TDD batch
+		return true
+	case PhaseImplementation: // End of Execution batch
+		return true
+	default:
+		return false
+	}
+}
+
+// ShouldPauseAfterPhase returns true if review should pause after the phase.
+// REQ_005.1: Checkpoint Mode - pause after each phase
+// REQ_005.2: Batch Mode - pause only at batch boundaries
+// REQ_005.3: Fully Autonomous Mode - never pause
+func (ro *ReviewOrchestrator) ShouldPauseAfterPhase(phase PhaseType) bool {
+	switch ro.AutonomyMode {
+	case AutonomyCheckpoint:
+		// REQ_005.1: Pause after every phase
+		return true
+	case AutonomyBatch:
+		// REQ_005.2: Pause only at batch boundaries
+		return ro.IsReviewBatchBoundary(phase)
+	case AutonomyFullyAutonomous:
+		// REQ_005.3: Never pause
+		return false
+	default:
+		return true
+	}
+}
+
+// ShouldWriteCheckpoint returns true if checkpoint should be written after the phase.
+// REQ_005.1: Checkpoint saved after each phase completes
+// REQ_005.2: Checkpoint at batch boundaries only
+// REQ_005.3: Write checkpoint for crash recovery
+func (ro *ReviewOrchestrator) ShouldWriteCheckpoint(phase PhaseType) bool {
+	switch ro.AutonomyMode {
+	case AutonomyCheckpoint:
+		// REQ_005.1: Write checkpoint after every phase
+		return true
+	case AutonomyBatch:
+		// REQ_005.2: Write checkpoint only at batch boundaries
+		return ro.IsReviewBatchBoundary(phase)
+	case AutonomyFullyAutonomous:
+		// REQ_005.3: Write checkpoint after every phase for crash recovery
+		return true
+	default:
+		return true
+	}
+}
+
+// AccumulatePhaseResult stores phase result for batch aggregation.
+// REQ_005.2: Batch boundary checkpoint must aggregate all results
+func (ro *ReviewOrchestrator) AccumulatePhaseResult(phase PhaseType, result PhaseReviewResult) {
+	ro.accumulatedResults[phase] = result
+}
+
+// GetAccumulatedResults returns all accumulated results since last checkpoint.
+func (ro *ReviewOrchestrator) GetAccumulatedResults() map[PhaseType]PhaseReviewResult {
+	return ro.accumulatedResults
+}
+
+// ClearAccumulatedResults clears accumulated results after checkpoint.
+func (ro *ReviewOrchestrator) ClearAccumulatedResults() {
+	ro.accumulatedResults = make(map[PhaseType]PhaseReviewResult)
+}
+
+// GetPhasesInBatch returns all phases in the same batch as the given phase.
+// REQ_005.2: Group related phases together
+func (ro *ReviewOrchestrator) GetPhasesInBatch(phase PhaseType) []PhaseType {
+	group := ro.GetReviewBatchGroup(phase)
+	switch group {
+	case ReviewBatchGroupPlanning:
+		return []PhaseType{PhaseResearch, PhaseDecomposition}
+	case ReviewBatchGroupTDD:
+		return []PhaseType{PhaseTDDPlanning, PhaseMultiDoc}
+	case ReviewBatchGroupExecution:
+		return []PhaseType{PhaseBeadsSync, PhaseImplementation}
+	default:
+		return []PhaseType{phase}
+	}
+}
+
+// ReviewCheckpoint represents a checkpoint specifically for review operations.
+// REQ_005.4: Checkpoint structure for review state persistence
+type ReviewCheckpoint struct {
+	ID               string                          `json:"id"`
+	PlanPath         string                          `json:"plan_path"`
+	PlanHash         string                          `json:"plan_hash"`          // REQ_005.4: Detect if plan changed
+	AutonomyMode     AutonomyMode                    `json:"autonomy_mode"`
+	CurrentPhaseIdx  int                             `json:"current_phase_idx"`
+	CompletedPhases  []PhaseType                     `json:"completed_phases"`
+	PendingPhases    []PhaseType                     `json:"pending_phases"`
+	PhaseResults     map[PhaseType]PhaseReviewResult `json:"phase_results"`
+	TotalCounts      SeverityCounts                  `json:"total_counts"`
+	Timestamp        string                          `json:"timestamp"`
+	StartedAt        string                          `json:"started_at"`
+	CumulativeSecs   float64                         `json:"cumulative_seconds"` // REQ_005.4: Cumulative review duration
+}
+
+// SaveReviewCheckpoint saves the current review state to a checkpoint file.
+// REQ_005.4: Implement saveCheckpoint() function for review operations
+func (ro *ReviewOrchestrator) SaveReviewCheckpoint(
+	currentPhaseIdx int,
+	completedPhases []PhaseType,
+	pendingPhases []PhaseType,
+	phaseResults map[PhaseType]PhaseReviewResult,
+	totalCounts SeverityCounts,
+) (string, error) {
+	// Create checkpoint directory
+	checkpointDir := filepath.Join(ro.ProjectPath, ".context-engine", "checkpoints")
+	if err := os.MkdirAll(checkpointDir, 0755); err != nil {
+		return "", fmt.Errorf("failed to create checkpoint directory: %w", err)
+	}
+
+	// Generate checkpoint ID
+	checkpointID := uuid.New().String()
+
+	// Compute plan hash
+	planHash, err := computePlanHash(ro.PlanPath)
+	if err != nil {
+		planHash = "" // Continue without hash if computation fails
+	}
+
+	// Extract plan name for filename
+	planName := filepath.Base(ro.PlanPath)
+	planName = strings.TrimSuffix(planName, filepath.Ext(planName))
+
+	// Create checkpoint structure
+	checkpoint := ReviewCheckpoint{
+		ID:              checkpointID,
+		PlanPath:        ro.PlanPath,
+		PlanHash:        planHash,
+		AutonomyMode:    ro.AutonomyMode,
+		CurrentPhaseIdx: currentPhaseIdx,
+		CompletedPhases: completedPhases,
+		PendingPhases:   pendingPhases,
+		PhaseResults:    phaseResults,
+		TotalCounts:     totalCounts,
+		Timestamp:       time.Now().UTC().Format(time.RFC3339),
+		StartedAt:       ro.startTime.UTC().Format(time.RFC3339),
+		CumulativeSecs:  time.Since(ro.startTime).Seconds(),
+	}
+
+	// Marshal to pretty-printed JSON (REQ_005.4: Human-readable)
+	data, err := json.MarshalIndent(checkpoint, "", "  ")
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal checkpoint: %w", err)
+	}
+
+	// Write to temp file first for atomic write (REQ_005.4)
+	timestamp := time.Now().Format("20060102-150405")
+	filename := fmt.Sprintf("review-%s-%s.json", planName, timestamp)
+	checkpointPath := filepath.Join(checkpointDir, filename)
+	tempPath := checkpointPath + ".tmp"
+
+	if err := os.WriteFile(tempPath, data, 0644); err != nil {
+		return "", fmt.Errorf("failed to write temp checkpoint file: %w", err)
+	}
+
+	// Rename for atomic write
+	if err := os.Rename(tempPath, checkpointPath); err != nil {
+		os.Remove(tempPath) // Cleanup temp file
+		return "", fmt.Errorf("failed to rename checkpoint file: %w", err)
+	}
+
+	// Rotate old checkpoints (REQ_005.4: Keep last 5)
+	ro.rotateCheckpoints(checkpointDir, 5)
+
+	return checkpointPath, nil
+}
+
+// rotateCheckpoints keeps only the most recent N checkpoints.
+// REQ_005.4: Old checkpoints must be rotated: keep last 5
+func (ro *ReviewOrchestrator) rotateCheckpoints(checkpointDir string, keepCount int) {
+	files, err := filepath.Glob(filepath.Join(checkpointDir, "review-*.json"))
+	if err != nil || len(files) <= keepCount {
+		return
+	}
+
+	// Sort by modification time (oldest first)
+	type fileInfo struct {
+		path    string
+		modTime time.Time
+	}
+	var fileInfos []fileInfo
+	for _, f := range files {
+		info, err := os.Stat(f)
+		if err == nil {
+			fileInfos = append(fileInfos, fileInfo{path: f, modTime: info.ModTime()})
+		}
+	}
+
+	sort.Slice(fileInfos, func(i, j int) bool {
+		return fileInfos[i].modTime.Before(fileInfos[j].modTime)
+	})
+
+	// Delete oldest files beyond keepCount
+	deleteCount := len(fileInfos) - keepCount
+	for i := 0; i < deleteCount; i++ {
+		os.Remove(fileInfos[i].path)
+	}
+}
+
+// LoadReviewCheckpoint loads a review checkpoint from file.
+// REQ_005.4: loadCheckpoint() must validate plan hash before allowing resume
+func LoadReviewCheckpoint(checkpointPath string) (*ReviewCheckpoint, error) {
+	data, err := os.ReadFile(checkpointPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read checkpoint: %w", err)
+	}
+
+	var checkpoint ReviewCheckpoint
+	if err := json.Unmarshal(data, &checkpoint); err != nil {
+		return nil, fmt.Errorf("invalid checkpoint JSON: %w", err)
+	}
+
+	return &checkpoint, nil
+}
+
+// ValidateCheckpointPlan validates that the plan hasn't changed since checkpoint.
+// REQ_005.4: loadCheckpoint() must validate plan hash matches before allowing resume
+func ValidateCheckpointPlan(checkpoint *ReviewCheckpoint) error {
+	if checkpoint.PlanHash == "" {
+		return nil // No hash to validate
+	}
+
+	currentHash, err := computePlanHash(checkpoint.PlanPath)
+	if err != nil {
+		return nil // Can't compute hash, allow resume
+	}
+
+	if currentHash != checkpoint.PlanHash {
+		return fmt.Errorf("plan has changed since checkpoint (hash mismatch)")
+	}
+
+	return nil
+}
+
+// computePlanHash computes a hash of the plan file for change detection.
+func computePlanHash(planPath string) (string, error) {
+	data, err := os.ReadFile(planPath)
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256(data)
+	return fmt.Sprintf("%x", hash[:8]), nil // First 8 bytes as hex
+}
+
+// DetectReviewCheckpoint finds the most recent review checkpoint.
+func DetectReviewCheckpoint(projectPath string) (*ReviewCheckpoint, error) {
+	checkpointDir := filepath.Join(projectPath, ".context-engine", "checkpoints")
+	files, err := filepath.Glob(filepath.Join(checkpointDir, "review-*.json"))
+	if err != nil || len(files) == 0 {
+		return nil, nil
+	}
+
+	// Find most recent by modification time
+	var mostRecent string
+	var mostRecentTime time.Time
+
+	for _, f := range files {
+		info, err := os.Stat(f)
+		if err == nil && info.ModTime().After(mostRecentTime) {
+			mostRecent = f
+			mostRecentTime = info.ModTime()
+		}
+	}
+
+	if mostRecent == "" {
+		return nil, nil
+	}
+
+	return LoadReviewCheckpoint(mostRecent)
+}
+
+// PromptReviewPhaseApproval displays review findings and prompts for approval.
+// REQ_005.1: User must be able to view review findings at each checkpoint pause
+func PromptReviewPhaseApproval(phase PhaseType, result PhaseReviewResult) (bool, string) {
+	fmt.Printf("\n=== Review Checkpoint: %s Phase ===\n", phase.String())
+	fmt.Printf("  %s Well-defined: %d\n", SeverityWellDefined.Emoji(), result.Counts.WellDefined)
+	fmt.Printf("  %s Warnings: %d\n", SeverityWarning.Emoji(), result.Counts.Warning)
+	fmt.Printf("  %s Critical: %d\n", SeverityCritical.Emoji(), result.Counts.Critical)
+
+	// REQ_005.1: Critical findings must be flagged
+	if result.Counts.Critical > 0 {
+		fmt.Printf("\n⚠️  CRITICAL ISSUES DETECTED - Acknowledgment required to proceed\n")
+	}
+
+	fmt.Print("\nContinue to next phase? [Y/n]: ")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return true, "" // Default to yes on EOF
+	}
+
+	input := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	if input == "" || input == "y" {
+		return true, ""
+	}
+
+	if input == "n" {
+		fmt.Println("\nPlease provide feedback (enter empty line when done):")
+		feedback := CollectMultilineInput("> ")
+		return false, feedback
+	}
+
+	return true, ""
+}
+
+// PromptReviewBatchApproval displays consolidated batch findings and prompts for approval.
+// REQ_005.2: User must receive consolidated report showing findings across all phases in batch
+func PromptReviewBatchApproval(phases []PhaseType, results map[PhaseType]PhaseReviewResult) (bool, string) {
+	fmt.Printf("\n=== Review Checkpoint: Batch Complete ===\n")
+	fmt.Printf("Phases in batch: ")
+	for i, p := range phases {
+		if i > 0 {
+			fmt.Print(", ")
+		}
+		fmt.Print(p.String())
+	}
+	fmt.Println()
+
+	// Aggregate counts
+	var totalCounts SeverityCounts
+	for _, phase := range phases {
+		if result, ok := results[phase]; ok {
+			totalCounts.WellDefined += result.Counts.WellDefined
+			totalCounts.Warning += result.Counts.Warning
+			totalCounts.Critical += result.Counts.Critical
+		}
+	}
+
+	fmt.Printf("\nConsolidated Findings:\n")
+	fmt.Printf("  %s Well-defined: %d\n", SeverityWellDefined.Emoji(), totalCounts.WellDefined)
+	fmt.Printf("  %s Warnings: %d\n", SeverityWarning.Emoji(), totalCounts.Warning)
+	fmt.Printf("  %s Critical: %d\n", SeverityCritical.Emoji(), totalCounts.Critical)
+
+	// Show per-phase breakdown
+	fmt.Printf("\nPer-Phase Breakdown:\n")
+	for _, phase := range phases {
+		if result, ok := results[phase]; ok {
+			fmt.Printf("  %s: %d well-defined, %d warnings, %d critical\n",
+				phase.String(), result.Counts.WellDefined, result.Counts.Warning, result.Counts.Critical)
+		}
+	}
+
+	// REQ_005.2: Critical findings in any phase must be surfaced
+	if totalCounts.Critical > 0 {
+		fmt.Printf("\n⚠️  CRITICAL ISSUES DETECTED IN BATCH - Review required\n")
+	}
+
+	fmt.Print("\nContinue to next batch? [Y/n]: ")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return true, ""
+	}
+
+	input := strings.TrimSpace(strings.ToLower(scanner.Text()))
+	if input == "" || input == "y" {
+		return true, ""
+	}
+
+	if input == "n" {
+		fmt.Println("\nPlease provide feedback (enter empty line when done):")
+		feedback := CollectMultilineInput("> ")
+		return false, feedback
+	}
+
+	return true, ""
+}
+
+// GenerateReviewReport generates a comprehensive review report.
+// REQ_005.3: Final comprehensive report must include all findings
+func GenerateReviewReport(result *ReviewResult, config ReviewConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString("# Plan Review Report\n\n")
+	sb.WriteString(fmt.Sprintf("**Plan**: %s\n", config.PlanPath))
+	sb.WriteString(fmt.Sprintf("**Mode**: %s\n", config.AutonomyMode.String()))
+	sb.WriteString(fmt.Sprintf("**Duration**: %.2f seconds\n", result.DurationSeconds))
+	sb.WriteString(fmt.Sprintf("**Timestamp**: %s\n\n", result.Timestamp.Format(time.RFC3339)))
+
+	// Summary
+	sb.WriteString("## Summary\n\n")
+	sb.WriteString(fmt.Sprintf("- %s Well-defined: %d\n", SeverityWellDefined.Emoji(), result.TotalCounts.WellDefined))
+	sb.WriteString(fmt.Sprintf("- %s Warnings: %d\n", SeverityWarning.Emoji(), result.TotalCounts.Warning))
+	sb.WriteString(fmt.Sprintf("- %s Critical: %d\n", SeverityCritical.Emoji(), result.TotalCounts.Critical))
+	sb.WriteString("\n")
+
+	// REQ_005.3: Critical findings must be prominently highlighted
+	if result.TotalCounts.Critical > 0 {
+		sb.WriteString("### ⚠️ Critical Issues\n\n")
+		sb.WriteString("The following critical issues were found and must be addressed:\n\n")
+		// List critical issues from phase results
+		for _, phaseResult := range result.PhaseResults {
+			if phaseResult.Counts.Critical > 0 {
+				sb.WriteString(fmt.Sprintf("- **%s Phase**: %d critical issues\n",
+					phaseResult.Phase.String(), phaseResult.Counts.Critical))
+			}
+		}
+		sb.WriteString("\n")
+	}
+
+	// Phase details
+	sb.WriteString("## Phase Results\n\n")
+	for _, phase := range result.ReviewedPhases {
+		if phaseResult, ok := result.PhaseResults[phase]; ok {
+			sb.WriteString(fmt.Sprintf("### %s\n\n", phase.String()))
+			sb.WriteString(fmt.Sprintf("- Well-defined: %d\n", phaseResult.Counts.WellDefined))
+			sb.WriteString(fmt.Sprintf("- Warnings: %d\n", phaseResult.Counts.Warning))
+			sb.WriteString(fmt.Sprintf("- Critical: %d\n", phaseResult.Counts.Critical))
+			sb.WriteString("\n")
+		}
+	}
+
+	// Steps executed
+	sb.WriteString("## Steps Executed\n\n")
+	for _, step := range result.ReviewedSteps {
+		sb.WriteString(fmt.Sprintf("- %s\n", step.String()))
+	}
+
+	return sb.String()
+}
+
+// GetReviewExitCode returns the appropriate exit code based on review results.
+// REQ_005.3: Exit code must reflect overall review health
+func GetReviewExitCode(result *ReviewResult) int {
+	if result.TotalCounts.Critical > 0 {
+		return 2 // Critical issues
+	}
+	if result.TotalCounts.Warning > 0 {
+		return 1 // Warnings only
+	}
+	return 0 // All pass
 }
