@@ -173,13 +173,100 @@ func (s *Severity) UnmarshalJSON(data []byte) error {
 
 // ReviewFinding represents a single finding from the review process.
 type ReviewFinding struct {
-	ID             string   `json:"id"`
-	Component      string   `json:"component"`
-	Description    string   `json:"description"`
-	Severity       Severity `json:"severity"`
-	Recommendation string   `json:"recommendation,omitempty"`
-	Location       string   `json:"location,omitempty"` // file:line format
-	RelatedIDs     []string `json:"related_ids,omitempty"`
+	ID               string   `json:"id"`
+	Component        string   `json:"component"`
+	Description      string   `json:"description"`
+	Severity         Severity `json:"severity"`
+	Recommendation   string   `json:"recommendation,omitempty"`
+	Location         string   `json:"location,omitempty"` // file:line format
+	RelatedIDs       []string `json:"related_ids,omitempty"`
+	Reason           string   `json:"reason,omitempty"`            // REQ_004.2: Why warning was raised
+	ResolutionNeeded string   `json:"resolution_needed,omitempty"` // REQ_004.3: What must be fixed for Critical
+}
+
+// MarkWellDefined marks the finding as well-defined (REQ_004.1).
+// Returns the updated finding with Severity set to 'well_defined'.
+func (f *ReviewFinding) MarkWellDefined() *ReviewFinding {
+	f.Severity = SeverityWellDefined
+	f.Reason = ""
+	f.ResolutionNeeded = ""
+	return f
+}
+
+// MarkWarning marks the finding as warning with optional reason (REQ_004.2).
+// Returns the updated finding with Severity set to 'warning'.
+func (f *ReviewFinding) MarkWarning(reason string) *ReviewFinding {
+	f.Severity = SeverityWarning
+	f.Reason = reason
+	f.ResolutionNeeded = ""
+	return f
+}
+
+// MarkCritical marks the finding as critical with required resolution (REQ_004.3).
+// Returns the updated finding with Severity set to 'critical'.
+func (f *ReviewFinding) MarkCritical(resolutionNeeded string) *ReviewFinding {
+	f.Severity = SeverityCritical
+	f.ResolutionNeeded = resolutionNeeded
+	return f
+}
+
+// IsWellDefined returns true if the finding is well-defined (REQ_004.1).
+func (f *ReviewFinding) IsWellDefined() bool {
+	return f.Severity == SeverityWellDefined
+}
+
+// IsWarning returns true if the finding is a warning (REQ_004.2).
+func (f *ReviewFinding) IsWarning() bool {
+	return f.Severity == SeverityWarning
+}
+
+// IsCritical returns true if the finding is critical (REQ_004.3).
+func (f *ReviewFinding) IsCritical() bool {
+	return f.Severity == SeverityCritical
+}
+
+// CategorizedFindings holds findings organized by severity level (REQ_004).
+type CategorizedFindings struct {
+	WellDefined []string `json:"well_defined"` // REQ_004.1: IDs of well-defined items
+	Warnings    []string `json:"warnings"`     // REQ_004.2: IDs of warning items
+	Critical    []string `json:"critical"`     // REQ_004.3: IDs of critical items
+}
+
+// NewCategorizedFindings creates a new empty CategorizedFindings.
+func NewCategorizedFindings() *CategorizedFindings {
+	return &CategorizedFindings{
+		WellDefined: make([]string, 0),
+		Warnings:    make([]string, 0),
+		Critical:    make([]string, 0),
+	}
+}
+
+// AddFinding categorizes a finding by its severity and adds to appropriate slice.
+func (cf *CategorizedFindings) AddFinding(f *ReviewFinding) {
+	switch f.Severity {
+	case SeverityWellDefined:
+		cf.WellDefined = append(cf.WellDefined, f.ID)
+	case SeverityWarning:
+		cf.Warnings = append(cf.Warnings, f.ID)
+	case SeverityCritical:
+		cf.Critical = append(cf.Critical, f.ID)
+	}
+}
+
+// CanProceed returns true if there are no critical findings blocking progression (REQ_004.3).
+// Critical findings BLOCK phase progression.
+func (cf *CategorizedFindings) CanProceed() bool {
+	return len(cf.Critical) == 0
+}
+
+// HasCritical returns true if there are any critical findings.
+func (cf *CategorizedFindings) HasCritical() bool {
+	return len(cf.Critical) > 0
+}
+
+// HasWarnings returns true if there are any warning findings.
+func (cf *CategorizedFindings) HasWarnings() bool {
+	return len(cf.Warnings) > 0
 }
 
 // SeverityCounts tracks counts by severity level.
@@ -1418,4 +1505,367 @@ func RunReview(config ReviewConfig) *ReviewResult {
 	}
 
 	return result
+}
+
+// Recommendation represents an actionable recommendation for a finding (REQ_004.4).
+type Recommendation struct {
+	FindingID      string   `json:"finding_id"`
+	Severity       Severity `json:"severity"`
+	Message        string   `json:"message"`
+	Location       string   `json:"location,omitempty"`        // file:line format
+	SuggestedFix   string   `json:"suggested_fix,omitempty"`
+	DocReferences  []string `json:"doc_references,omitempty"` // Related documentation
+	IsMandatory    bool     `json:"is_mandatory"`             // True for Critical findings
+}
+
+// RecommendationResult contains generated recommendations (REQ_004.4).
+type RecommendationResult struct {
+	Recommendations []Recommendation `json:"recommendations"`
+	CriticalCount   int              `json:"critical_count"`
+	WarningCount    int              `json:"warning_count"`
+	SkippedCount    int              `json:"skipped_count"` // Well-defined items skipped
+}
+
+// GenerateRecommendations generates actionable recommendations for Warning and Critical findings (REQ_004.4).
+// Well-defined findings are skipped - no recommendations generated for them.
+// Recommendations are prioritized: Critical first, then Warning.
+func GenerateRecommendations(findings []ReviewFinding) *RecommendationResult {
+	result := &RecommendationResult{
+		Recommendations: make([]Recommendation, 0),
+	}
+
+	// Separate findings by severity
+	var criticalFindings []ReviewFinding
+	var warningFindings []ReviewFinding
+
+	for _, f := range findings {
+		switch f.Severity {
+		case SeverityCritical:
+			criticalFindings = append(criticalFindings, f)
+		case SeverityWarning:
+			warningFindings = append(warningFindings, f)
+		case SeverityWellDefined:
+			result.SkippedCount++
+		}
+	}
+
+	// Generate recommendations for Critical findings first (REQ_004.4 - prioritized order)
+	for _, f := range criticalFindings {
+		rec := generateRecommendationForFinding(f)
+		rec.IsMandatory = true // Critical recommendations are mandatory
+		result.Recommendations = append(result.Recommendations, rec)
+		result.CriticalCount++
+	}
+
+	// Generate recommendations for Warning findings
+	for _, f := range warningFindings {
+		rec := generateRecommendationForFinding(f)
+		rec.IsMandatory = false
+		result.Recommendations = append(result.Recommendations, rec)
+		result.WarningCount++
+	}
+
+	return result
+}
+
+// generateRecommendationForFinding generates a recommendation for a single finding.
+func generateRecommendationForFinding(f ReviewFinding) Recommendation {
+	rec := Recommendation{
+		FindingID: f.ID,
+		Severity:  f.Severity,
+		Location:  f.Location,
+	}
+
+	// Use existing recommendation if present
+	if f.Recommendation != "" {
+		rec.Message = f.Recommendation
+	} else {
+		// Generate default recommendation based on severity
+		if f.Severity == SeverityCritical {
+			rec.Message = fmt.Sprintf("Critical issue: %s - Resolution required: %s",
+				f.Description, f.ResolutionNeeded)
+			rec.SuggestedFix = f.ResolutionNeeded
+		} else {
+			rec.Message = fmt.Sprintf("Warning: %s - Consider addressing this issue",
+				f.Description)
+			if f.Reason != "" {
+				rec.Message = fmt.Sprintf("Warning: %s - Reason: %s", f.Description, f.Reason)
+			}
+		}
+	}
+
+	return rec
+}
+
+// GenerateContractRecommendations generates recommendations from contract analysis results.
+func GenerateContractRecommendations(result *ContractAnalysisResult) *RecommendationResult {
+	findings := make([]ReviewFinding, len(result.Findings))
+	for i, f := range result.Findings {
+		findings[i] = f.ReviewFinding
+	}
+	return GenerateRecommendations(findings)
+}
+
+// GenerateInterfaceRecommendations generates recommendations from interface analysis results.
+func GenerateInterfaceRecommendations(result *InterfaceAnalysisResult) *RecommendationResult {
+	findings := make([]ReviewFinding, len(result.Findings))
+	for i, f := range result.Findings {
+		findings[i] = f.ReviewFinding
+	}
+	return GenerateRecommendations(findings)
+}
+
+// GeneratePromiseRecommendations generates recommendations from promise analysis results.
+func GeneratePromiseRecommendations(result *PromiseAnalysisResult) *RecommendationResult {
+	findings := make([]ReviewFinding, len(result.Findings))
+	for i, f := range result.Findings {
+		findings[i] = f.ReviewFinding
+	}
+	return GenerateRecommendations(findings)
+}
+
+// GenerateDataModelRecommendations generates recommendations from data model analysis results.
+func GenerateDataModelRecommendations(result *DataModelAnalysisResult) *RecommendationResult {
+	findings := make([]ReviewFinding, len(result.Findings))
+	for i, f := range result.Findings {
+		findings[i] = f.ReviewFinding
+	}
+	return GenerateRecommendations(findings)
+}
+
+// GenerateAPIRecommendations generates recommendations from API analysis results.
+func GenerateAPIRecommendations(result *APIAnalysisResult) *RecommendationResult {
+	findings := make([]ReviewFinding, len(result.Findings))
+	for i, f := range result.Findings {
+		findings[i] = f.ReviewFinding
+	}
+	return GenerateRecommendations(findings)
+}
+
+// SeverityClassifier classifies findings and applies severity levels (REQ_004).
+type SeverityClassifier struct {
+	categorized *CategorizedFindings
+	findings    map[string]*ReviewFinding
+}
+
+// NewSeverityClassifier creates a new severity classifier.
+func NewSeverityClassifier() *SeverityClassifier {
+	return &SeverityClassifier{
+		categorized: NewCategorizedFindings(),
+		findings:    make(map[string]*ReviewFinding),
+	}
+}
+
+// ClassifyFinding classifies a single finding and updates counts.
+func (sc *SeverityClassifier) ClassifyFinding(f *ReviewFinding) {
+	sc.findings[f.ID] = f
+	sc.categorized.AddFinding(f)
+}
+
+// ClassifyAsWellDefined marks a finding as well-defined (REQ_004.1).
+func (sc *SeverityClassifier) ClassifyAsWellDefined(f *ReviewFinding) {
+	f.MarkWellDefined()
+	sc.ClassifyFinding(f)
+}
+
+// ClassifyAsWarning marks a finding as warning (REQ_004.2).
+func (sc *SeverityClassifier) ClassifyAsWarning(f *ReviewFinding, reason string) {
+	f.MarkWarning(reason)
+	sc.ClassifyFinding(f)
+}
+
+// ClassifyAsCritical marks a finding as critical (REQ_004.3).
+func (sc *SeverityClassifier) ClassifyAsCritical(f *ReviewFinding, resolutionNeeded string) {
+	f.MarkCritical(resolutionNeeded)
+	sc.ClassifyFinding(f)
+}
+
+// GetCategorized returns the categorized findings.
+func (sc *SeverityClassifier) GetCategorized() *CategorizedFindings {
+	return sc.categorized
+}
+
+// CanProceed returns true if there are no critical findings (REQ_004.3).
+func (sc *SeverityClassifier) CanProceed() bool {
+	return sc.categorized.CanProceed()
+}
+
+// GetCounts returns severity counts.
+func (sc *SeverityClassifier) GetCounts() SeverityCounts {
+	return SeverityCounts{
+		WellDefined: len(sc.categorized.WellDefined),
+		Warning:     len(sc.categorized.Warnings),
+		Critical:    len(sc.categorized.Critical),
+	}
+}
+
+// GenerateRecommendationsForAll generates recommendations for all classified findings.
+func (sc *SeverityClassifier) GenerateRecommendationsForAll() *RecommendationResult {
+	findings := make([]ReviewFinding, 0, len(sc.findings))
+	for _, f := range sc.findings {
+		findings = append(findings, *f)
+	}
+	return GenerateRecommendations(findings)
+}
+
+// ClassifyRequirementRecursive recursively classifies a requirement and its children (REQ_004.1).
+// This applies severity classification through nested RequirementNode children.
+func ClassifyRequirementRecursive(req *RequirementNode, classifier *SeverityClassifier) {
+	if req == nil {
+		return
+	}
+
+	// Classify the requirement itself
+	finding := &ReviewFinding{
+		ID:          req.ID,
+		Component:   req.ID,
+		Description: req.Description,
+	}
+
+	// Determine severity based on requirement completeness
+	if isRequirementWellDefined(req) {
+		classifier.ClassifyAsWellDefined(finding)
+	} else if hasRequirementCriticalIssues(req) {
+		classifier.ClassifyAsCritical(finding, "Requirement has undefined or contradictory components")
+	} else {
+		classifier.ClassifyAsWarning(finding, "Requirement has partial specification")
+	}
+
+	// Recursively classify children (REQ_004.1 - recursive through nested RequirementNode)
+	for _, child := range req.Children {
+		ClassifyRequirementRecursive(child, classifier)
+	}
+}
+
+// isRequirementWellDefined checks if a requirement meets all criteria for well-defined status (REQ_004.1).
+// Well-Defined status is only assigned when ALL of the following are true:
+// - component has explicit input/output contracts
+// - interfaces are fully defined
+// - behavioral guarantees are documented
+// - API contracts are complete
+func isRequirementWellDefined(req *RequirementNode) bool {
+	if req == nil {
+		return false
+	}
+
+	// Must have description
+	if req.Description == "" {
+		return false
+	}
+
+	// Must have acceptance criteria
+	if len(req.AcceptanceCriteria) == 0 {
+		return false
+	}
+
+	// Check for explicit contracts in criteria
+	hasInputOutput := false
+	for _, criterion := range req.AcceptanceCriteria {
+		lower := strings.ToLower(criterion)
+		if strings.Contains(lower, "input") || strings.Contains(lower, "output") ||
+			strings.Contains(lower, "returns") || strings.Contains(lower, "accepts") {
+			hasInputOutput = true
+			break
+		}
+	}
+
+	return hasInputOutput
+}
+
+// hasRequirementCriticalIssues checks if a requirement has critical issues (REQ_004.3).
+// Critical status is assigned when:
+// - contracts are undefined or contradictory
+// - interfaces have missing method definitions
+// - promises conflict
+// - data models have ambiguous relationships
+// - APIs have undefined error handling
+func hasRequirementCriticalIssues(req *RequirementNode) bool {
+	if req == nil {
+		return true
+	}
+
+	// No description is critical
+	if req.Description == "" {
+		return true
+	}
+
+	// Check for contradictory terms
+	lower := strings.ToLower(req.Description)
+	contradictions := []struct{ a, b string }{
+		{"always", "never"},
+		{"must", "must not"},
+		{"required", "optional"},
+	}
+
+	for _, c := range contradictions {
+		if strings.Contains(lower, c.a) && strings.Contains(lower, c.b) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// ReviewStepResult is an enhanced result that includes categorized findings and recommendations (REQ_004).
+type ReviewStepResult struct {
+	Step            ReviewStep            `json:"step"`
+	Phase           PhaseType             `json:"phase"`
+	RequirementID   string                `json:"requirement_id,omitempty"`
+	Findings        []ReviewFinding       `json:"findings"`
+	Counts          SeverityCounts        `json:"counts"`
+	Categorized     *CategorizedFindings  `json:"categorized"`
+	Recommendations *RecommendationResult `json:"recommendations,omitempty"`
+	CanProceed      bool                  `json:"can_proceed"` // REQ_004.3: False if critical issues exist
+	Timestamp       time.Time             `json:"timestamp"`
+}
+
+// NewReviewStepResult creates a new review step result with categorization.
+func NewReviewStepResult(step ReviewStep, phase PhaseType) *ReviewStepResult {
+	return &ReviewStepResult{
+		Step:        step,
+		Phase:       phase,
+		Findings:    make([]ReviewFinding, 0),
+		Categorized: NewCategorizedFindings(),
+		CanProceed:  true,
+		Timestamp:   time.Now(),
+	}
+}
+
+// AddFinding adds a finding and updates counts and categorization.
+func (r *ReviewStepResult) AddFinding(f ReviewFinding) {
+	r.Findings = append(r.Findings, f)
+
+	// Update counts
+	switch f.Severity {
+	case SeverityWellDefined:
+		r.Counts.WellDefined++
+	case SeverityWarning:
+		r.Counts.Warning++
+	case SeverityCritical:
+		r.Counts.Critical++
+		r.CanProceed = false // REQ_004.3: Critical blocks progression
+	}
+
+	// Update categorization
+	r.Categorized.AddFinding(&f)
+}
+
+// GenerateRecommendationsForResult generates recommendations for this result (REQ_004.4).
+func (r *ReviewStepResult) GenerateRecommendationsForResult() {
+	r.Recommendations = GenerateRecommendations(r.Findings)
+}
+
+// FormatEmojiSummary returns a formatted summary with emojis for JSON/display output (REQ_004).
+func (r *ReviewStepResult) FormatEmojiSummary() string {
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Step: %s (Phase: %s)\n", r.Step.String(), r.Phase.String()))
+	sb.WriteString(fmt.Sprintf("  %s Well-defined: %d\n", SeverityWellDefined.Emoji(), r.Counts.WellDefined))
+	sb.WriteString(fmt.Sprintf("  %s Warnings: %d\n", SeverityWarning.Emoji(), r.Counts.Warning))
+	sb.WriteString(fmt.Sprintf("  %s Critical: %d\n", SeverityCritical.Emoji(), r.Counts.Critical))
+	if r.CanProceed {
+		sb.WriteString("  Status: Can proceed ✅\n")
+	} else {
+		sb.WriteString("  Status: BLOCKED - Critical issues must be resolved ❌\n")
+	}
+	return sb.String()
 }
