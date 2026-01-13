@@ -50,6 +50,7 @@ func init() {
 
 	// Add subcommands
 	rootCmd.AddCommand(planCmd)
+	rootCmd.AddCommand(reviewPlanCmd)
 	rootCmd.AddCommand(mcpSetupCmd)
 	rootCmd.AddCommand(resumeCmd)
 

@@ -313,3 +313,172 @@ func TestResumeBeadsCommand_RequiredFlags(t *testing.T) {
 		t.Error("Expected error when required flags are not provided")
 	}
 }
+
+// TestReviewPlanCommand_Defaults tests review-plan command defaults
+func TestReviewPlanCommand_Defaults(t *testing.T) {
+	if reviewPlanCmd.Use != "review-plan" {
+		t.Errorf("Expected Use to be 'review-plan', got '%s'", reviewPlanCmd.Use)
+	}
+
+	// Check aliases
+	expectedAliases := []string{"rp", "review"}
+	for _, expected := range expectedAliases {
+		found := false
+		for _, alias := range reviewPlanCmd.Aliases {
+			if alias == expected {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("Expected review-plan command to have alias '%s'", expected)
+		}
+	}
+}
+
+// TestReviewPlanCommand_Help tests review-plan command help output
+func TestReviewPlanCommand_Help(t *testing.T) {
+	output, err := executeCommand(rootCmd, "review-plan", "--help")
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+
+	expectedFlags := []string{
+		"--plan-path",
+		"--phase",
+		"--step",
+		"--output",
+		"--autonomy-mode",
+		"--all-phases",
+	}
+
+	for _, flag := range expectedFlags {
+		if !strings.Contains(output, flag) {
+			t.Errorf("Expected review-plan help to contain flag '%s'", flag)
+		}
+	}
+}
+
+// TestReviewPlanCommand_FlagsExist tests all review-plan flags are registered
+func TestReviewPlanCommand_FlagsExist(t *testing.T) {
+	flags := []string{
+		"plan-path", "phase", "step", "output", "autonomy-mode", "all-phases",
+	}
+
+	for _, flag := range flags {
+		t.Run(flag, func(t *testing.T) {
+			f := reviewPlanCmd.Flags().Lookup(flag)
+			if f == nil {
+				t.Errorf("Expected flag '%s' to exist", flag)
+			}
+		})
+	}
+}
+
+// TestReviewPlanCommand_PhaseValidation tests phase validation
+func TestReviewPlanCommand_PhaseValidation(t *testing.T) {
+	tests := []struct {
+		phase     string
+		shouldErr bool
+	}{
+		{"research", false},
+		{"decomposition", false},
+		{"tdd_planning", false},
+		{"multi_doc", false},
+		{"beads_sync", false},
+		{"implementation", false},
+		{"invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.phase, func(t *testing.T) {
+			err := validateChoice(tt.phase, validReviewPhases, "phase")
+			if tt.shouldErr && err == nil {
+				t.Errorf("Expected error for phase '%s', got none", tt.phase)
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("Unexpected error for phase '%s': %v", tt.phase, err)
+			}
+		})
+	}
+}
+
+// TestReviewPlanCommand_StepValidation tests step validation
+func TestReviewPlanCommand_StepValidation(t *testing.T) {
+	tests := []struct {
+		step      string
+		shouldErr bool
+	}{
+		{"contracts", false},
+		{"interfaces", false},
+		{"promises", false},
+		{"data_models", false},
+		{"apis", false},
+		{"invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.step, func(t *testing.T) {
+			err := validateChoice(tt.step, validReviewSteps, "step")
+			if tt.shouldErr && err == nil {
+				t.Errorf("Expected error for step '%s', got none", tt.step)
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("Unexpected error for step '%s': %v", tt.step, err)
+			}
+		})
+	}
+}
+
+// TestReviewPlanCommand_AutonomyModeValidation tests autonomy mode validation
+func TestReviewPlanCommand_AutonomyModeValidation(t *testing.T) {
+	tests := []struct {
+		mode      string
+		shouldErr bool
+	}{
+		{"checkpoint", false},
+		{"batch", false},
+		{"fully_autonomous", false},
+		{"invalid", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.mode, func(t *testing.T) {
+			err := validateChoice(tt.mode, validAutonomyModes, "autonomy-mode")
+			if tt.shouldErr && err == nil {
+				t.Errorf("Expected error for mode '%s', got none", tt.mode)
+			}
+			if !tt.shouldErr && err != nil {
+				t.Errorf("Unexpected error for mode '%s': %v", tt.mode, err)
+			}
+		})
+	}
+}
+
+// TestReviewPlanCommand_AliasesWork tests that aliases work
+func TestReviewPlanCommand_AliasesWork(t *testing.T) {
+	aliases := []string{"rp", "review"}
+	for _, alias := range aliases {
+		t.Run(alias, func(t *testing.T) {
+			output, err := executeCommand(rootCmd, alias, "--help")
+			if err != nil {
+				t.Fatalf("Unexpected error for alias '%s': %v", alias, err)
+			}
+			if !strings.Contains(output, "review-plan") {
+				t.Errorf("Expected help for alias '%s' to mention 'review-plan'", alias)
+			}
+		})
+	}
+}
+
+// TestReviewPlanCommand_ShortFlags tests review-plan command short flags
+func TestReviewPlanCommand_ShortFlags(t *testing.T) {
+	output, _ := executeCommand(rootCmd, "review-plan", "--help")
+
+	shortFlags := []string{"-p", "-o"}
+	for _, flag := range shortFlags {
+		if !strings.Contains(output, flag) {
+			t.Errorf("Expected review-plan help to contain short flag '%s'", flag)
+		}
+	}
+}

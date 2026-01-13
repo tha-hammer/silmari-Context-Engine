@@ -54,6 +54,10 @@ const (
 	FlagOutput        = "output"
 	FlagPhaseFiles    = "phase-files"
 	FlagEpicTitle     = "epic-title"
+	FlagPhase         = "phase"
+	FlagStep          = "step"
+	FlagAutonomyMode  = "autonomy-mode"
+	FlagAllPhases     = "all-phases"
 )
 
 // Short flag mappings for documentation
