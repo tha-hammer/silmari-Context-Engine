@@ -239,6 +239,16 @@ class RLMActPipeline:
             multi_doc_result = self.state.get_phase_result(PhaseType.MULTI_DOC)
             if multi_doc_result and multi_doc_result.artifacts:
                 phase_docs = multi_doc_result.artifacts
+            elif kwargs.get("hierarchy_path"):
+                # Markdown plan: find phase docs in the same directory
+                hierarchy_path = Path(kwargs["hierarchy_path"])
+                plan_dir = hierarchy_path.parent
+                phase_docs = sorted(
+                    str(p) for p in plan_dir.glob("*.md")
+                    if p.name != hierarchy_path.name  # Exclude the overview itself initially
+                )
+                # Include the hierarchy_path as well for the overview
+                phase_docs = [str(hierarchy_path)] + phase_docs
             else:
                 phase_docs = kwargs.get("phase_docs", [])
 
@@ -257,6 +267,9 @@ class RLMActPipeline:
             phase_paths: list[str] = []
             if multi_doc_result and multi_doc_result.artifacts:
                 phase_paths = multi_doc_result.artifacts
+            elif kwargs.get("hierarchy_path"):
+                # Markdown plan: use hierarchy_path directly as the plan path
+                phase_paths = [kwargs["hierarchy_path"]]
 
             beads_issue_ids: list[str] = []
             if beads_result and beads_result.metadata.get("phase_issue_ids"):
@@ -540,13 +553,12 @@ class RLMActPipeline:
             is_markdown_plan = self._is_markdown_plan(hierarchy_path)
 
             if is_markdown_plan:
-                # Markdown plan: skip ALL phases except IMPLEMENTATION
+                # Markdown plan: skip phases before BEADS_SYNC, then run BEADS_SYNC -> IMPLEMENTATION
                 skipped_phases = [
                     PhaseType.RESEARCH,
                     PhaseType.DECOMPOSITION,
                     PhaseType.TDD_PLANNING,
                     PhaseType.MULTI_DOC,
-                    PhaseType.BEADS_SYNC,
                 ]
                 for phase_type in skipped_phases:
                     synthetic_result = PhaseResult(

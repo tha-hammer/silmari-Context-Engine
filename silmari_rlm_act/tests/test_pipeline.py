@@ -3369,13 +3369,13 @@ class TestMarkdownPlanSupport:
                 hierarchy_path=str(temp_markdown_plan),
             )
 
-            # Only IMPLEMENTATION should be called
+            # BEADS_SYNC and IMPLEMENTATION should be called
             calls = [call[0][0] for call in mock_exec.call_args_list]
             assert PhaseType.RESEARCH not in calls
             assert PhaseType.DECOMPOSITION not in calls
             assert PhaseType.TDD_PLANNING not in calls
             assert PhaseType.MULTI_DOC not in calls
-            assert PhaseType.BEADS_SYNC not in calls
+            assert PhaseType.BEADS_SYNC in calls  # BEADS_SYNC runs first
             assert PhaseType.IMPLEMENTATION in calls
 
     def test_markdown_plan_creates_synthetic_results_for_skipped_phases(
@@ -3409,12 +3409,12 @@ class TestMarkdownPlanSupport:
             )
 
         # Check all skipped phases have synthetic results
+        # Note: BEADS_SYNC is NOT skipped - it runs to create issues from the plan
         skipped_phases = [
             PhaseType.RESEARCH,
             PhaseType.DECOMPOSITION,
             PhaseType.TDD_PLANNING,
             PhaseType.MULTI_DOC,
-            PhaseType.BEADS_SYNC,
         ]
         for phase_type in skipped_phases:
             result = pipeline.state.get_phase_result(phase_type)
@@ -3422,6 +3422,12 @@ class TestMarkdownPlanSupport:
             assert result.status == PhaseStatus.COMPLETE
             assert result.metadata.get("skipped") is True
             assert result.metadata.get("reason") == "markdown_plan provided"
+
+        # BEADS_SYNC should have a real result (not synthetic/skipped)
+        beads_result = pipeline.state.get_phase_result(PhaseType.BEADS_SYNC)
+        assert beads_result is not None
+        assert beads_result.status == PhaseStatus.COMPLETE
+        assert beads_result.metadata.get("skipped") is not True
 
     def test_markdown_plan_passes_path_to_implementation_phase(
         self,
