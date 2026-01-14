@@ -1,5 +1,10 @@
 # Phase 02: The Implementation Phase must use an autonomous lo...
 
+## Tracking
+- Issue: `bd show <issue-id>`
+- Start: `bd update <issue-id> --status=in_progress`
+- Complete: `bd close <issue-id>`
+
 ## Requirements
 
 ### REQ_001: The Implementation Phase must use an autonomous loop pattern

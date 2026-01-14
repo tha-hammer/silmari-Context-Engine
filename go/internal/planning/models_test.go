@@ -1529,3 +1529,483 @@ func TestPipelineStateSerialization(t *testing.T) {
 		t.Errorf("len(restored entries) = %d, want 1", len(restoredEntries))
 	}
 }
+
+// REQ_002.1: PhaseIterator tests
+// TestPhaseIteratorCreation tests NewPhaseIterator and basic state.
+func TestPhaseIteratorCreation(t *testing.T) {
+	iter := NewPhaseIterator()
+
+	if iter.GetPhaseCount() != 6 {
+		t.Errorf("GetPhaseCount() = %d, want 6", iter.GetPhaseCount())
+	}
+
+	if !iter.HasMore() {
+		t.Error("HasMore() should be true initially")
+	}
+
+	if iter.Current() != PhaseResearch {
+		t.Errorf("Current() = %v, want %v", iter.Current(), PhaseResearch)
+	}
+}
+
+// TestPhaseIteratorForEach tests ForEach iteration.
+func TestPhaseIteratorForEach(t *testing.T) {
+	iter := NewPhaseIterator()
+	var visited []PhaseType
+
+	err := iter.ForEach(func(phase PhaseType) error {
+		visited = append(visited, phase)
+		return nil
+	})
+
+	if err != nil {
+		t.Errorf("ForEach() error = %v", err)
+	}
+	if len(visited) != 6 {
+		t.Errorf("ForEach visited %d phases, want 6", len(visited))
+	}
+
+	expected := AllPhases()
+	for i, phase := range visited {
+		if phase != expected[i] {
+			t.Errorf("visited[%d] = %v, want %v", i, phase, expected[i])
+		}
+	}
+}
+
+// TestPhaseIteratorForEachStopsOnError tests ForEach stops on first error.
+func TestPhaseIteratorForEachStopsOnError(t *testing.T) {
+	iter := NewPhaseIterator()
+	count := 0
+	testErr := errors.New("stop here")
+
+	err := iter.ForEach(func(phase PhaseType) error {
+		count++
+		if count == 3 {
+			return testErr
+		}
+		return nil
+	})
+
+	if err != testErr {
+		t.Errorf("ForEach() error = %v, want %v", err, testErr)
+	}
+	if count != 3 {
+		t.Errorf("ForEach visited %d phases before error, want 3", count)
+	}
+}
+
+// TestPhaseIteratorGetPhaseAtIndex tests GetPhaseAtIndex.
+func TestPhaseIteratorGetPhaseAtIndex(t *testing.T) {
+	iter := NewPhaseIterator()
+
+	tests := []struct {
+		index   int
+		want    PhaseType
+		wantErr bool
+	}{
+		{0, PhaseResearch, false},
+		{1, PhaseDecomposition, false},
+		{5, PhaseImplementation, false},
+		{-1, PhaseResearch, true},
+		{6, PhaseResearch, true},
+		{100, PhaseResearch, true},
+	}
+
+	for _, tt := range tests {
+		phase, err := iter.GetPhaseAtIndex(tt.index)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("GetPhaseAtIndex(%d) error = %v, wantErr %v", tt.index, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && phase != tt.want {
+			t.Errorf("GetPhaseAtIndex(%d) = %v, want %v", tt.index, phase, tt.want)
+		}
+	}
+}
+
+// TestPhaseIteratorNextAndReset tests Next() and Reset().
+func TestPhaseIteratorNextAndReset(t *testing.T) {
+	iter := NewPhaseIterator()
+
+	// Iterate through all phases
+	for i := 0; i < 6; i++ {
+		phase, err := iter.Next()
+		if err != nil {
+			t.Errorf("Next() at %d error = %v", i, err)
+		}
+		if int(phase) != i {
+			t.Errorf("Next() at %d = %v, want phase %d", i, phase, i)
+		}
+	}
+
+	// Next should return error when exhausted
+	_, err := iter.Next()
+	if err == nil {
+		t.Error("Next() should error when exhausted")
+	}
+
+	// HasMore should be false
+	if iter.HasMore() {
+		t.Error("HasMore() should be false when exhausted")
+	}
+
+	// Reset and verify
+	iter.Reset()
+	if !iter.HasMore() {
+		t.Error("HasMore() should be true after Reset()")
+	}
+	if iter.Current() != PhaseResearch {
+		t.Errorf("Current() after Reset() = %v, want %v", iter.Current(), PhaseResearch)
+	}
+}
+
+// REQ_002.2: Dependency checking tests
+// TestPhaseDependencyChecker tests AreDependenciesMet and GetBlockingPhases.
+func TestPhaseDependencyCheckerAreDependenciesMet(t *testing.T) {
+	results := make(map[PhaseType]*PhaseResult)
+	checker := NewPhaseDependencyChecker(results)
+
+	// Research has no dependencies
+	if !checker.AreDependenciesMet(PhaseResearch) {
+		t.Error("PhaseResearch should have no dependencies")
+	}
+
+	// Decomposition blocked by incomplete research
+	if checker.AreDependenciesMet(PhaseDecomposition) {
+		t.Error("PhaseDecomposition should be blocked without research complete")
+	}
+
+	// Complete research
+	result := NewPhaseResult(PhaseResearch)
+	result.Complete()
+	results[PhaseResearch] = result
+
+	// Now decomposition should be unblocked
+	if !checker.AreDependenciesMet(PhaseDecomposition) {
+		t.Error("PhaseDecomposition should be unblocked after research complete")
+	}
+
+	// TDD planning still blocked (needs decomposition)
+	if checker.AreDependenciesMet(PhaseTDDPlanning) {
+		t.Error("PhaseTDDPlanning should be blocked without decomposition complete")
+	}
+}
+
+// TestPhaseDependencyCheckerGetBlockingPhases tests GetBlockingPhases.
+func TestPhaseDependencyCheckerGetBlockingPhases(t *testing.T) {
+	results := make(map[PhaseType]*PhaseResult)
+	checker := NewPhaseDependencyChecker(results)
+
+	// Research has no blockers
+	blockers := checker.GetBlockingPhases(PhaseResearch)
+	if len(blockers) != 0 {
+		t.Errorf("PhaseResearch should have no blockers, got %v", blockers)
+	}
+
+	// Implementation should be blocked by all 5 preceding phases
+	blockers = checker.GetBlockingPhases(PhaseImplementation)
+	if len(blockers) != 5 {
+		t.Errorf("PhaseImplementation should have 5 blockers, got %d", len(blockers))
+	}
+
+	// Complete research
+	result := NewPhaseResult(PhaseResearch)
+	result.Complete()
+	results[PhaseResearch] = result
+
+	// Now implementation should have 4 blockers
+	blockers = checker.GetBlockingPhases(PhaseImplementation)
+	if len(blockers) != 4 {
+		t.Errorf("PhaseImplementation should have 4 blockers after research complete, got %d", len(blockers))
+	}
+
+	// Verify decomposition is first blocker
+	if blockers[0] != PhaseDecomposition {
+		t.Errorf("First blocker should be PhaseDecomposition, got %v", blockers[0])
+	}
+}
+
+// TestPhaseDependencyCheckerGetBlockingPhasesDetailed tests detailed blocking info.
+func TestPhaseDependencyCheckerGetBlockingPhasesDetailed(t *testing.T) {
+	results := make(map[PhaseType]*PhaseResult)
+
+	// Add a failed phase
+	failedResult := NewPhaseResult(PhaseResearch)
+	failedResult.Fail(errors.New("test failure"))
+	results[PhaseResearch] = failedResult
+
+	checker := NewPhaseDependencyChecker(results)
+
+	details := checker.GetBlockingPhasesDetailed(PhaseDecomposition)
+	if len(details) != 1 {
+		t.Errorf("Should have 1 detailed blocker, got %d", len(details))
+	}
+	if !strings.Contains(details[0], "failed") {
+		t.Errorf("Detail should contain 'failed', got %q", details[0])
+	}
+}
+
+// TestPhaseDependencyCheckerNilResults tests nil results handling.
+func TestPhaseDependencyCheckerNilResults(t *testing.T) {
+	checker := NewPhaseDependencyChecker(nil)
+
+	// Should not panic with nil results
+	if !checker.AreDependenciesMet(PhaseResearch) {
+		t.Error("PhaseResearch should always have dependencies met")
+	}
+
+	blockers := checker.GetBlockingPhases(PhaseDecomposition)
+	if len(blockers) != 1 {
+		t.Errorf("Should have 1 blocker, got %d", len(blockers))
+	}
+}
+
+// REQ_002.3: Navigation method tests
+// TestPhaseTypeIsFirstPhase tests IsFirstPhase().
+func TestPhaseTypeIsFirstPhase(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  bool
+	}{
+		{PhaseResearch, true},
+		{PhaseDecomposition, false},
+		{PhaseTDDPlanning, false},
+		{PhaseMultiDoc, false},
+		{PhaseBeadsSync, false},
+		{PhaseImplementation, false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.IsFirstPhase(); got != tt.want {
+			t.Errorf("%v.IsFirstPhase() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeIsLastPhase tests IsLastPhase().
+func TestPhaseTypeIsLastPhase(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  bool
+	}{
+		{PhaseResearch, false},
+		{PhaseDecomposition, false},
+		{PhaseTDDPlanning, false},
+		{PhaseMultiDoc, false},
+		{PhaseBeadsSync, false},
+		{PhaseImplementation, true},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.IsLastPhase(); got != tt.want {
+			t.Errorf("%v.IsLastPhase() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeHasNext tests HasNext().
+func TestPhaseTypeHasNext(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  bool
+	}{
+		{PhaseResearch, true},
+		{PhaseDecomposition, true},
+		{PhaseTDDPlanning, true},
+		{PhaseMultiDoc, true},
+		{PhaseBeadsSync, true},
+		{PhaseImplementation, false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.HasNext(); got != tt.want {
+			t.Errorf("%v.HasNext() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeHasPrevious tests HasPrevious().
+func TestPhaseTypeHasPrevious(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  bool
+	}{
+		{PhaseResearch, false},
+		{PhaseDecomposition, true},
+		{PhaseTDDPlanning, true},
+		{PhaseMultiDoc, true},
+		{PhaseBeadsSync, true},
+		{PhaseImplementation, true},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.HasPrevious(); got != tt.want {
+			t.Errorf("%v.HasPrevious() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeGetDistanceFromStart tests GetDistanceFromStart().
+func TestPhaseTypeGetDistanceFromStart(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  int
+	}{
+		{PhaseResearch, 0},
+		{PhaseDecomposition, 1},
+		{PhaseTDDPlanning, 2},
+		{PhaseMultiDoc, 3},
+		{PhaseBeadsSync, 4},
+		{PhaseImplementation, 5},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.GetDistanceFromStart(); got != tt.want {
+			t.Errorf("%v.GetDistanceFromStart() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseTypeGetDistanceToEnd tests GetDistanceToEnd().
+func TestPhaseTypeGetDistanceToEnd(t *testing.T) {
+	tests := []struct {
+		phase PhaseType
+		want  int
+	}{
+		{PhaseResearch, 5},
+		{PhaseDecomposition, 4},
+		{PhaseTDDPlanning, 3},
+		{PhaseMultiDoc, 2},
+		{PhaseBeadsSync, 1},
+		{PhaseImplementation, 0},
+	}
+
+	for _, tt := range tests {
+		if got := tt.phase.GetDistanceToEnd(); got != tt.want {
+			t.Errorf("%v.GetDistanceToEnd() = %v, want %v", tt.phase, got, tt.want)
+		}
+	}
+}
+
+// REQ_002.4: PhaseStatus additional method tests
+// TestPhaseStatusIsPending tests IsPending().
+func TestPhaseStatusIsPending(t *testing.T) {
+	tests := []struct {
+		status PhaseStatus
+		want   bool
+	}{
+		{StatusPending, true},
+		{StatusInProgress, false},
+		{StatusComplete, false},
+		{StatusFailed, false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.status.IsPending(); got != tt.want {
+			t.Errorf("%v.IsPending() = %v, want %v", tt.status, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusIsActive tests IsActive().
+func TestPhaseStatusIsActive(t *testing.T) {
+	tests := []struct {
+		status PhaseStatus
+		want   bool
+	}{
+		{StatusPending, false},
+		{StatusInProgress, true},
+		{StatusComplete, false},
+		{StatusFailed, false},
+	}
+
+	for _, tt := range tests {
+		if got := tt.status.IsActive(); got != tt.want {
+			t.Errorf("%v.IsActive() = %v, want %v", tt.status, got, tt.want)
+		}
+	}
+}
+
+// TestPhaseStatusGetValidTransitions tests GetValidTransitions().
+func TestPhaseStatusGetValidTransitions(t *testing.T) {
+	tests := []struct {
+		status   PhaseStatus
+		wantLen  int
+		contains []PhaseStatus
+	}{
+		{StatusPending, 1, []PhaseStatus{StatusInProgress}},
+		{StatusInProgress, 2, []PhaseStatus{StatusComplete, StatusFailed}},
+		{StatusFailed, 1, []PhaseStatus{StatusInProgress}},
+		{StatusComplete, 0, []PhaseStatus{}},
+	}
+
+	for _, tt := range tests {
+		transitions := tt.status.GetValidTransitions()
+		if len(transitions) != tt.wantLen {
+			t.Errorf("%v.GetValidTransitions() len = %d, want %d", tt.status, len(transitions), tt.wantLen)
+		}
+
+		for _, expected := range tt.contains {
+			found := false
+			for _, actual := range transitions {
+				if actual == expected {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("%v.GetValidTransitions() should contain %v", tt.status, expected)
+			}
+		}
+	}
+}
+
+// TestPhaseStatusTransitionTo tests TransitionTo().
+func TestPhaseStatusTransitionTo(t *testing.T) {
+	tests := []struct {
+		from    PhaseStatus
+		to      PhaseStatus
+		wantErr bool
+	}{
+		{StatusPending, StatusInProgress, false},
+		{StatusPending, StatusComplete, true},
+		{StatusInProgress, StatusComplete, false},
+		{StatusInProgress, StatusFailed, false},
+		{StatusFailed, StatusInProgress, false},
+		{StatusComplete, StatusPending, true},
+		{StatusComplete, StatusInProgress, true},
+	}
+
+	for _, tt := range tests {
+		result, err := tt.from.TransitionTo(tt.to)
+		if (err != nil) != tt.wantErr {
+			t.Errorf("%v.TransitionTo(%v) error = %v, wantErr %v", tt.from, tt.to, err, tt.wantErr)
+			continue
+		}
+		if !tt.wantErr && result != tt.to {
+			t.Errorf("%v.TransitionTo(%v) = %v, want %v", tt.from, tt.to, result, tt.to)
+		}
+	}
+}
+
+// TestNavigationConsistency tests that navigation methods are consistent.
+func TestNavigationConsistency(t *testing.T) {
+	for _, phase := range AllPhases() {
+		// HasNext should be opposite of IsLastPhase
+		if phase.HasNext() == phase.IsLastPhase() {
+			t.Errorf("%v: HasNext() and IsLastPhase() are inconsistent", phase)
+		}
+
+		// HasPrevious should be opposite of IsFirstPhase
+		if phase.HasPrevious() == phase.IsFirstPhase() {
+			t.Errorf("%v: HasPrevious() and IsFirstPhase() are inconsistent", phase)
+		}
+
+		// Distance sum should equal total phases - 1
+		sum := phase.GetDistanceFromStart() + phase.GetDistanceToEnd()
+		if sum != 5 {
+			t.Errorf("%v: GetDistanceFromStart() + GetDistanceToEnd() = %d, want 5", phase, sum)
+		}
+	}
+}

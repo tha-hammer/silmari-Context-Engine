@@ -1,0 +1,2441 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must maintain 30 top-level directories organized into six logical categories: Source Code & Implementation (8 directories), Configuration & Tools (6 directories), Development & Testing (7 directories), Build & Output (3 directories), Workflows & Checkpoints (2 directories), and Documentation & Planning (4 directories)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Establish and maintain 8 source code directories including silmari_rlm_act (main package), planning_pipeline (planning system), context_window_array (context management), agents (agent implementations), commands (command handlers), baml_client (generated BAML client), baml_src (BAML source definitions), and go (Go modules)",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "All 8 source code directories exist at the top level of the repository",
+            "silmari_rlm_act directory contains main Python package with __init__.py and core RLM-ACT functionality",
+            "planning_pipeline directory contains planning system modules with pipeline orchestration code",
+            "context_window_array directory contains four-layer memory architecture implementation",
+            "agents directory contains specialized agent implementation files and orchestration logic",
+            "commands directory contains CLI command handler implementations",
+            "baml_client directory contains only auto-generated code from BAML definitions (not manually edited)",
+            "baml_src directory contains BAML language definition files and AI interaction specifications",
+            "go directory contains Go modules with proper go.mod and go.sum files",
+            "Each directory follows appropriate naming convention (snake_case for Python packages, lowercase for standard directories)",
+            "Directory structure supports the autonomous project builder architecture",
+            "Clear separation exists between core implementation, planning, context management, and supporting modules",
+            "Each directory contains appropriate README or documentation explaining its purpose"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a backend/infrastructure requirement with no direct UI components"
+            ],
+            "backend": [
+              "Directory initialization service to create and validate 8 source code directories",
+              "Directory structure validation service to ensure all required directories exist",
+              "Package initialization service to create __init__.py files for Python packages",
+              "BAML code generation service to populate baml_client from baml_src definitions",
+              "Go module initialization service to create go.mod files",
+              "Directory metadata service to track purpose and ownership of each directory",
+              "Migration service to reorganize existing code into proper directory structure if needed"
+            ],
+            "middleware": [
+              "Directory access validation to ensure proper read/write permissions",
+              "Path resolution middleware to handle cross-directory imports correctly",
+              "Build system integration to recognize all source directories",
+              "Version control integration to track changes across all directories"
+            ],
+            "shared": [
+              "DirectoryStructure data model defining all 8 source code directories with metadata",
+              "DirectoryType enum with SOURCE_CODE category",
+              "PathResolver utility for consistent path handling across directories",
+              "DirectoryValidator utility to check directory existence and structure",
+              "DirectoryMetadata interface with fields: name, purpose, language, is_generated",
+              "Constants defining standard directory names (SILMARI_RLM_ACT, PLANNING_PIPELINE, etc.)",
+              "DirectoryConfig interface specifying required files for each directory type"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryManager.organizeSourceCodeDirectories",
+          "related_concepts": [
+            "project structure",
+            "source code organization",
+            "package management",
+            "multi-language architecture",
+            "code generation",
+            "module separation",
+            "RLM-ACT core",
+            "BAML integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Establish and maintain 6 configuration and tool integration directories including .agent (agent configuration), .beads (issue tracking), .claude (Claude Code config), .cursor (Cursor editor config), .silmari (core system configuration), and .specstory (specification stories)",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "All 6 configuration directories exist at the top level with dot-prefix naming convention",
+            ".agent directory contains agent behavior settings and runtime configuration files",
+            ".beads directory contains issue tracking database and beads system configuration",
+            ".claude directory contains Claude Code integration settings and workspace configuration",
+            ".cursor directory contains Cursor editor settings and project-specific configurations",
+            ".silmari directory contains core system configuration files for the Context Engine",
+            ".specstory directory contains specification and story files for documentation tooling",
+            "Each configuration directory has appropriate .gitignore rules (some may be version controlled, others not)",
+            "Configuration files use appropriate formats (YAML, JSON, TOML) based on tool requirements",
+            "Configuration directories are properly hidden in file browsers (dot-prefix convention)",
+            "Each configuration directory has read/write permissions set correctly",
+            "Configuration validation ensures no conflicting settings across tools",
+            "Documentation exists explaining the purpose and structure of each configuration directory"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Configuration directories are backend/infrastructure components"
+            ],
+            "backend": [
+              "Configuration directory initialization service to create all 6 dotfile directories",
+              "Configuration validation service to check for required config files in each directory",
+              "Configuration loading service to read settings from multiple config directories",
+              "Configuration merging service to combine settings from different tools without conflicts",
+              "Configuration backup service to preserve settings before updates",
+              "Tool integration service to sync settings with .claude, .cursor, and other tool directories",
+              "Configuration migration service to update config formats when tools are upgraded",
+              "Configuration template service to provide default settings for new installations"
+            ],
+            "middleware": [
+              "Configuration access control to restrict which processes can modify settings",
+              "Configuration validation middleware to ensure settings are well-formed before saving",
+              "Configuration caching middleware to improve performance of repeated config reads",
+              "Configuration change detection middleware to trigger appropriate actions on updates"
+            ],
+            "shared": [
+              "ConfigurationDirectory data model with fields: name, purpose, config_type (Runtime/IDE/System/Tool)",
+              "ConfigurationType enum with values: RUNTIME_CONFIG, IDE_CONFIG, SYSTEM_CONFIG, TOOL_INTEGRATION",
+              "ConfigurationFile interface with fields: path, format (YAML/JSON/TOML), schema, is_version_controlled",
+              "ConfigurationValidator utility to validate config file syntax and semantics",
+              "ConfigurationLoader utility to load and parse different config file formats",
+              "ConfigurationMerger utility to combine settings from multiple sources with precedence rules",
+              "Constants defining all 6 configuration directory names and their purposes",
+              "GitIgnoreRule data model specifying which config files should be version controlled"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ConfigurationManager.maintainConfigurationDirectories",
+          "related_concepts": [
+            "configuration management",
+            "tool integration",
+            "IDE configuration",
+            "system settings",
+            "runtime configuration",
+            "hidden directories",
+            "dotfile conventions",
+            "multi-tool support"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Establish and maintain 7 development and testing directories including tests (test suite), .venv (Python virtual environment), .pytest_cache, .mypy_cache, .ruff_cache, .hypothesis (testing framework data), and __pycache__ (Python bytecode cache)",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "All 7 development and testing directories exist at the top level",
+            "tests directory contains organized test suite with unit, integration, and end-to-end tests",
+            ".venv directory contains Python virtual environment with all project dependencies installed",
+            ".pytest_cache directory is automatically created by pytest and contains test execution cache",
+            ".mypy_cache directory is automatically created by mypy and contains type checking cache",
+            ".ruff_cache directory is automatically created by ruff and contains linting cache",
+            ".hypothesis directory contains property-based testing data and examples database",
+            "__pycache__ directories exist where needed for Python bytecode caching",
+            "All cache directories are listed in .gitignore (not version controlled)",
+            "tests directory is version controlled and contains organized test modules",
+            ".venv directory is excluded from version control",
+            "Clear distinction exists between permanent directories (tests, .venv) and cache directories",
+            "Cache directories can be safely deleted and regenerated without data loss",
+            "Development environment can be recreated from requirements files and test suite"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Development directories are backend/infrastructure components"
+            ],
+            "backend": [
+              "Development environment initialization service to create all 7 directories",
+              "Virtual environment setup service to create and configure .venv with dependencies",
+              "Test directory organizer service to structure tests into unit/integration/e2e subdirectories",
+              "Cache cleanup service to safely remove and regenerate cache directories",
+              "Cache size monitoring service to track disk usage of cache directories",
+              "Test execution service to run pytest and generate .pytest_cache",
+              "Type checking service to run mypy and generate .mypy_cache",
+              "Linting service to run ruff and generate .ruff_cache",
+              "Hypothesis configuration service to manage property-based testing data",
+              "Bytecode compilation service to manage __pycache__ directories",
+              "Development environment validation service to ensure all tools are properly configured"
+            ],
+            "middleware": [
+              "Cache invalidation middleware to clear stale cache entries",
+              "Test isolation middleware to ensure tests don't interfere with each other",
+              "Virtual environment activation middleware for scripts and services",
+              "Dependency resolution middleware to manage package installations in .venv"
+            ],
+            "shared": [
+              "DevelopmentDirectory data model with fields: name, purpose, persistence_type (Permanent/Cache)",
+              "PersistenceType enum with values: PERMANENT, CACHE",
+              "TestDirectory data model with subdirectories: unit, integration, e2e, fixtures",
+              "CacheDirectory interface with methods: clear(), size(), is_stale()",
+              "VirtualEnvironment data model with fields: python_version, installed_packages, activation_script",
+              "TestConfiguration interface for pytest, mypy, ruff, and hypothesis settings",
+              "CacheCleanupPolicy utility defining when and how to clean cache directories",
+              "DevelopmentEnvironmentValidator utility to check for required tools and configurations",
+              "Constants defining cache directory patterns and exclusion rules"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DevelopmentManager.manageDevelopmentTestingDirectories",
+          "related_concepts": [
+            "testing infrastructure",
+            "development environment",
+            "cache management",
+            "virtual environment",
+            "test execution",
+            "type checking",
+            "code linting",
+            "property-based testing",
+            "bytecode compilation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.4",
+          "description": "Establish and maintain 3 build and output directories including dist (distribution packages), output (generated output files), and .git (version control)",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "All 3 build and output directories exist at the top level",
+            "dist directory contains Python distribution packages (wheels, source distributions) after build",
+            "output directory contains generated output files from system execution",
+            ".git directory contains complete Git version control history and configuration",
+            "dist directory is listed in .gitignore (build artifacts not version controlled)",
+            "output directory may be partially gitignored depending on what outputs should be tracked",
+            ".git directory is never manually modified (managed by git commands only)",
+            "dist directory can be safely deleted and regenerated by running build commands",
+            "output directory structure is documented and organized by output type",
+            "Build process generates consistent artifacts in dist directory",
+            "Output files are properly categorized and stored in output directory",
+            "Clear separation exists between build artifacts (dist) and runtime output (output)"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Build directories are backend/infrastructure components"
+            ],
+            "backend": [
+              "Build directory initialization service to create dist and output directories",
+              "Package building service to generate distribution packages in dist directory",
+              "Output file management service to organize generated files in output directory",
+              "Build artifact cleanup service to safely remove old distributions from dist",
+              "Output file archival service to manage historical output files",
+              "Git repository initialization service (if creating new repository)",
+              "Git validation service to ensure .git directory integrity",
+              "Build metadata service to track build timestamps, versions, and configurations",
+              "Distribution validation service to verify package integrity in dist directory",
+              "Output categorization service to organize files by type (logs, reports, exports, etc.)"
+            ],
+            "middleware": [
+              "Build process middleware to coordinate artifact generation",
+              "Output file validation middleware to ensure generated files are well-formed",
+              "Version control integration middleware to manage git operations",
+              "Artifact publishing middleware to prepare dist packages for distribution"
+            ],
+            "shared": [
+              "BuildDirectory data model with fields: name, purpose, artifact_type, should_version_control",
+              "DistributionPackage data model with fields: name, version, format (wheel/sdist), timestamp",
+              "OutputFile data model with fields: path, type, timestamp, size, metadata",
+              "OutputCategory enum with values: LOGS, REPORTS, EXPORTS, CHECKPOINTS, ARTIFACTS",
+              "BuildArtifact interface with methods: validate(), package(), publish()",
+              "OutputOrganizer utility to categorize and store generated files",
+              "BuildConfiguration interface specifying build targets, formats, and destinations",
+              "GitRepository data model with fields: branch, commit, remote_url, status",
+              "Constants defining standard build artifact names and output file patterns"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildManager.handleBuildOutputDirectories",
+          "related_concepts": [
+            "build artifacts",
+            "distribution packages",
+            "generated output",
+            "version control",
+            "package distribution",
+            "build process",
+            "artifact management",
+            "git repository"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.5",
+          "description": "Establish and maintain 2 workflow checkpoint directories including .rlm-act-checkpoints (RLM-ACT state storage) and .workflow-checkpoints (workflow state persistence) to enable resumable, fault-tolerant long-running workflows",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Both checkpoint directories exist at the top level with dot-prefix and kebab-case naming",
+            ".rlm-act-checkpoints directory contains serialized RLM-ACT system states",
+            ".workflow-checkpoints directory contains workflow execution states and progress data",
+            "Checkpoint files are named with timestamps and unique identifiers for easy retrieval",
+            "Checkpoints can be loaded to resume workflows from saved states",
+            "Checkpoint data includes sufficient context to fully restore execution state",
+            "Checkpoint directories may be version controlled or gitignored based on project policy",
+            "Checkpoint cleanup policy removes old checkpoints while preserving recent states",
+            "Checkpoint validation ensures saved states are not corrupted",
+            "Checkpoints support both automatic (periodic) and manual (user-triggered) saves",
+            "Resume capability works correctly after system restart or failure",
+            "Checkpoint size is monitored and optimized to prevent excessive disk usage",
+            "Documentation exists explaining checkpoint format and restoration procedures"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Checkpoint directories are backend state management components"
+            ],
+            "backend": [
+              "Checkpoint directory initialization service to create both checkpoint directories",
+              "State serialization service to convert runtime state to checkpoint files",
+              "State deserialization service to load checkpoint files and restore state",
+              "Checkpoint creation service to save RLM-ACT and workflow states at appropriate intervals",
+              "Checkpoint restoration service to resume execution from saved checkpoints",
+              "Checkpoint validation service to verify checkpoint file integrity",
+              "Checkpoint cleanup service to remove old checkpoints based on retention policy",
+              "Checkpoint metadata service to track checkpoint timestamps, versions, and contents",
+              "Automatic checkpoint scheduler to save states periodically during long-running workflows",
+              "Manual checkpoint trigger service for user-initiated state saves",
+              "Checkpoint migration service to update old checkpoint formats to new versions",
+              "Checkpoint compression service to reduce disk usage for large state files"
+            ],
+            "middleware": [
+              "Checkpoint transaction middleware to ensure atomic checkpoint writes",
+              "State consistency middleware to validate state before checkpointing",
+              "Checkpoint encryption middleware for sensitive state data (if needed)",
+              "Checkpoint access control middleware to restrict who can load/restore states"
+            ],
+            "shared": [
+              "CheckpointDirectory data model with fields: name, purpose, checkpoint_type (RLM_ACT/WORKFLOW)",
+              "CheckpointType enum with values: RLM_ACT_STATE, WORKFLOW_STATE",
+              "Checkpoint data model with fields: id, timestamp, checkpoint_type, file_path, metadata, size",
+              "CheckpointMetadata interface with fields: workflow_id, step_number, state_hash, creation_time",
+              "StateSerializer interface with methods: serialize(state), deserialize(checkpoint)",
+              "CheckpointPolicy interface defining retention rules (max_age, max_count, min_keep)",
+              "CheckpointValidator utility to verify checkpoint integrity and compatibility",
+              "StateRestorer utility to load checkpoints and rebuild runtime state",
+              "CheckpointNaming utility to generate unique, timestamped checkpoint filenames",
+              "Constants defining checkpoint file extensions, naming patterns, and retention defaults"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointManager.maintainWorkflowCheckpointDirectories",
+          "related_concepts": [
+            "checkpoint system",
+            "state persistence",
+            "workflow resumption",
+            "fault tolerance",
+            "long-running tasks",
+            "state recovery",
+            "multi-session workflows",
+            "RLM-ACT states",
+            "workflow states"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The system must implement eight source code and implementation directories including silmari_rlm_act (main Python package), planning_pipeline (planning module), context_window_array (context management), agents (agent implementations), commands (command implementations), baml_client (generated BAML client), baml_src (BAML source definitions), and go (Go modules)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Maintain the core silmari_rlm_act Python package as the central implementation hub for the Context Engine with RLM-ACT (Reinforcement Learning Meta-ACT) functionality, module organization, dependency management, and package distribution",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Package contains __init__.py with proper module exports and version definition",
+            "Core RLM-ACT engine classes are implemented and accessible via package imports",
+            "All internal modules follow consistent naming conventions (snake_case)",
+            "Package dependencies are declared in pyproject.toml or requirements.txt with pinned versions",
+            "Package can be installed via pip install in development mode (pip install -e .)",
+            "Package version follows semantic versioning (MAJOR.MINOR.PATCH)",
+            "All public APIs are documented with docstrings following Google or NumPy style",
+            "Package exports a clear public interface while keeping internal modules private",
+            "Type hints are present for all public functions and methods",
+            "Package passes MyPy type checking without errors",
+            "Package passes Ruff linting without violations",
+            "Unit tests exist in tests/ directory mirroring the package structure",
+            "Test coverage is at least 80% for core modules",
+            "Package includes py.typed marker file for PEP 561 compliance",
+            "Distribution build succeeds and creates wheel and sdist in dist/ directory"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a Python package"
+            ],
+            "backend": [
+              "Core RLM-ACT engine implementation with reinforcement learning logic",
+              "State management system for autonomous execution",
+              "Configuration loader and validator",
+              "Logging and telemetry subsystem",
+              "Error handling and exception hierarchy",
+              "Plugin/extension system for modular functionality",
+              "Main entry point and CLI bootstrapper",
+              "Resource management and cleanup handlers"
+            ],
+            "middleware": [
+              "Input validation decorators for public APIs",
+              "Configuration schema validation",
+              "Checkpoint serialization/deserialization middleware",
+              "Error context enrichment middleware",
+              "Performance monitoring decorators"
+            ],
+            "shared": [
+              "Base exception classes (SilmariException, RLMException)",
+              "Configuration data models (Config, EngineConfig)",
+              "State representation models (EngineState, ExecutionContext)",
+              "Type definitions and protocols",
+              "Constants module (VERSION, DEFAULT_CONFIG_PATH)",
+              "Utility functions (path helpers, string formatters)",
+              "Logging configuration and formatters",
+              "Common validators and converters"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "SilmariRlmAct.maintainMainPackage",
+          "related_concepts": [
+            "Python package structure",
+            "RLM-ACT architecture",
+            "Module initialization",
+            "Dependency management",
+            "Package versioning",
+            "Core engine implementation",
+            "API surface design",
+            "Import management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Implement the planning_pipeline module to provide autonomous planning capabilities, pipeline orchestration, task decomposition, and execution strategy generation for long-running autonomous workflows",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Pipeline module contains planner.py with core planning logic",
+            "Supports creation of multi-step execution plans from high-level goals",
+            "Implements task dependency graph construction and validation",
+            "Supports sequential, parallel, and conditional task execution patterns",
+            "Provides plan optimization based on resource constraints and priorities",
+            "Implements dynamic replanning when execution deviates from plan",
+            "Integrates with checkpoint system for plan persistence across sessions",
+            "Supports plan visualization and debugging output",
+            "Provides hooks for plan execution monitoring and progress tracking",
+            "Implements plan validation to detect circular dependencies and conflicts",
+            "Supports plan templates for common workflow patterns",
+            "Provides metrics collection for plan execution (duration, success rate)",
+            "Unit tests cover happy path, error cases, and edge cases for planning logic",
+            "Integration tests verify end-to-end planning and execution workflows",
+            "Documentation includes examples of creating and executing plans"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend planning module"
+            ],
+            "backend": [
+              "Planner class with plan generation methods",
+              "Task graph builder for dependency modeling",
+              "Plan executor with sequential/parallel execution support",
+              "Plan optimizer for resource allocation and scheduling",
+              "Replanner service for dynamic plan adjustments",
+              "Plan persistence service for checkpoint integration",
+              "Plan validator for consistency checking",
+              "Execution monitor for progress tracking",
+              "Plan template registry for reusable patterns",
+              "Metrics collector for execution analytics"
+            ],
+            "middleware": [
+              "Plan validation middleware before execution",
+              "Checkpoint middleware for plan state persistence",
+              "Error recovery middleware for execution failures",
+              "Progress tracking middleware for monitoring",
+              "Resource constraint enforcement middleware"
+            ],
+            "shared": [
+              "Plan data model (Plan, Task, Dependency)",
+              "TaskStatus enum (PENDING, RUNNING, COMPLETED, FAILED)",
+              "ExecutionStrategy enum (SEQUENTIAL, PARALLEL, CONDITIONAL)",
+              "PlanningContext data model with goals and constraints",
+              "TaskGraph representation with adjacency list",
+              "PlanMetrics model for execution statistics",
+              "PlanTemplate base class for reusable patterns",
+              "Graph utility functions (topological sort, cycle detection)",
+              "Plan serialization utilities for checkpoint storage"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanningPipeline.implementModule",
+          "related_concepts": [
+            "Task planning algorithms",
+            "Pipeline orchestration",
+            "Dependency resolution",
+            "Task decomposition",
+            "Execution strategies",
+            "Plan optimization",
+            "Goal-directed planning",
+            "Dynamic replanning"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Manage the context_window_array system implementing the four-layer memory architecture for context window optimization, memory persistence, retrieval, and intelligent context management across autonomous execution sessions",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Implements four distinct memory layers: immediate, short-term, long-term, and permanent",
+            "Immediate layer holds current execution context with FIFO eviction",
+            "Short-term layer stores recent session data with time-based decay",
+            "Long-term layer maintains historical context with semantic indexing",
+            "Permanent layer stores immutable facts and configuration",
+            "Supports adding, retrieving, and removing items from each layer",
+            "Implements automatic promotion/demotion between layers based on access patterns",
+            "Provides context assembly that fits within token budget constraints",
+            "Supports semantic search across memory layers using embeddings",
+            "Implements relevance scoring to prioritize important context",
+            "Integrates with checkpoint system for memory persistence",
+            "Supports memory compaction to reduce storage overhead",
+            "Provides memory statistics and usage metrics",
+            "Implements context window size estimation for LLM compatibility",
+            "Unit tests verify layer transitions and eviction policies",
+            "Integration tests confirm memory persistence across restarts",
+            "Performance tests ensure retrieval latency meets requirements (<100ms for queries)"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend memory system"
+            ],
+            "backend": [
+              "ContextWindowArray main class orchestrating all layers",
+              "ImmediateMemoryLayer with FIFO buffer implementation",
+              "ShortTermMemoryLayer with time-decay eviction",
+              "LongTermMemoryLayer with semantic indexing (vector store integration)",
+              "PermanentMemoryLayer with immutable storage",
+              "MemoryPromotionService for layer transitions",
+              "ContextAssembler for token-aware context building",
+              "SemanticSearchService for similarity-based retrieval",
+              "RelevanceScorer for context prioritization",
+              "MemoryCompactor for storage optimization",
+              "MemoryPersistenceService for checkpoint integration",
+              "TokenCounter for context window size estimation"
+            ],
+            "middleware": [
+              "Memory access logging middleware for usage patterns",
+              "Token budget enforcement middleware",
+              "Automatic promotion middleware based on access frequency",
+              "Checkpoint persistence middleware",
+              "Memory integrity validation middleware"
+            ],
+            "shared": [
+              "MemoryItem data model with content, timestamp, metadata",
+              "MemoryLayer enum (IMMEDIATE, SHORT_TERM, LONG_TERM, PERMANENT)",
+              "ContextWindow data model with items and token count",
+              "MemoryMetrics model with layer sizes and usage statistics",
+              "RelevanceScore model with score value and reasoning",
+              "EvictionPolicy interface with concrete implementations",
+              "PromotionCriteria data model for layer transitions",
+              "Vector embedding utilities for semantic search",
+              "Token counting utilities (tiktoken integration)",
+              "Memory serialization utilities for persistence"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ContextWindowArray.manageSystem",
+          "related_concepts": [
+            "Four-layer memory architecture",
+            "Context window optimization",
+            "Memory persistence",
+            "Information retrieval",
+            "Context pruning",
+            "Memory layers (immediate, short-term, long-term, permanent)",
+            "Semantic similarity search",
+            "Context relevance scoring"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Develop specialized agent implementations with distinct capabilities, orchestration logic, inter-agent communication, task delegation, and agent lifecycle management for autonomous system operation",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Base Agent abstract class defines common interface for all agents",
+            "Each specialized agent implements specific capabilities (e.g., ResearchAgent, ExecutionAgent, PlanningAgent)",
+            "Agents support initialization, execution, and cleanup lifecycle phases",
+            "Agent registry maintains available agents and their capabilities",
+            "Agent orchestrator manages agent selection and task delegation",
+            "Supports synchronous and asynchronous agent execution modes",
+            "Implements inter-agent communication through message passing",
+            "Agents can request help from other agents via delegation protocol",
+            "Supports agent state persistence for long-running tasks",
+            "Implements agent capability discovery and matching",
+            "Provides agent monitoring and health checks",
+            "Supports agent configuration via YAML or JSON files in .agent/ directory",
+            "Implements error handling and recovery for agent failures",
+            "Agents integrate with context window array for memory access",
+            "Agents integrate with planning pipeline for task execution",
+            "Unit tests verify individual agent behaviors",
+            "Integration tests verify multi-agent collaboration scenarios",
+            "Documentation describes each agent's purpose, capabilities, and usage"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend agent system"
+            ],
+            "backend": [
+              "BaseAgent abstract class with lifecycle methods",
+              "ResearchAgent for codebase exploration and analysis",
+              "ExecutionAgent for task execution and tool invocation",
+              "PlanningAgent for strategy development",
+              "ReviewAgent for code review and validation",
+              "AgentRegistry for capability tracking",
+              "AgentOrchestrator for task delegation and coordination",
+              "MessageBus for inter-agent communication",
+              "AgentFactory for agent instantiation",
+              "AgentMonitor for health checks and metrics",
+              "CapabilityMatcher for agent selection",
+              "AgentStateManager for persistence"
+            ],
+            "middleware": [
+              "Agent authentication middleware for secure communication",
+              "Message routing middleware for inter-agent messages",
+              "State persistence middleware for checkpoint integration",
+              "Error recovery middleware for agent failures",
+              "Capability validation middleware before task assignment"
+            ],
+            "shared": [
+              "Agent data model with id, type, capabilities, status",
+              "AgentCapability enum listing available capabilities",
+              "AgentStatus enum (INITIALIZING, READY, RUNNING, COMPLETED, FAILED)",
+              "AgentMessage data model for communication",
+              "AgentTask data model for delegated work",
+              "AgentConfig data model for configuration loading",
+              "AgentMetrics data model for performance tracking",
+              "Protocol definitions for agent interfaces",
+              "Message serialization utilities",
+              "Agent configuration loader from .agent/ directory"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Agents.developImplementations",
+          "related_concepts": [
+            "Agent architecture",
+            "Agent specialization",
+            "Multi-agent systems",
+            "Agent orchestration",
+            "Task delegation",
+            "Agent communication protocols",
+            "Agent capabilities",
+            "Agent lifecycle management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5",
+          "description": "Handle command implementations providing CLI command handlers, command parsing, validation, execution, and integration with core engine components for user interaction and system control",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Base Command class defines interface for all commands",
+            "Commands support argument parsing with type validation",
+            "Implements help text generation for each command",
+            "Commands integrate with core engine for execution",
+            "Supports command aliases for common operations",
+            "Implements command validation before execution",
+            "Provides clear error messages for invalid input",
+            "Supports both interactive and batch command execution",
+            "Implements command history tracking for debugging",
+            "Commands support --dry-run flag for safe testing",
+            "Supports command composition and chaining",
+            "Implements progress reporting for long-running commands",
+            "Commands integrate with checkpoint system for resume capability",
+            "Provides command autocomplete suggestions",
+            "Implements command output formatting (JSON, table, plain text)",
+            "Unit tests verify command parsing and validation logic",
+            "Integration tests verify commands interact correctly with engine",
+            "Documentation includes examples for each command"
+          ],
+          "implementation": {
+            "frontend": [
+              "Interactive CLI interface with command prompt",
+              "Command autocomplete UI component",
+              "Progress bars for long-running commands",
+              "Error message formatting and display",
+              "Help text rendering with syntax highlighting",
+              "Command history browser UI"
+            ],
+            "backend": [
+              "BaseCommand abstract class with execute method",
+              "CommandRegistry for command discovery and lookup",
+              "ArgumentParser for command-line argument processing",
+              "CommandValidator for input validation",
+              "CommandExecutor for orchestrating command execution",
+              "HelpGenerator for documentation creation",
+              "CommandHistory service for tracking execution",
+              "OutputFormatter for multiple output formats",
+              "ProgressReporter for long-running operations",
+              "CommandComposer for chaining commands",
+              "Specific command implementations (StartCommand, StopCommand, StatusCommand, etc.)"
+            ],
+            "middleware": [
+              "Argument validation middleware",
+              "Permission checking middleware for restricted commands",
+              "Logging middleware for command execution audit trail",
+              "Dry-run middleware for safe execution testing",
+              "Output formatting middleware"
+            ],
+            "shared": [
+              "Command data model with name, description, arguments",
+              "CommandArgument data model with name, type, required flag",
+              "CommandResult data model with status, output, errors",
+              "CommandConfig data model for command settings",
+              "OutputFormat enum (JSON, TABLE, PLAIN)",
+              "CommandStatus enum (SUCCESS, FAILED, PARTIAL)",
+              "ArgumentType enum (STRING, INT, BOOL, PATH, ENUM)",
+              "Command help template utilities",
+              "Argument parsing utilities",
+              "Command configuration loader from .claude/ directory"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Commands.handleImplementations",
+          "related_concepts": [
+            "CLI design",
+            "Command pattern",
+            "Argument parsing",
+            "Command validation",
+            "Help documentation",
+            "Command composition",
+            "Interactive commands",
+            "Command history"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must maintain six configuration and tools directories including .agent (agent configuration), .beads (issue tracking), .claude (Claude Code configuration), .cursor (Cursor editor configuration), .silmari (system configuration), and .specstory (spec story configuration)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Configure agent behavior and settings in the .agent directory including agent type definitions, behavior parameters, execution policies, and runtime configurations that control how agents operate within the Context Engine",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            ".agent directory exists and contains valid configuration files",
+            "Agent type definitions are documented with name, purpose, and capabilities",
+            "Behavior parameters include timeout settings, retry policies, and error handling strategies",
+            "Execution policies define when agents should be invoked and under what conditions",
+            "Configuration supports multiple agent types (general-purpose, statusline-setup, Explore, Plan)",
+            "Runtime settings include model selection (sonnet, opus, haiku), token limits, and concurrency controls",
+            "Configuration files are in a parseable format (JSON, YAML, or TOML)",
+            "Validation logic exists to verify configuration correctness on startup",
+            "Changes to agent configuration can be hot-reloaded without system restart",
+            "Configuration includes default fallback values for all required parameters",
+            "Agent specialization settings define which tools each agent type can access",
+            "Configuration supports environment-specific overrides (dev, staging, prod)"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - configuration is file-based"
+            ],
+            "backend": [
+              "AgentConfigLoader service to read and parse .agent directory files",
+              "AgentRegistry service to register available agent types and their configurations",
+              "ConfigValidator service to validate agent configuration against schema",
+              "AgentFactory service to instantiate agents based on configuration",
+              "ConfigWatcher service to detect and reload configuration changes",
+              "API endpoint GET /api/config/agents to retrieve current agent configurations",
+              "API endpoint POST /api/config/agents/validate to validate configuration before applying",
+              "API endpoint PUT /api/config/agents to update agent configuration",
+              "Business logic to merge default configs with environment-specific overrides"
+            ],
+            "middleware": [
+              "Schema validation middleware to ensure configuration files match expected structure",
+              "Permission checks to restrict who can modify agent configurations",
+              "Logging middleware to audit configuration changes"
+            ],
+            "shared": [
+              "AgentConfig data model with fields: agent_type, behavior_params, execution_policy, model_preference, timeout, retry_policy, error_handling, tool_access",
+              "ConfigSchema interface defining required and optional configuration fields",
+              "AgentType enum (GENERAL_PURPOSE, STATUSLINE_SETUP, EXPLORE, PLAN)",
+              "ModelType enum (SONNET, OPUS, HAIKU)",
+              "ValidationResult interface with success/failure status and error messages",
+              "Utility function parseConfigFile() to read YAML/JSON/TOML",
+              "Utility function mergeConfigs() to combine default and override configs",
+              "Constants for default values (DEFAULT_TIMEOUT, DEFAULT_RETRY_COUNT, etc.)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "AgentConfig.configureAgentBehavior",
+          "related_concepts": [
+            "agent orchestration",
+            "behavior parameters",
+            "execution policies",
+            "agent lifecycle management",
+            "runtime configuration",
+            "agent capabilities",
+            "specialization settings"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Maintain issue tracking database in the .beads directory including issue creation, status tracking, categorization, prioritization, and query capabilities for managing project tasks, bugs, and feature requests",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            ".beads directory exists and contains issue database files",
+            "Each issue has a unique identifier, title, description, status, priority, and creation timestamp",
+            "Issue statuses include: open, in_progress, blocked, resolved, closed",
+            "Priority levels include: critical, high, medium, low",
+            "Issues can be categorized by type: bug, feature, task, enhancement, documentation",
+            "Database supports CRUD operations: create, read, update, delete issues",
+            "Query interface allows filtering by status, priority, type, and date range",
+            "Issues can have tags for flexible categorization",
+            "Issue history tracks all status changes and updates with timestamps",
+            "Database maintains referential integrity and prevents duplicate issue IDs",
+            "Issues can reference related issues (blocks, blocked-by, related-to)",
+            "Database supports full-text search on issue titles and descriptions",
+            "Backup mechanism exists to prevent data loss",
+            "Database can be exported to standard formats (JSON, CSV)"
+          ],
+          "implementation": {
+            "frontend": [
+              "IssueListView component to display all issues with filtering and sorting",
+              "IssueDetailView component to show full issue information",
+              "IssueCreateForm component with fields for title, description, priority, type, tags",
+              "IssueEditForm component to update existing issues",
+              "StatusUpdateDropdown to change issue status",
+              "PrioritySelector to set issue priority",
+              "TagInput component for adding/removing tags",
+              "SearchBar component for full-text search",
+              "FilterPanel component with status, priority, type, and date filters",
+              "IssueHistoryTimeline to display status changes and updates"
+            ],
+            "backend": [
+              "IssueRepository service to handle database operations on .beads files",
+              "IssueManager service for business logic (validation, status transitions)",
+              "IssueQueryService for complex filtering and search operations",
+              "IssueHistoryService to track and retrieve issue change history",
+              "DatabaseMigration service to handle schema changes",
+              "API endpoint POST /api/issues to create new issues",
+              "API endpoint GET /api/issues to list issues with query parameters",
+              "API endpoint GET /api/issues/:id to retrieve specific issue",
+              "API endpoint PUT /api/issues/:id to update issue",
+              "API endpoint DELETE /api/issues/:id to delete issue",
+              "API endpoint GET /api/issues/search to perform full-text search",
+              "API endpoint GET /api/issues/:id/history to get issue change history",
+              "API endpoint POST /api/issues/export to export issues in JSON/CSV format",
+              "Business logic to validate status transitions (e.g., closed issues cannot be reopened without note)",
+              "Backup service to periodically snapshot .beads database"
+            ],
+            "middleware": [
+              "Request validation middleware to ensure required fields are present",
+              "Authorization middleware to check permissions for issue operations",
+              "Rate limiting middleware to prevent database abuse",
+              "Audit logging middleware to track all database operations"
+            ],
+            "shared": [
+              "Issue data model with fields: id, title, description, status, priority, type, tags, created_at, updated_at, created_by, assigned_to, related_issues",
+              "IssueStatus enum (OPEN, IN_PROGRESS, BLOCKED, RESOLVED, CLOSED)",
+              "IssuePriority enum (CRITICAL, HIGH, MEDIUM, LOW)",
+              "IssueType enum (BUG, FEATURE, TASK, ENHANCEMENT, DOCUMENTATION)",
+              "IssueHistory data model with fields: issue_id, change_type, old_value, new_value, changed_at, changed_by",
+              "IssueQueryFilter interface with optional fields for filtering",
+              "IssueRelation data model for tracking issue relationships",
+              "Utility function generateIssueId() to create unique identifiers",
+              "Utility function validateIssue() to check data integrity",
+              "Utility function serializeIssue() and deserializeIssue() for database I/O",
+              "Constants for validation rules (MAX_TITLE_LENGTH, MAX_DESCRIPTION_LENGTH)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "IssueTracker.maintainIssueDatabase",
+          "related_concepts": [
+            "issue lifecycle",
+            "status management",
+            "priority tracking",
+            "issue categorization",
+            "database persistence",
+            "query interface",
+            "issue resolution",
+            "metadata tracking"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Integrate Claude Code configuration in the .claude directory including custom commands, prompts, context settings, tool integrations, and IDE behavior customizations that enhance Claude Code's capabilities within the project",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            ".claude directory exists and contains valid configuration files",
+            "Custom slash commands are defined in .claude/commands/ directory",
+            "Each command file specifies command name, description, and prompt template",
+            "Context settings define how much code context to include in requests",
+            "Tool integration settings specify which external tools are available",
+            "Workspace settings include file ignore patterns and language-specific rules",
+            "Configuration supports prompt templates for common coding tasks",
+            "Custom commands are automatically loaded and available in Claude Code interface",
+            "Configuration includes model selection preferences for different task types",
+            "Settings specify code style preferences (formatting, naming conventions)",
+            "Configuration defines project-specific knowledge and conventions",
+            "Integration supports multi-file operations and workspace-wide refactoring",
+            "Configuration is validated on Claude Code startup with clear error messages"
+          ],
+          "implementation": {
+            "frontend": [
+              "No direct frontend components - configuration affects Claude Code IDE behavior"
+            ],
+            "backend": [
+              "ClaudeConfigLoader service to read and parse .claude directory",
+              "CommandRegistry service to register custom slash commands",
+              "PromptTemplateManager service to load and render prompt templates",
+              "ContextSettingsManager service to control context inclusion logic",
+              "ToolIntegrationService to configure available tools and capabilities",
+              "WorkspaceSettingsService to apply workspace-level configurations",
+              "ConfigValidator service to validate .claude configuration files",
+              "API endpoint GET /api/claude/commands to list available custom commands",
+              "API endpoint GET /api/claude/config to retrieve current configuration",
+              "API endpoint POST /api/claude/commands/execute to run custom commands",
+              "API endpoint PUT /api/claude/config to update configuration",
+              "Business logic to expand command macros and template variables",
+              "Business logic to determine optimal context window based on settings"
+            ],
+            "middleware": [
+              "Schema validation middleware for command and config files",
+              "Permission middleware to restrict command execution based on security level",
+              "Logging middleware to track command usage and configuration changes"
+            ],
+            "shared": [
+              "ClaudeConfig data model with fields: context_settings, tool_integrations, workspace_settings, model_preferences, code_style",
+              "CustomCommand data model with fields: name, description, prompt_template, required_params, optional_params",
+              "ContextSettings data model with fields: max_files, include_patterns, exclude_patterns, context_window_size",
+              "ToolIntegration data model with fields: tool_name, enabled, configuration, permissions",
+              "WorkspaceSettings data model with fields: ignore_patterns, language_rules, project_conventions",
+              "PromptTemplate interface with render() method to substitute variables",
+              "CommandParameter interface defining parameter name, type, description, required flag",
+              "Utility function parseCommandFile() to read markdown command definitions",
+              "Utility function renderPromptTemplate() to expand template variables",
+              "Utility function validateCommandSyntax() to check command file format",
+              "Constants for default context settings (DEFAULT_MAX_FILES, DEFAULT_CONTEXT_WINDOW)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeCodeIntegration.integrateConfiguration",
+          "related_concepts": [
+            "IDE integration",
+            "custom commands",
+            "prompt templates",
+            "context management",
+            "tool configuration",
+            "slash commands",
+            "code generation settings",
+            "workspace settings"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Configure Cursor editor settings in the .cursor directory including editor preferences, keybindings, extensions, workspace rules, and AI-assisted coding features that optimize the development experience",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            ".cursor directory exists and contains valid configuration files",
+            "Editor preferences include theme, font size, tab size, and formatting options",
+            "Keybindings are defined for common operations with no conflicts",
+            "Extension configurations specify required and recommended extensions",
+            "Workspace rules define project-specific editor behavior",
+            "AI assistance settings control code completion and suggestion behavior",
+            "Configuration includes language-specific settings for Python, Go, and BAML",
+            "Linting rules are defined and integrated with editor feedback",
+            "Configuration specifies file associations for custom file types",
+            "Settings support multi-cursor editing and advanced selection features",
+            "Configuration defines code snippet templates for common patterns",
+            "Integration with version control settings (Git) is configured",
+            "Configuration is automatically applied when opening project in Cursor"
+          ],
+          "implementation": {
+            "frontend": [
+              "No direct frontend components - configuration affects Cursor editor UI"
+            ],
+            "backend": [
+              "CursorConfigLoader service to read and parse .cursor directory files",
+              "EditorSettingsManager service to manage editor preferences",
+              "KeybindingRegistry service to register and validate keybindings",
+              "ExtensionManager service to track required and installed extensions",
+              "WorkspaceRulesEngine service to apply project-specific editor rules",
+              "AIAssistanceConfigService to control AI-powered features",
+              "LintingConfigService to integrate linting rules with editor",
+              "API endpoint GET /api/cursor/config to retrieve editor configuration",
+              "API endpoint PUT /api/cursor/config to update editor settings",
+              "API endpoint GET /api/cursor/extensions to list required extensions",
+              "API endpoint POST /api/cursor/validate to validate configuration",
+              "Business logic to merge user preferences with project defaults",
+              "Business logic to detect keybinding conflicts and suggest resolutions"
+            ],
+            "middleware": [
+              "Schema validation middleware for configuration files",
+              "Version compatibility middleware to ensure config works with Cursor version"
+            ],
+            "shared": [
+              "CursorConfig data model with fields: editor_preferences, keybindings, extensions, workspace_rules, ai_settings, linting_rules",
+              "EditorPreferences data model with fields: theme, font_size, tab_size, word_wrap, auto_save, format_on_save",
+              "Keybinding data model with fields: key_combination, command, context",
+              "ExtensionConfig data model with fields: extension_id, version, required, settings",
+              "WorkspaceRule data model with fields: pattern, settings, override",
+              "AISettings data model with fields: completion_enabled, suggestion_delay, context_aware, model_preference",
+              "LintingRule data model with fields: rule_id, severity, enabled, configuration",
+              "LanguageSettings data model with fields: language_id, tab_size, formatter, linter",
+              "Utility function parseKeybinding() to parse key combination strings",
+              "Utility function validateKeybindings() to detect conflicts",
+              "Utility function mergeConfigs() to combine user and project settings",
+              "Constants for default editor settings (DEFAULT_THEME, DEFAULT_FONT_SIZE)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CursorEditorConfig.configureEditorSettings",
+          "related_concepts": [
+            "editor preferences",
+            "keybindings",
+            "extension configuration",
+            "workspace rules",
+            "AI assistance settings",
+            "code completion",
+            "syntax highlighting",
+            "linting rules"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.5",
+          "description": "Manage core system configuration in the .silmari directory including application settings, environment variables, service integrations, deployment configurations, and system-wide parameters that control the Context Engine's behavior",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            ".silmari directory exists and contains valid configuration files",
+            "Application settings include system name, version, and operational mode (dev/prod)",
+            "Environment variables are defined for sensitive data (API keys, credentials)",
+            "Service integration configurations specify external service endpoints and authentication",
+            "Deployment settings define resource limits, scaling parameters, and health check endpoints",
+            "Logging configuration specifies log levels, formats, and output destinations",
+            "Performance tuning parameters include cache sizes, connection pools, and timeout values",
+            "Security settings define authentication methods, encryption preferences, and access controls",
+            "Feature flags allow enabling/disabling functionality without code changes",
+            "Configuration supports multiple environments with environment-specific overrides",
+            "Validation ensures required configuration values are present before system starts",
+            "Configuration can be reloaded without full system restart where appropriate",
+            "Configuration includes monitoring and alerting thresholds",
+            "Documentation exists for all configuration parameters"
+          ],
+          "implementation": {
+            "frontend": [
+              "No direct frontend components - configuration is backend-focused"
+            ],
+            "backend": [
+              "SystemConfigLoader service to read and parse .silmari directory",
+              "EnvironmentManager service to handle environment-specific configurations",
+              "ServiceIntegrationManager to configure external service connections",
+              "DeploymentConfigService to manage deployment and scaling settings",
+              "LoggingConfigService to configure logging subsystem",
+              "PerformanceConfigService to apply performance tuning parameters",
+              "SecurityConfigService to enforce security policies",
+              "FeatureFlagService to manage feature toggles",
+              "ConfigValidator service to validate all configuration files",
+              "HealthCheckService to monitor system configuration health",
+              "API endpoint GET /api/system/config to retrieve system configuration (sanitized)",
+              "API endpoint PUT /api/system/config to update configuration",
+              "API endpoint POST /api/system/config/reload to reload configuration",
+              "API endpoint GET /api/system/health to check system configuration status",
+              "API endpoint GET /api/system/features to list feature flag states",
+              "API endpoint PUT /api/system/features/:flag to toggle feature flags",
+              "Business logic to merge environment variables with file-based config",
+              "Business logic to validate configuration dependencies and constraints",
+              "Business logic to apply configuration changes with proper lifecycle management"
+            ],
+            "middleware": [
+              "Authentication middleware to protect configuration endpoints",
+              "Authorization middleware to restrict configuration access to admins",
+              "Schema validation middleware for configuration updates",
+              "Audit logging middleware to track configuration changes",
+              "Encryption middleware for sensitive configuration data"
+            ],
+            "shared": [
+              "SystemConfig data model with fields: app_settings, environment_vars, service_integrations, deployment_config, logging_config, performance_config, security_config, feature_flags",
+              "AppSettings data model with fields: system_name, version, operational_mode, base_url, timezone",
+              "EnvironmentConfig data model with fields: environment_name, variables, overrides",
+              "ServiceIntegration data model with fields: service_name, endpoint, auth_method, timeout, retry_policy",
+              "DeploymentConfig data model with fields: resource_limits, scaling_params, health_check_config",
+              "LoggingConfig data model with fields: log_level, format, output_destinations, rotation_policy",
+              "PerformanceConfig data model with fields: cache_size, connection_pool_size, timeout_values, max_concurrent_requests",
+              "SecurityConfig data model with fields: auth_methods, encryption_settings, access_control_rules, token_expiration",
+              "FeatureFlag data model with fields: flag_name, enabled, description, affected_components",
+              "HealthCheckConfig data model with fields: endpoint, interval, timeout, success_threshold",
+              "Utility function loadEnvironmentVars() to read .env files and system environment",
+              "Utility function validateConfigSchema() to check configuration against schema",
+              "Utility function mergeEnvironmentConfigs() to combine base and environment-specific configs",
+              "Utility function sanitizeConfig() to remove sensitive data before exposure",
+              "Constants for default values (DEFAULT_LOG_LEVEL, DEFAULT_TIMEOUT, DEFAULT_CACHE_SIZE)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "SystemConfig.manageCoreConfiguration",
+          "related_concepts": [
+            "application settings",
+            "environment configuration",
+            "service integrations",
+            "deployment settings",
+            "logging configuration",
+            "performance tuning",
+            "security settings",
+            "feature flags"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must support seven development and testing directories including tests (test suite), .venv (Python virtual environment), .pytest_cache (pytest cache), .mypy_cache (type checker cache), .ruff_cache (linter cache), .hypothesis (testing framework data), and __pycache__ (Python bytecode cache)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Maintain a comprehensive test suite in the tests/ directory that covers unit tests, integration tests, and end-to-end tests for all core functionality including the four-layer memory architecture, planning pipeline, context window management, agents, and commands",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "tests/ directory exists at project root with clear subdirectory structure mirroring source code organization",
+            "test files follow naming convention test_*.py or *_test.py for pytest discovery",
+            "unit tests exist for all modules in silmari_rlm_act/, planning_pipeline/, context_window_array/, agents/, and commands/",
+            "integration tests validate interactions between major components (e.g., agents coordinating with planning pipeline)",
+            "test coverage is measured and reported, with minimum 80% code coverage for core modules",
+            "all tests use pytest framework and leverage pytest fixtures for setup/teardown",
+            "conftest.py files define shared fixtures at appropriate directory levels",
+            "tests are executable via 'pytest tests/' command from project root",
+            "tests run successfully in CI/CD pipeline without manual intervention",
+            "test documentation exists explaining how to run tests, add new tests, and interpret results",
+            "slow tests are marked with @pytest.mark.slow decorator for optional exclusion",
+            "tests for BAML client integration validate AI workflow interfaces",
+            "tests for checkpoint system verify state persistence and recovery",
+            "tests validate the four-layer memory architecture (L0-L3) functionality",
+            "parametrized tests cover edge cases and boundary conditions",
+            "mock objects isolate units under test from external dependencies"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - testing is backend/infrastructure focused"
+            ],
+            "backend": [
+              "Test runner configuration in pytest.ini or pyproject.toml",
+              "Test discovery paths and patterns configured",
+              "Unit test modules for each source module (test_rlm_act.py, test_planning_pipeline.py, test_context_window.py, etc.)",
+              "Integration test modules for component interactions (test_agent_integration.py, test_pipeline_integration.py)",
+              "End-to-end test scenarios for complete workflows",
+              "Test fixtures in conftest.py for common setup (mock agents, test contexts, sample data)",
+              "Helper functions for test data generation and validation",
+              "Test utilities for checkpoint creation/validation",
+              "Coverage reporting integration (coverage.py or pytest-cov)",
+              "Performance/benchmark tests for context window operations",
+              "Tests for error handling and edge cases",
+              "Tests for concurrent agent operations",
+              "Tests for BAML client generated code",
+              "Tests for Go module interfaces (if applicable)"
+            ],
+            "middleware": [
+              "Test authentication/authorization for agent operations if security is implemented",
+              "Mock middleware for testing request/response flows",
+              "Test decorators for common test patterns (e.g., @with_temp_checkpoint)"
+            ],
+            "shared": [
+              "Shared test fixtures and factories for creating test objects",
+              "Test data models matching production models",
+              "Test constants and configuration values",
+              "Assertion helper functions for complex validations",
+              "Mock data generators for agents, contexts, plans",
+              "Test utilities for file system operations (temp directories, cleanup)",
+              "Shared test base classes for common test patterns"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "TestSuite.maintainComprehensiveTests",
+          "related_concepts": [
+            "pytest testing framework",
+            "test coverage reporting",
+            "test organization and structure",
+            "fixture management",
+            "parameterized testing",
+            "mocking and stubbing",
+            "test discovery",
+            "continuous integration",
+            "test documentation",
+            "test data management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Manage the Python virtual environment (.venv/) to isolate project dependencies, ensure reproducible builds, and maintain compatibility across development, testing, and production environments",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            ".venv/ directory exists at project root containing isolated Python environment",
+            "Virtual environment is created using 'python -m venv .venv' or equivalent",
+            "Virtual environment contains Python interpreter matching project requirements (specific version)",
+            "requirements.txt or pyproject.toml exists specifying all production dependencies with pinned versions",
+            "requirements-dev.txt or pyproject.toml [tool.poetry.dev-dependencies] exists for development dependencies",
+            "Virtual environment can be activated on Linux/macOS via 'source .venv/bin/activate'",
+            "Virtual environment can be activated on Windows via '.venv\\Scripts\\activate'",
+            "All project dependencies install successfully via 'pip install -r requirements.txt'",
+            "Development dependencies install successfully via 'pip install -r requirements-dev.txt'",
+            ".venv/ is excluded from version control via .gitignore entry",
+            "Documentation exists explaining how to create, activate, and manage the virtual environment",
+            "pip is upgraded to latest version within virtual environment",
+            "setuptools and wheel are installed for package building capabilities",
+            "Virtual environment includes all dependencies needed for BAML client operation",
+            "'pip list' shows no dependency conflicts or version incompatibilities",
+            "Virtual environment size is reasonable (<500MB for typical Python projects)",
+            "Environment can be recreated from scratch using documented process",
+            "Dependency vulnerability scanning can be performed (e.g., via pip-audit or safety)"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - virtual environment is infrastructure"
+            ],
+            "backend": [
+              "Shell script or Makefile target for automated virtual environment creation",
+              "requirements.txt with pinned production dependencies (baml-py, pytest, mypy, ruff, hypothesis, etc.)",
+              "requirements-dev.txt with development-only dependencies (ipython, jupyter, debugging tools)",
+              "pyproject.toml configuration if using modern Python packaging (Poetry, Hatch, PDM)",
+              "Environment variable configuration for activating virtual environment in scripts",
+              "pip configuration file (.pip.conf) if custom package repositories needed",
+              "Pre-commit hook to verify virtual environment is activated before commits",
+              "CI/CD pipeline steps to create and cache virtual environment",
+              "Script to update dependencies and regenerate lock files",
+              "Documentation of minimum Python version requirement",
+              "Process for dependency security scanning and updates"
+            ],
+            "middleware": [
+              "No middleware components required for virtual environment management"
+            ],
+            "shared": [
+              "Makefile or taskfile with targets: venv-create, venv-activate, venv-clean, venv-rebuild",
+              "Shell utility functions for checking if virtual environment is active",
+              "Constants defining Python version requirements",
+              "Configuration files specifying dependency sources and constraints",
+              "Documentation templates for dependency addition process",
+              "Scripts for freezing exact dependency versions (pip freeze > requirements-lock.txt)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "VirtualEnvironment.managePythonVenv",
+          "related_concepts": [
+            "Python virtualenv",
+            "dependency isolation",
+            "requirements.txt",
+            "pyproject.toml",
+            "pip package management",
+            "dependency versioning",
+            "environment activation",
+            "cross-platform compatibility",
+            "dependency updates",
+            "security vulnerability scanning"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "Cache pytest test results in .pytest_cache/ directory to enable faster test execution through intelligent test selection, last-failed re-runs, and step-wise debugging capabilities",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            ".pytest_cache/ directory is automatically created by pytest during first test run",
+            ".pytest_cache/ is excluded from version control via .gitignore entry",
+            "Cache stores test results including passed, failed, and skipped tests",
+            "pytest --lf (last-failed) flag successfully re-runs only previously failed tests",
+            "pytest --ff (failed-first) flag runs failed tests first, then remaining tests",
+            "pytest --sw (stepwise) flag stops at first failure and resumes from that point on next run",
+            "pytest --cache-clear flag successfully clears all cached data",
+            "Cache directory contains .pytest_cache/v/cache/ subdirectory with nodeids and lastfailed data",
+            "Cache persists across test sessions to enable incremental testing workflow",
+            "Cache size remains reasonable (<10MB) and doesn't grow unbounded",
+            "Cache is compatible with pytest version used in project (pytest >= 3.0)",
+            "Documentation explains how to use cache-enabled pytest flags for faster development",
+            "CI/CD pipeline optionally preserves cache between runs for faster feedback",
+            "Cache correctly handles test file renames and refactoring",
+            "Cache invalidation occurs appropriately when test code changes significantly"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - caching is testing infrastructure"
+            ],
+            "backend": [
+              "pytest.ini or pyproject.toml configuration with cache_dir setting if custom location needed",
+              "pytest configuration enabling cache functionality (enabled by default)",
+              "CI/CD workflow steps to cache .pytest_cache/ directory between pipeline runs",
+              "Script or Makefile target for clearing pytest cache when needed (make test-cache-clear)",
+              "Documentation of pytest cache flags (--lf, --ff, --sw, --cache-clear) in development guide",
+              "Pre-commit hook option to run only tests related to changed files (using cache)",
+              "Monitoring of cache directory size to detect unbounded growth",
+              "Integration with test reporting to show cache hit/miss statistics",
+              "Configuration for cache expiration policy if implementing custom logic"
+            ],
+            "middleware": [
+              "No middleware components required for pytest caching"
+            ],
+            "shared": [
+              ".gitignore entry for .pytest_cache/ to exclude from version control",
+              "Makefile targets: test-failed (pytest --lf), test-stepwise (pytest --sw)",
+              "Documentation explaining cache-based workflow for rapid iteration during debugging",
+              "Developer guide section on using last-failed mode for efficient test-driven development",
+              "CI/CD cache key strategy based on requirements.txt hash to invalidate when dependencies change"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PytestCache.cacheTestResults",
+          "related_concepts": [
+            "pytest caching mechanism",
+            "test result persistence",
+            "last-failed test tracking",
+            "failed-first execution mode",
+            "stepwise testing",
+            "cache invalidation",
+            "test performance optimization",
+            "incremental testing",
+            "CI/CD cache management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.4",
+          "description": "Cache MyPy type checking results in .mypy_cache/ directory to accelerate incremental type checking by reusing analysis of unchanged modules and dependencies",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            ".mypy_cache/ directory is automatically created by mypy during first type check run",
+            ".mypy_cache/ is excluded from version control via .gitignore entry",
+            "Cache contains JSON metadata files for each analyzed Python module",
+            "Subsequent mypy runs are significantly faster than initial run (at least 50% faster for unchanged code)",
+            "Cache correctly invalidates when source file content changes",
+            "Cache handles module dependency changes and re-analyzes affected modules",
+            "mypy --cache-dir flag can specify custom cache location if needed",
+            "mypy.ini or pyproject.toml configures incremental type checking mode",
+            "Cache supports fine-grained incremental mode for maximum performance (incremental = true, cache_fine_grained = true)",
+            "Cache directory structure mirrors source code structure with .json and .meta.json files",
+            "Cache size remains reasonable (<50MB for typical project)",
+            "Cache persists across type checking sessions for development workflow optimization",
+            "Cache is compatible with mypy version specified in requirements (mypy >= 0.900)",
+            "Type checking in CI/CD optionally uses cached results for faster feedback",
+            "Documentation explains mypy cache behavior and how to clear it if issues arise"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - type checking is development infrastructure"
+            ],
+            "backend": [
+              "mypy.ini or pyproject.toml [tool.mypy] configuration with cache settings",
+              "mypy configuration enabling incremental mode (incremental = true)",
+              "mypy fine-grained incremental cache setting (cache_fine_grained = true) for best performance",
+              "mypy strict type checking configuration appropriate for project maturity",
+              "Type stub files (.pyi) for untyped dependencies if needed",
+              "Pre-commit hook running mypy on staged files (using cache for speed)",
+              "CI/CD workflow caching .mypy_cache/ directory between pipeline runs",
+              "Makefile or script target for type checking (make typecheck or make mypy)",
+              "Makefile target for clearing mypy cache (make mypy-cache-clear)",
+              "Configuration for mypy to check all source directories (silmari_rlm_act/, planning_pipeline/, etc.)",
+              "Exclude patterns for generated code (baml_client/) if type checking not desired",
+              "Documentation of type checking standards and mypy configuration",
+              "Script to verify type completeness and track type coverage percentage",
+              "Integration with IDE (VSCode/PyCharm) to use mypy cache for real-time type checking"
+            ],
+            "middleware": [
+              "No middleware components required for mypy caching"
+            ],
+            "shared": [
+              ".gitignore entry for .mypy_cache/ to exclude from version control",
+              "Makefile targets: typecheck (mypy .), typecheck-clean (rm -rf .mypy_cache && mypy .)",
+              "Configuration constants defining which directories to type check",
+              "Documentation explaining how incremental type checking accelerates development",
+              "Developer guide section on adding type annotations and resolving type errors",
+              "CI/CD cache strategy for .mypy_cache/ based on source code hash"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MypyCache.cacheTypeCheckingResults",
+          "related_concepts": [
+            "mypy static type checker",
+            "incremental type checking",
+            "type annotation validation",
+            "type inference caching",
+            "AST caching",
+            "dependency graph caching",
+            "type stubs",
+            "cache invalidation on source changes",
+            "fine-grained incremental mode"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.5",
+          "description": "Cache Ruff linting results in .ruff_cache/ directory to enable extremely fast incremental linting by reusing analysis of unchanged files and skipping re-analysis of already-checked code",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            ".ruff_cache/ directory is automatically created by ruff during first lint run",
+            ".ruff_cache/ is excluded from version control via .gitignore entry",
+            "Cache stores analysis results for each Python file including rule violations",
+            "Subsequent ruff runs skip analysis of unchanged files (sub-second performance for incremental checks)",
+            "Cache correctly invalidates when source file content changes",
+            "Cache invalidates when ruff configuration changes (pyproject.toml [tool.ruff])",
+            "ruff check command uses cache by default without special flags",
+            "ruff format command uses cache for fast formatting operations",
+            "Cache handles file renames and moves gracefully",
+            "Cache directory size remains reasonable (<20MB for typical project)",
+            "Cache persists across linting sessions for optimal development workflow",
+            "Cache is compatible with ruff version specified in requirements (ruff >= 0.1.0)",
+            "Pre-commit hook leverages cache for near-instant linting feedback",
+            "CI/CD pipeline optionally caches .ruff_cache/ for faster lint checks",
+            "Documentation explains ruff cache behavior and performance benefits"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - linting is development infrastructure"
+            ],
+            "backend": [
+              "pyproject.toml [tool.ruff] configuration with lint rules enabled",
+              "Ruff line-length, target-version, and select rules configured appropriately",
+              "Ruff ignore patterns for generated code (baml_client/) or legacy code if needed",
+              "Pre-commit hook running 'ruff check --fix' on staged files (cache enables instant feedback)",
+              "Pre-commit hook running 'ruff format' for automatic code formatting",
+              "CI/CD workflow step running 'ruff check' with cache for fast validation",
+              "CI/CD workflow caching .ruff_cache/ directory between pipeline runs",
+              "Makefile or script targets: lint (ruff check .), format (ruff format .), lint-fix (ruff check --fix .)",
+              "Configuration for ruff to check all Python source directories",
+              "Integration with IDE (VSCode with ruff extension) using cache for real-time linting",
+              "Documentation of code style standards enforced by ruff",
+              "Script to show ruff statistics (violations by rule, file, etc.)",
+              "Configuration for auto-fix safe rules vs. unsafe rules requiring manual review"
+            ],
+            "middleware": [
+              "No middleware components required for ruff caching"
+            ],
+            "shared": [
+              ".gitignore entry for .ruff_cache/ to exclude from version control",
+              "Makefile targets: lint, format, lint-fix, lint-check (CI mode with no fixes)",
+              "Configuration constants defining ruff rule sets (e.g., enable all flake8 equivalents)",
+              "Documentation explaining ruff replaces black, flake8, isort in this project",
+              "Developer guide section on code formatting standards and auto-fix workflow",
+              "CI/CD cache strategy for .ruff_cache/ to speed up pipeline linting checks",
+              "Pre-commit configuration (.pre-commit-config.yaml) with ruff hooks if using pre-commit framework"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RuffCache.cacheLintingResults",
+          "related_concepts": [
+            "ruff linter and formatter",
+            "incremental linting",
+            "code style checking",
+            "cache-based performance optimization",
+            "lint rule violations tracking",
+            "auto-fixing capabilities",
+            "import sorting",
+            "flake8 replacement",
+            "black formatter replacement"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The system must implement two checkpoint directories (.rlm-act-checkpoints for RLM-ACT checkpoint storage and .workflow-checkpoints for workflow state checkpoints) to enable resume capability, fault tolerance, and support for long-running multi-session workflows",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Persist RLM-ACT agent state, memory layers, and execution context to .rlm-act-checkpoints directory with versioning and metadata",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Checkpoint files are written to .rlm-act-checkpoints/ directory with timestamp-based naming (e.g., checkpoint_YYYYMMDD_HHMMSS.json)",
+            "Each checkpoint contains complete RLM-ACT state including agent context, memory layers, current task, and execution history",
+            "Checkpoint metadata includes version, timestamp, git commit hash, branch name, and checkpoint reason (auto/manual/error)",
+            "Checkpoints are written atomically using temporary file + rename to prevent corruption during write failures",
+            "Checkpoint format supports forward/backward compatibility with schema version tracking",
+            "Large context data (embeddings, large documents) are stored separately with references in main checkpoint",
+            "Checkpoints include integrity hash (SHA-256) for validation on restore",
+            "Maximum checkpoint size limit enforced (configurable, default 100MB per checkpoint)",
+            "Automatic cleanup of old checkpoints based on retention policy (keep last N checkpoints + checkpoints from last M days)",
+            "Checkpoint creation triggers are configurable (time-based, action-based, manual)",
+            "Failed checkpoint writes log errors without crashing the main process",
+            "Checkpoint manifest file maintains index of all checkpoints with quick metadata lookup"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend service"
+            ],
+            "backend": [
+              "CheckpointManager service with storeCheckpoint(state, reason) method",
+              "RLMActStateSerializer to convert agent state to JSON-serializable format",
+              "FileSystemCheckpointWriter to handle atomic file operations",
+              "CheckpointMetadataBuilder to generate checkpoint metadata",
+              "CheckpointManifestManager to maintain checkpoint index",
+              "CheckpointCleanupScheduler for automatic old checkpoint removal",
+              "LargeDataExternalizer to extract and store large context data separately",
+              "IntegrityHashCalculator for SHA-256 hash generation and validation",
+              "GitContextProvider to capture git commit/branch information",
+              "CheckpointCompressionService to optionally compress checkpoint data"
+            ],
+            "middleware": [
+              "File system permission validation before checkpoint write",
+              "Disk space check before creating checkpoint (fail gracefully if insufficient)",
+              "Checkpoint size validation middleware",
+              "Checkpoint write rate limiting to prevent excessive disk I/O"
+            ],
+            "shared": [
+              "RLMActCheckpoint data model with state, metadata, version fields",
+              "CheckpointMetadata model with timestamp, version, git_info, reason fields",
+              "CheckpointManifest model for checkpoint index",
+              "CheckpointConfig model for retention policies and size limits",
+              "SerializationSchema versioning constants",
+              "File path utility functions for checkpoint directory management",
+              "JSON serialization utilities with custom encoders for non-serializable types",
+              "Compression utilities for optional checkpoint compression"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointManager.storeRLMActCheckpoint",
+          "related_concepts": [
+            "state serialization",
+            "checkpoint versioning",
+            "four-layer memory architecture persistence",
+            "agent state management",
+            "incremental checkpointing",
+            "checkpoint metadata",
+            "file system operations",
+            "atomic writes"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Save complete workflow execution state including current step, step history, context variables, and inter-step dependencies to .workflow-checkpoints directory",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Workflow checkpoints stored in .workflow-checkpoints/ with workflow_id and timestamp naming (e.g., workflow_{id}_{timestamp}.json)",
+            "Each checkpoint captures complete workflow state: current step, completed steps, pending steps, failed steps with error details",
+            "Context variables and inter-step data dependencies are fully serialized",
+            "Workflow DAG structure and execution progress percentage included in checkpoint",
+            "Step-level checkpoints capture individual step inputs, outputs, start time, end time, duration, retry count",
+            "Failed step checkpoints include full error stack traces, error types, and diagnostic context",
+            "Checkpoints support branching workflows with conditional step execution tracking",
+            "Parallel step execution state captured with synchronization point tracking",
+            "Checkpoint includes workflow definition version to detect workflow changes between sessions",
+            "External resource states (API calls, file operations) tracked with idempotency keys",
+            "Workflow-level metadata includes user context, trigger source, and workflow parameters",
+            "Checkpoints written after each step completion, step failure, and workflow pause events"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend service"
+            ],
+            "backend": [
+              "WorkflowCheckpointManager service with persistWorkflowState(workflow_id, state) method",
+              "WorkflowStateSerializer to convert workflow state machine to persistent format",
+              "StepExecutionTracker to capture individual step execution details",
+              "WorkflowDAGSerializer to persist workflow graph structure and execution progress",
+              "ContextVariableSerializer for workflow context data",
+              "StepDependencyResolver to serialize inter-step dependencies",
+              "WorkflowErrorCapture to capture and serialize step failure information",
+              "ParallelExecutionStateManager for concurrent step tracking",
+              "IdempotencyKeyGenerator for external operation tracking",
+              "WorkflowDefinitionVersionTracker to detect workflow changes",
+              "WorkflowCheckpointTriggerHandler for event-based checkpoint creation"
+            ],
+            "middleware": [
+              "Workflow existence validation before checkpoint creation",
+              "Workflow state consistency validation",
+              "Checkpoint authorization check (ensure user can checkpoint this workflow)",
+              "Workflow checkpoint rate limiting per workflow instance"
+            ],
+            "shared": [
+              "WorkflowCheckpoint model with workflow_id, state, current_step, step_history",
+              "StepExecutionRecord model with step_id, status, inputs, outputs, timing, errors",
+              "WorkflowContext model for context variables and dependencies",
+              "WorkflowDAG model for graph structure",
+              "StepError model with error_type, message, stack_trace, diagnostic_context",
+              "IdempotencyRecord model for external operation tracking",
+              "WorkflowMetadata model with user_context, trigger_source, parameters",
+              "Workflow state enum (PENDING, RUNNING, PAUSED, COMPLETED, FAILED)",
+              "Step status enum (NOT_STARTED, IN_PROGRESS, COMPLETED, FAILED, SKIPPED, RETRYING)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "WorkflowCheckpointManager.persistWorkflowState",
+          "related_concepts": [
+            "workflow state machine",
+            "step execution tracking",
+            "context variable persistence",
+            "dependency graph serialization",
+            "workflow DAG state",
+            "step retry state",
+            "partial execution tracking",
+            "workflow orchestration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Load saved checkpoint state and reconstruct agent/workflow execution context to enable seamless resume from saved states",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "resumeFromCheckpoint() accepts checkpoint_type (rlm-act or workflow) and checkpoint_id or 'latest'",
+            "Checkpoint file is validated for integrity using stored SHA-256 hash before restoration",
+            "Schema version is checked and automatic migration applied if checkpoint from older version",
+            "For RLM-ACT checkpoints: agent state, all four memory layers, and execution context fully restored",
+            "For workflow checkpoints: workflow state machine, step history, context variables, and pending steps restored",
+            "Large external data references are resolved and loaded back into memory",
+            "Restoration validates that required resources (files, configurations) still exist and accessible",
+            "If restoration fails, clear error message indicates specific failure reason with recovery suggestions",
+            "Git branch/commit mismatch warnings issued if checkpoint from different code version",
+            "Restored state is validated for consistency before returning to execution engine",
+            "Resume operation is idempotent - can be safely retried if initial resume fails",
+            "Partial restoration supported for debugging - can load checkpoint without full execution resume"
+          ],
+          "implementation": {
+            "frontend": [
+              "CLI command interface for manual resume (e.g., 'silmari resume --checkpoint <id>' or 'silmari resume --latest')",
+              "Resume confirmation prompt showing checkpoint metadata (timestamp, version, commit)",
+              "Progress indicator during checkpoint restoration",
+              "Warning display for git mismatch or schema migration",
+              "Error display with recovery suggestions on restoration failure"
+            ],
+            "backend": [
+              "CheckpointRestoreService with resumeFromCheckpoint(type, id) method",
+              "CheckpointLocator to find checkpoint files by ID or 'latest' criterion",
+              "CheckpointIntegrityValidator to verify file integrity using hash",
+              "SchemaVersionMigrator to handle version migrations",
+              "RLMActStateDeserializer to reconstruct agent state and memory layers",
+              "WorkflowStateDeserializer to reconstruct workflow execution state",
+              "ExternalDataResolver to load large data references",
+              "ResourceAvailabilityChecker to validate required resources exist",
+              "GitContextValidator to compare checkpoint git info with current state",
+              "StateConsistencyValidator to verify restored state is valid",
+              "PartialRestoreService for debug/inspection mode"
+            ],
+            "middleware": [
+              "Authentication check for checkpoint access (user owns this checkpoint)",
+              "Checkpoint file read permission validation",
+              "Concurrent resume prevention (lock mechanism to prevent multiple resumes of same checkpoint)",
+              "Resume operation audit logging"
+            ],
+            "shared": [
+              "CheckpointRestoreRequest model with type, id, options (partial, force)",
+              "CheckpointRestoreResult model with success, restored_state, warnings, errors",
+              "SchemaVersion model with version number and migration rules",
+              "ValidationResult model with is_valid, errors, warnings",
+              "GitMismatchWarning model with checkpoint_commit, current_commit, branch_info",
+              "ResourceMissingError model with resource_type, resource_path, suggestion",
+              "Checkpoint type enum (RLM_ACT, WORKFLOW)",
+              "State deserialization utilities with custom decoders",
+              "Migration rule registry for schema version handling"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointRestoreService.resumeFromCheckpoint",
+          "related_concepts": [
+            "state deserialization",
+            "context reconstruction",
+            "memory layer restoration",
+            "agent rehydration",
+            "workflow continuation",
+            "state validation",
+            "version migration",
+            "partial state recovery"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Detect execution failures, automatically create recovery checkpoints, and implement retry logic with exponential backoff to ensure system resilience",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "All execution failures (agent errors, workflow errors, system errors) are caught and classified by severity and recoverability",
+            "Emergency checkpoint is automatically created immediately upon critical failure detection",
+            "Retry logic implemented with configurable exponential backoff (default: 2^attempt seconds, max 5 attempts)",
+            "Transient failures (network timeouts, temporary resource unavailability) trigger automatic retry",
+            "Permanent failures (validation errors, configuration errors) skip retry and fail immediately with detailed error",
+            "Circuit breaker pattern prevents cascading failures - opens after N consecutive failures, enters half-open state after cooldown",
+            "Partial failure handling allows workflow to continue with degraded functionality when possible",
+            "Failed operations are logged with full context (timestamp, error type, stack trace, system state)",
+            "Recovery checkpoint includes pre-failure state to enable rollback if retry fails",
+            "Retry attempts include checkpoint ID in metadata for failure correlation",
+            "Maximum retry time limit enforced (configurable, default 5 minutes) to prevent infinite retry loops",
+            "Failure notifications sent to monitoring system with severity classification"
+          ],
+          "implementation": {
+            "frontend": [
+              "CLI flag to configure retry behavior (--max-retries, --retry-backoff)",
+              "Real-time failure notification display with retry countdown",
+              "Failure details view showing error classification and retry history",
+              "Manual retry trigger button for failed operations",
+              "Circuit breaker status indicator in system health view"
+            ],
+            "backend": [
+              "FaultToleranceManager service with handleExecutionFailure(error, context) method",
+              "ErrorClassifier to categorize errors by type and recoverability",
+              "EmergencyCheckpointCreator for automatic checkpoint on critical failure",
+              "RetryStrategyExecutor with exponential backoff logic",
+              "CircuitBreakerManager to track failure rates and circuit state",
+              "TransientFailureDetector to identify retryable errors",
+              "PartialFailureHandler for graceful degradation",
+              "FailureLogger with structured logging for error correlation",
+              "RecoveryCheckpointService to capture pre-failure state",
+              "RetryHistoryTracker to monitor retry attempts and patterns",
+              "FailureNotificationService to send alerts to monitoring systems",
+              "RetryTimeoutEnforcer to prevent infinite retry loops"
+            ],
+            "middleware": [
+              "Global error handler wrapping all execution paths",
+              "Error context enrichment with request/session information",
+              "Failure rate monitoring middleware",
+              "Automatic emergency checkpoint trigger on middleware-level failures"
+            ],
+            "shared": [
+              "ExecutionFailure model with error, context, timestamp, severity",
+              "ErrorClassification model with error_type, severity, is_retryable, suggested_action",
+              "RetryStrategy model with max_attempts, backoff_multiplier, max_backoff, timeout",
+              "CircuitBreakerState model with state (CLOSED, OPEN, HALF_OPEN), failure_count, last_failure_time",
+              "RecoveryCheckpoint model extending base checkpoint with failure_context",
+              "RetryAttempt model with attempt_number, timestamp, result, checkpoint_id",
+              "FailureNotification model with severity, error_summary, affected_components",
+              "Error severity enum (INFO, WARNING, ERROR, CRITICAL)",
+              "Error type enum (TRANSIENT, PERMANENT, UNKNOWN)",
+              "Retry result enum (SUCCESS, RETRY, FAIL, TIMEOUT)",
+              "Circuit breaker state enum (CLOSED, OPEN, HALF_OPEN)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "FaultToleranceManager.handleExecutionFailure",
+          "related_concepts": [
+            "error detection",
+            "automatic recovery",
+            "retry strategies",
+            "exponential backoff",
+            "circuit breaker pattern",
+            "failure classification",
+            "recovery checkpoints",
+            "error propagation",
+            "graceful degradation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.5",
+          "description": "Enable workflows to persist state across multiple execution sessions with session tracking, state merging, and concurrent session conflict resolution",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Each workflow execution session assigned unique session_id with parent workflow_id",
+            "Session checkpoints track session start time, end time, duration, and session-specific context",
+            "Cross-session state includes cumulative progress across all sessions for a workflow",
+            "Session history maintained showing all sessions for a workflow with their outcomes",
+            "State merging logic handles updates from different sessions without data loss",
+            "Concurrent session detection prevents conflicting modifications to same workflow state",
+            "Session isolation ensures one session cannot corrupt another session's checkpoint",
+            "Long-running workflow support with session expiration handling (default 24 hour timeout)",
+            "Session resumption validates parent workflow compatibility before allowing continue",
+            "Cross-session metrics tracked: total sessions, successful sessions, failed sessions, average session duration",
+            "Session checkpoints reference previous session checkpoint for audit trail",
+            "Abandoned session cleanup automatically removes orphaned session data after configurable period (default 7 days)"
+          ],
+          "implementation": {
+            "frontend": [
+              "Multi-session workflow status view showing all sessions for a workflow",
+              "Session timeline visualization with session durations and outcomes",
+              "Current session indicator in workflow execution view",
+              "Session conflict warning dialog with merge options",
+              "Abandoned session cleanup confirmation prompt",
+              "Session history table with session_id, start_time, end_time, status, outcome columns"
+            ],
+            "backend": [
+              "MultiSessionWorkflowManager service with persistCrossSessionState(workflow_id, session_id, state) method",
+              "SessionIdGenerator to create unique session identifiers",
+              "SessionCheckpointManager for session-specific checkpoint operations",
+              "CrossSessionStateAggregator to combine state across sessions",
+              "SessionHistoryTracker to maintain session audit trail",
+              "StateMergeResolver with conflict resolution strategies (last-write-wins, manual-merge, version-based)",
+              "ConcurrentSessionDetector to identify overlapping session modifications",
+              "SessionIsolationEnforcer to prevent cross-session corruption",
+              "SessionExpirationHandler for long-running workflow timeout management",
+              "SessionCompatibilityValidator to check parent workflow version compatibility",
+              "SessionMetricsAggregator for cross-session analytics",
+              "AbandonedSessionCleaner with configurable retention policy"
+            ],
+            "middleware": [
+              "Session initialization middleware to create session context at workflow start",
+              "Session validation middleware to ensure valid session_id on all operations",
+              "Concurrent session lock middleware to serialize conflicting writes",
+              "Session timeout middleware to detect and handle expired sessions"
+            ],
+            "shared": [
+              "WorkflowSession model with session_id, workflow_id, parent_session_id, start_time, end_time, status",
+              "CrossSessionState model with workflow_id, cumulative_state, session_history, total_progress",
+              "SessionCheckpoint model extending WorkflowCheckpoint with session_id and session_context",
+              "SessionHistory model with session_id, outcome, duration, checkpoint_references",
+              "StateMergeConflict model with conflicting_fields, session_a, session_b, resolution_strategy",
+              "SessionMetrics model with total_sessions, successful_count, failed_count, avg_duration",
+              "SessionCompatibilityCheck model with is_compatible, version_mismatch, migration_required",
+              "Session status enum (ACTIVE, COMPLETED, FAILED, ABANDONED, EXPIRED)",
+              "Merge strategy enum (LAST_WRITE_WINS, MANUAL_MERGE, VERSION_BASED, FAIL_ON_CONFLICT)",
+              "Session timeout constants and configuration",
+              "Session isolation utilities for state partitioning"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MultiSessionWorkflowManager.persistCrossSessionState",
+          "related_concepts": [
+            "session management",
+            "cross-session state",
+            "session isolation",
+            "state merging",
+            "conflict resolution",
+            "session history",
+            "long-running workflows",
+            "session continuity",
+            "distributed state management"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must follow clear organizational principles including separation of concerns (source code isolated from configuration, tests separated from implementation, documentation distinct from code), tool integration (dedicated directories for IDE/tool configs with clear boundaries), state management (explicit checkpoint directories, cache directories clearly marked, persistent vs temporary distinction), and multi-language support (Python as primary, Go for performance-critical code, BAML for AI workflows)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Establish and enforce directory structure that isolates source code from configuration files, ensuring no mixing of implementation logic with system/tool configurations",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python source code resides in dedicated packages (silmari_rlm_act/, planning_pipeline/, context_window_array/, agents/, commands/)",
+            "All configuration files reside in dotfile directories (.agent/, .beads/, .claude/, .cursor/, .silmari/, .specstory/)",
+            "No configuration files (*.yaml, *.json, *.toml, *.ini) exist within source code directories",
+            "No source code files (*.py, *.go) exist within configuration directories",
+            "Build configuration (pyproject.toml, setup.py, go.mod) remains at project root",
+            "Environment-specific configs (.env files) are documented and placed in project root or .silmari/",
+            "Git ignores temporary config files but tracks template configurations",
+            "Documentation exists explaining the configuration directory structure and purpose of each config directory"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Directory structure validator script to check for config/source mixing",
+              "Pre-commit hook to enforce directory boundaries",
+              "Path utility functions that reference correct config directories",
+              "Constants file defining standard paths (CONFIG_DIR, SOURCE_DIR, etc.)",
+              "Configuration loader that reads from designated config directories only",
+              "Source code importer that validates imports are from source directories"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ProjectStructure.separateSourceFromConfig",
+          "related_concepts": [
+            "directory_structure",
+            "separation_of_concerns",
+            "configuration_management",
+            "source_code_organization",
+            "build_systems"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Maintain strict separation between test code and implementation code, with tests in dedicated directories that mirror source structure without polluting implementation packages",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "All test files reside in tests/ directory, not alongside implementation code",
+            "Test directory structure mirrors source structure (tests/silmari_rlm_act/, tests/planning_pipeline/, etc.)",
+            "Test files follow naming convention test_*.py or *_test.py",
+            "No test fixtures or test utilities exist in source directories",
+            "Shared test utilities reside in tests/conftest.py or tests/utils/",
+            "Test data files stored in tests/data/ or tests/fixtures/",
+            "Implementation code has zero imports from tests/ directory",
+            "pytest.ini or pyproject.toml configures testpaths = ['tests']",
+            "Coverage reports exclude tests/ directory from source coverage metrics",
+            "CI/CD pipeline runs tests from tests/ directory exclusively"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "pytest configuration in pyproject.toml with testpaths and exclude patterns",
+              "Test discovery utility that validates test isolation",
+              "Import checker to ensure implementation doesn't import from tests/",
+              "Test fixture organization in tests/conftest.py",
+              "Test data loader that reads from tests/data/ or tests/fixtures/",
+              "Coverage configuration that separates source and test metrics",
+              "Test runner script that enforces directory boundaries",
+              "Test naming validator for CI/CD pipeline"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ProjectStructure.isolateTestsFromImplementation",
+          "related_concepts": [
+            "test_organization",
+            "unit_testing",
+            "integration_testing",
+            "test_discovery",
+            "code_coverage",
+            "pytest_conventions"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Keep documentation separate from code implementation in dedicated directories, organized by documentation type (formal docs, research notes, planning artifacts)",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "Formal documentation exists in docs/ directory (user guides, architecture docs, API references)",
+            "Research notes and design decisions stored in thoughts/ directory",
+            "Planning artifacts organized in silmari-messenger-plans/ directory",
+            "No documentation files (*.md, *.rst, *.txt) exist within source code directories except README.md at package roots",
+            "Documentation follows consistent structure: docs/{category}/{topic}.md",
+            "Research notes use standardized frontmatter with metadata (date, researcher, topic, tags, status)",
+            "Cross-references between documentation files use relative paths",
+            "Documentation build process (if using Sphinx/MkDocs) reads from docs/ only",
+            "Each main source directory has a brief README.md explaining its purpose, but detailed docs are in docs/",
+            "Project root README.md links to detailed documentation in docs/"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Documentation directory structure template with standard categories",
+              "Markdown linter configuration for consistent documentation style",
+              "Documentation build script (for static site generation if needed)",
+              "Documentation validator that checks for broken links and references",
+              "Frontmatter schema for research notes in thoughts/",
+              "Documentation indexer to generate table of contents",
+              "Template files for different documentation types (research note, API doc, guide)",
+              "Script to validate documentation organization and naming conventions"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ProjectStructure.maintainDistinctDocumentation",
+          "related_concepts": [
+            "documentation_organization",
+            "knowledge_management",
+            "technical_writing",
+            "research_notes",
+            "planning_artifacts",
+            "markdown_documentation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.4",
+          "description": "Support multiple IDE and tool configurations with dedicated directories for each tool, ensuring clear boundaries and no conflicts between different tooling",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "Each IDE/tool has dedicated configuration directory (.claude/, .cursor/, .agent/)",
+            "Tool-specific configurations don't leak into other tool directories",
+            "Shared tool configurations (like .editorconfig) reside at project root",
+            "Language-specific tool configs (.mypy.ini, .ruff.toml, pyproject.toml) are at project root or in designated config directory",
+            "Git tracks IDE config templates but ignores user-specific IDE settings",
+            ".gitignore properly excludes user-specific IDE files while tracking shared configs",
+            "Documentation exists explaining which tools use which configuration directories",
+            "Configuration files use standard naming conventions for their respective tools",
+            "No configuration conflicts between different tools (e.g., Claude and Cursor formatter settings)",
+            "Each configuration directory contains a README.md explaining its purpose"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [],
+            "middleware": [],
+            "shared": [
+              "Tool configuration validator to check for conflicts",
+              "Configuration loader that can read from tool-specific directories",
+              "Standard .gitignore entries for each supported IDE",
+              "Configuration migration utility for moving between tools",
+              "Tool detection script to identify which IDEs are in use",
+              "Configuration documentation generator",
+              "Template configurations for each supported tool",
+              "Configuration sync utility to keep shared settings consistent across tools"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ProjectStructure.integrateMultipleIDEConfigs",
+          "related_concepts": [
+            "IDE_integration",
+            "tool_configuration",
+            "development_environment",
+            "editor_settings",
+            "linter_configuration",
+            "formatter_configuration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.5",
+          "description": "Clearly distinguish and separately manage persistent state (checkpoints, important data) from temporary state (caches, build artifacts), with explicit directory naming and retention policies",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "Persistent state directories (.rlm-act-checkpoints/, .workflow-checkpoints/) are clearly separated from cache directories",
+            "Cache directories (.pytest_cache/, .mypy_cache/, .ruff_cache/, .hypothesis/, __pycache__/) are all .gitignored",
+            "Persistent state is tracked in git or has explicit backup mechanism documented",
+            "Build outputs (dist/, output/) are separated from source and marked as temporary",
+            "Each state directory has clear retention policy documented (cache: deletable, checkpoint: persistent)",
+            "Checkpoint directories use structured naming conventions for versioning and identification",
+            "Cache cleaning script exists to safely remove all temporary state",
+            "State directories follow naming convention: persistent state uses descriptive names, caches use *_cache or *cache",
+            "Documentation clearly identifies which directories are safe to delete and which should be preserved",
+            "CI/CD pipeline knows which directories to cache vs which to persist across builds"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Checkpoint service to save/load persistent state to .rlm-act-checkpoints/ and .workflow-checkpoints/",
+              "State restoration service to recover from saved checkpoints",
+              "Cache management service to handle temporary data lifecycle"
+            ],
+            "middleware": [],
+            "shared": [
+              "State directory constants defining all state paths",
+              "Cache cleaner utility to remove all temporary state safely",
+              "Checkpoint serializer/deserializer for state persistence",
+              "State validator to check checkpoint integrity",
+              "Retention policy configuration file",
+              ".gitignore rules for temporary vs persistent state",
+              "State migration utility for upgrading checkpoint formats",
+              "Backup utility for persistent state directories",
+              "State monitoring script to track disk usage of caches vs persistent data"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ProjectStructure.managePersistentAndTemporaryState",
+          "related_concepts": [
+            "state_management",
+            "checkpoint_system",
+            "cache_management",
+            "data_persistence",
+            "temporary_files",
+            "build_artifacts",
+            "version_control"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must use consistent directory naming conventions including dotfiles pattern (e.g., .agent, .beads, .claude) for configuration and tools, snake_case (e.g., silmari_rlm_act, planning_pipeline) for Python packages, kebab-case (e.g., .rlm-act-checkpoints, silmari-messenger-plans) for multi-word directories, and lowercase (e.g., agents, commands, tests, docs) for standard directories",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Apply dotfiles pattern (leading dot prefix) for all configuration and tool-related directories to keep them hidden from standard directory listings and clearly distinguish them from implementation code",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "All configuration directories must start with a dot (.) prefix (e.g., .agent, .beads, .claude, .cursor, .silmari, .specstory)",
+            "All tool integration directories must use dotfiles pattern",
+            "IDE-specific configuration directories must be prefixed with dot",
+            "Cache directories must use dotfiles pattern (e.g., .pytest_cache, .mypy_cache, .ruff_cache)",
+            "Checkpoint directories must use dotfiles pattern (e.g., .rlm-act-checkpoints, .workflow-checkpoints)",
+            "Standard hidden directories like .git, .venv, .hypothesis, __pycache__ follow the pattern",
+            "Directory naming validation enforces dot prefix for configuration/tool directories",
+            "Documentation clearly lists which directory types require dotfiles pattern",
+            "Linting rules or pre-commit hooks validate configuration directories have dot prefix",
+            "New configuration directories automatically follow dotfiles convention"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a file system organization requirement with no frontend components"
+            ],
+            "backend": [
+              "Directory structure validation service that checks for dotfiles pattern compliance",
+              "Configuration directory detection logic that identifies config vs implementation directories",
+              "Directory creation utilities that automatically apply dot prefix for configuration directories",
+              "Migration scripts to rename existing configuration directories to dotfiles pattern if needed"
+            ],
+            "middleware": [
+              "Pre-commit hooks that validate new directories follow naming conventions",
+              "CI/CD pipeline checks that enforce dotfiles pattern for configuration directories",
+              "Directory naming policy enforcement at runtime during directory creation"
+            ],
+            "shared": [
+              "DirectoryType enum defining configuration, tool, cache, checkpoint categories",
+              "NamingConvention interface with dotfiles pattern validation rules",
+              "DirectoryValidator utility with isDotfileRequired() method",
+              "Configuration directory registry listing all directories requiring dot prefix",
+              "Constants defining directory naming patterns (DOTFILE_PATTERN = /^\\./)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryNaming.applyDotfilesPattern",
+          "related_concepts": [
+            "Unix/Linux hidden file convention",
+            "Configuration management",
+            "Directory organization",
+            "Tool integration directories",
+            "IDE configuration",
+            "Hidden directories"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Use snake_case naming convention (lowercase with underscores) for all Python package directories to comply with PEP 8 Python style guidelines and ensure Python import compatibility",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "All Python package directories must use snake_case naming (e.g., silmari_rlm_act, planning_pipeline, context_window_array)",
+            "Package names must be lowercase with words separated by underscores",
+            "Package names must be valid Python identifiers (no hyphens, no leading numbers)",
+            "No mixed case (camelCase or PascalCase) in Python package directory names",
+            "Python package directories must be importable using their directory name (import silmari_rlm_act)",
+            "All __init__.py files present in snake_case directories to mark them as packages",
+            "Directory naming validation enforces snake_case for directories containing Python packages",
+            "Linting tools (pylint, flake8, ruff) validate package directory naming",
+            "Documentation provides examples of correct snake_case package naming",
+            "New Python packages automatically follow snake_case convention"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a Python package naming requirement with no frontend components"
+            ],
+            "backend": [
+              "Python package detection service that identifies directories containing __init__.py",
+              "Snake_case validation logic that checks directory names match pattern: ^[a-z][a-z0-9_]*$",
+              "Package creation utilities that automatically format names to snake_case",
+              "Import path validation that ensures package names are valid Python identifiers",
+              "Migration scripts to rename non-compliant package directories to snake_case"
+            ],
+            "middleware": [
+              "Pre-commit hooks that validate Python package directories use snake_case",
+              "Pylint/Flake8/Ruff configuration enforcing package naming conventions",
+              "CI/CD pipeline checks for PEP 8 compliance in directory structure",
+              "Package creation guards that reject non-snake_case names"
+            ],
+            "shared": [
+              "DirectoryType enum with PYTHON_PACKAGE type identifier",
+              "NamingConvention interface with snake_case validation rules",
+              "PackageValidator utility with isValidSnakeCase() method",
+              "Python package registry listing all package directories",
+              "Constants defining snake_case pattern (SNAKE_CASE_PATTERN = /^[a-z][a-z0-9_]*$/)",
+              "PEP8Validator class for comprehensive Python naming compliance"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryNaming.applySnakeCaseForPythonPackages",
+          "related_concepts": [
+            "PEP 8 style guide",
+            "Python package naming",
+            "Python import system",
+            "Module naming conventions",
+            "snake_case convention",
+            "Python best practices"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Apply kebab-case naming convention (lowercase with hyphens) for multi-word directories that are not Python packages, particularly for checkpoint directories, plan directories, and other multi-word organizational directories",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "All multi-word non-Python directories must use kebab-case with hyphens (e.g., .rlm-act-checkpoints, .workflow-checkpoints, silmari-messenger-plans)",
+            "Directory names must be lowercase with words separated by single hyphens",
+            "No underscores in multi-word non-Python directories",
+            "No spaces, camelCase, or PascalCase in multi-word directories",
+            "Kebab-case applied consistently to checkpoint directories (.rlm-act-checkpoints, .workflow-checkpoints)",
+            "Kebab-case applied to plan directories (silmari-messenger-plans)",
+            "Directory naming validation distinguishes between Python packages (snake_case) and other multi-word directories (kebab-case)",
+            "Documentation clearly explains when to use kebab-case vs snake_case",
+            "Linting rules validate kebab-case for non-Python multi-word directories",
+            "New multi-word directories automatically follow kebab-case unless they are Python packages"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a directory naming requirement with no frontend components"
+            ],
+            "backend": [
+              "Multi-word directory detection service that identifies directories with multiple semantic words",
+              "Kebab-case validation logic that checks directory names match pattern: ^[a-z][a-z0-9-]*[a-z0-9]$",
+              "Directory type classification service that distinguishes Python packages from other directories",
+              "Directory creation utilities that automatically format multi-word names to kebab-case",
+              "Migration scripts to rename non-compliant multi-word directories to kebab-case"
+            ],
+            "middleware": [
+              "Pre-commit hooks that validate multi-word directories use kebab-case (excluding Python packages)",
+              "CI/CD pipeline checks for naming convention consistency",
+              "Directory creation guards that enforce kebab-case for non-package multi-word directories",
+              "Naming convention resolver that chooses between snake_case and kebab-case based on directory type"
+            ],
+            "shared": [
+              "DirectoryType enum with MULTI_WORD_DIRECTORY type identifier",
+              "NamingConvention interface with kebab-case validation rules",
+              "DirectoryValidator utility with isValidKebabCase() method",
+              "Directory classification logic to determine if directory is Python package or general directory",
+              "Constants defining kebab-case pattern (KEBAB_CASE_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/)",
+              "NamingResolver class that selects appropriate convention based on directory purpose"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryNaming.applyKebabCaseForMultiWord",
+          "related_concepts": [
+            "kebab-case convention",
+            "URL-friendly naming",
+            "Multi-word directory naming",
+            "Hyphen-separated naming",
+            "Non-package directories",
+            "Checkpoint naming"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Use simple lowercase naming (no separators) for single-word standard directories that represent common project components like source code, tests, documentation, and commands",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "All single-word standard directories must use simple lowercase naming (e.g., agents, commands, tests, docs, output, dist)",
+            "No uppercase letters, underscores, or hyphens in single-word directories",
+            "Standard directory names must be concise, single words",
+            "Common directories (tests, docs, dist, output) follow lowercase convention",
+            "Source code directories with single-word names use lowercase (agents, commands)",
+            "No camelCase, PascalCase, or UPPER_CASE for standard directories",
+            "Directory naming validation enforces lowercase for single-word directories",
+            "Documentation provides list of standard lowercase directory names",
+            "Linting rules validate lowercase convention for standard directories",
+            "New standard single-word directories automatically use lowercase"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a directory naming requirement with no frontend components"
+            ],
+            "backend": [
+              "Single-word directory detection service that identifies directories with single semantic word",
+              "Lowercase validation logic that checks directory names are entirely lowercase: ^[a-z][a-z0-9]*$",
+              "Standard directory registry listing common lowercase directory names (tests, docs, dist, etc.)",
+              "Directory creation utilities that automatically convert single-word names to lowercase",
+              "Migration scripts to rename non-compliant single-word directories to lowercase"
+            ],
+            "middleware": [
+              "Pre-commit hooks that validate single-word directories are lowercase",
+              "CI/CD pipeline checks for case consistency in directory names",
+              "Directory creation guards that enforce lowercase for single-word standard directories",
+              "Case normalization middleware that converts directory names to lowercase when appropriate"
+            ],
+            "shared": [
+              "DirectoryType enum with STANDARD_DIRECTORY type identifier",
+              "NamingConvention interface with lowercase validation rules",
+              "DirectoryValidator utility with isValidLowercase() method",
+              "Standard directory names constant list: ['agents', 'commands', 'tests', 'docs', 'output', 'dist']",
+              "Constants defining lowercase pattern (LOWERCASE_PATTERN = /^[a-z][a-z0-9]*$/)",
+              "DirectoryClassifier that identifies standard vs specialized directories"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryNaming.applyLowercaseForStandard",
+          "related_concepts": [
+            "Lowercase naming convention",
+            "Single-word directories",
+            "Standard project directories",
+            "Simplicity principle",
+            "Common directory names",
+            "Project organization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.5",
+          "description": "Create a comprehensive validation and enforcement system that automatically checks all directory names against the established conventions, provides clear error messages for violations, and prevents creation of non-compliant directories",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Validation system correctly identifies directory type (configuration, Python package, multi-word, standard)",
+            "Validation system applies appropriate naming rule based on directory type (dotfiles, snake_case, kebab-case, lowercase)",
+            "Clear error messages indicate which convention was violated and what the correct format should be",
+            "Pre-commit hooks prevent commits with non-compliant directory names",
+            "CI/CD pipeline fails if directory naming conventions are violated",
+            "Directory creation utilities enforce conventions at creation time",
+            "Validation rules are configurable and documented in a central configuration file",
+            "Developer documentation includes examples of each naming convention with explanations",
+            "Validation system provides auto-fix suggestions (e.g., 'Did you mean .my-config instead of my_config?')",
+            "All existing directories in the project comply with the established conventions",
+            "Migration path documented for projects transitioning to these conventions"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - This is a validation and enforcement requirement with no frontend components"
+            ],
+            "backend": [
+              "DirectoryNamingValidator service with validate(directoryPath, directoryType) method",
+              "Convention detection logic that automatically determines directory type from context",
+              "Error message generator that provides specific, actionable feedback for violations",
+              "Auto-fix suggestion engine that proposes corrected directory names",
+              "Directory scanning service that audits all existing directories for compliance",
+              "Migration planning service that generates rename scripts for non-compliant directories",
+              "Convention configuration loader that reads naming rules from central config"
+            ],
+            "middleware": [
+              "Pre-commit hook script that runs directory naming validation before allowing commits",
+              "CI/CD validation step that checks entire directory structure for compliance",
+              "Git hooks that prevent directory creation with invalid names",
+              "Runtime directory creation interceptor that validates names before filesystem operations"
+            ],
+            "shared": [
+              "NamingConventionRules class containing all validation logic for each convention type",
+              "DirectoryTypeDetector utility that determines directory purpose from context",
+              "ValidationResult model with isValid, errorMessage, suggestion, conventionType fields",
+              "ConventionConfig interface defining naming rules (patterns, exceptions, special cases)",
+              "Error message templates for each violation type with examples",
+              "DirectoryAuditor utility that scans project structure and generates compliance report",
+              "MigrationPlanner that creates scripts to rename non-compliant directories safely",
+              "Constants file with all naming patterns (DOTFILE_PATTERN, SNAKE_CASE_PATTERN, KEBAB_CASE_PATTERN, LOWERCASE_PATTERN)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryNaming.validateAndEnforceConventions",
+          "related_concepts": [
+            "Naming convention validation",
+            "Pre-commit hooks",
+            "CI/CD enforcement",
+            "Developer experience",
+            "Error prevention",
+            "Convention documentation",
+            "Automated compliance"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 12453,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 35,
+      "total_nodes": 42,
+      "extraction_time_ms": 18854,
+      "expansion_time_ms": 455580
+    },
+    "source_research": "thoughts/searchable/research/2026-01-14-project-structure.md",
+    "decomposed_at": "2026-01-14T14:50:20.113728"
+  }
+}

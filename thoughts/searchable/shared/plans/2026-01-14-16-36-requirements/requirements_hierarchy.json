@@ -1,0 +1,2034 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must implement a polyglot Python+Go autonomous AI orchestration architecture",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Implement Python-based high-level orchestration framework (silmari_rlm_act) with phase-based pipeline execution, checkpoint management, and context window handling for autonomous AI operations",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Pipeline successfully executes all 6 phases (Research, Learn, Model, Act, Verify, Deploy) in sequence",
+            "Checkpoint system persists pipeline state to .rlm-act-checkpoints/ directory as JSON",
+            "Pipeline resumes from last checkpoint on interruption with full context restoration",
+            "Context window array manages Working, Episodic, Semantic, and Procedural memory layers",
+            "CLI interface (cli.py) accepts commands and routes to appropriate phase handlers",
+            "Agent definitions from agents/ directory are loaded and instantiated correctly",
+            "Command handlers from commands/ directory execute with proper validation",
+            "Integration with BAML client provides type-safe AI function calls",
+            "Planning pipeline autonomous_loop.py coordinates requirement decomposition and execution",
+            "Phase execution results are validated and passed to subsequent phases",
+            "Error handling captures failures and creates recovery checkpoints",
+            "Logging provides visibility into phase transitions and execution state",
+            "Python virtual environment (.venv) isolates dependencies correctly",
+            "Unit tests in tests/ directory achieve >80% code coverage for core orchestration logic"
+          ],
+          "implementation": {
+            "frontend": [
+              "CLI interface with command parsing and help documentation",
+              "Progress indicators for long-running phase executions",
+              "Interactive prompts for user decisions during autonomous loops",
+              "Status display showing current phase, checkpoint state, and context memory usage",
+              "Error messages with actionable recovery suggestions"
+            ],
+            "backend": [
+              "Pipeline orchestration engine (pipeline.py) managing phase lifecycle",
+              "Phase implementations in silmari_rlm_act/phases/ directory for each RLM-Act stage",
+              "Checkpoint manager for state persistence and recovery",
+              "Context window store (context_window_array/store.py) with memory layer APIs",
+              "Agent factory for instantiating agents from markdown definitions",
+              "Command registry and dispatcher for CLI commands",
+              "BAML client wrapper for type-safe AI function invocation",
+              "Autonomous loop controller (planning_pipeline/autonomous_loop.py)",
+              "Task decomposition engine (planning_pipeline/decomposition.py)",
+              "Claude API integration (planning_pipeline/claude_runner.py)",
+              "Workflow checkpoint manager for interrupted recovery",
+              "Phase execution coordinator with dependency resolution",
+              "Result validation and transformation between phases"
+            ],
+            "middleware": [
+              "Input validation for phase parameters and configurations",
+              "Checkpoint version compatibility checking",
+              "Context window size enforcement and overflow handling",
+              "Rate limiting for AI API calls",
+              "Error boundary wrapping for graceful degradation",
+              "Logging middleware capturing execution traces",
+              "Configuration loading from .silmari/ directory"
+            ],
+            "shared": [
+              "Data models (models.py) for pipeline state, checkpoints, and phase results",
+              "Phase interface definition with execute(), validate(), and rollback() methods",
+              "Checkpoint schema with versioning support",
+              "Context window data structures for memory layers",
+              "Agent definition schema matching markdown format",
+              "Command definition schema with parameter validation",
+              "Type definitions matching BAML client types",
+              "Utility functions for file I/O, JSON serialization, path resolution",
+              "Constants for phase names, checkpoint locations, configuration keys",
+              "Error classes for phase failures, checkpoint corruption, context overflow"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PythonFramework.orchestrationLayer",
+          "related_concepts": [
+            "RLM-Act pipeline architecture",
+            "Phase-based execution (Research\u2192Learn\u2192Model\u2192Act\u2192Verify\u2192Deploy)",
+            "Checkpoint-based resumability",
+            "Context window management",
+            "Multi-layer memory architecture",
+            "Agent orchestration",
+            "BAML client integration",
+            "Autonomous loop coordination"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Implement Go-based CLI tools and core utilities (go/ directory) for performance-critical operations including context engine, loop runner, and concurrent file system operations with cross-platform binary support",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "context-engine CLI binary compiles successfully for Linux, macOS, and Windows",
+            "loop-runner CLI binary executes autonomous loops with sub-100ms overhead",
+            "Concurrent file operations achieve 3x+ speedup over sequential Python equivalents",
+            "JSON parsing and serialization handles files >10MB without memory issues",
+            "Path utilities correctly resolve paths across all supported platforms",
+            "Planning engine decomposes requirements into actionable tasks in <500ms",
+            "CLI argument parsing supports all required flags and subcommands",
+            "Error handling provides clear messages without stack traces for user errors",
+            "Build system produces optimized binaries in go/build/ directory",
+            "Integration tests verify interoperability with Python framework",
+            "Performance benchmarks demonstrate <1s startup time for CLI tools",
+            "Go modules (go.mod) correctly specify all dependencies with pinned versions",
+            "Unit tests achieve >85% code coverage for internal packages"
+          ],
+          "implementation": {
+            "frontend": [
+              "CLI interface with subcommand structure (context-engine, loop-runner)",
+              "Flag parsing for configuration options and runtime parameters",
+              "Progress bars for long-running operations",
+              "Colored terminal output for status, warnings, and errors",
+              "Help text generation for all commands and flags",
+              "Version information display"
+            ],
+            "backend": [
+              "Context engine main entry point (go/cmd/context-engine/main.go)",
+              "Loop runner entry point (go/cmd/loop-runner/main.go)",
+              "Planning engine (go/internal/planning/) for requirement decomposition",
+              "CLI package (go/internal/cli/) for argument parsing and validation",
+              "Data models (go/internal/models/) matching Python schema",
+              "Execution utilities (go/internal/exec/) for subprocess management",
+              "Concurrency primitives (go/internal/concurrent/) for parallel operations",
+              "File system utilities (go/internal/fs/, go/internal/path/, go/internal/paths/)",
+              "JSON handling (go/internal/json/, go/internal/jsonutil/) with streaming support",
+              "Build scripts for cross-platform compilation",
+              "Binary packaging and distribution logic"
+            ],
+            "middleware": [
+              "Input validation for CLI arguments and configuration files",
+              "Error wrapping with context preservation",
+              "Logging with structured output and log levels",
+              "Signal handling for graceful shutdown (SIGINT, SIGTERM)",
+              "Resource cleanup on exit (file handles, goroutines)",
+              "Configuration loading from environment variables and config files"
+            ],
+            "shared": [
+              "Common data structures shared between CLI tools",
+              "JSON schema definitions matching Python models",
+              "Path constants for checkpoint directories, config files",
+              "Error types for different failure modes",
+              "Utility functions for string manipulation, validation, formatting",
+              "Constants for default values, timeouts, buffer sizes",
+              "Interfaces defining contracts between internal packages",
+              "Type conversions between Go and external JSON formats"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "GoRuntime.performanceLayer",
+          "related_concepts": [
+            "Go CLI architecture",
+            "Performance-critical utilities",
+            "Cross-platform compilation",
+            "Concurrent file operations",
+            "Path and file system utilities",
+            "JSON processing",
+            "Planning and decomposition logic",
+            "Loop execution engine",
+            "Binary distribution"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Implement BAML (Branching Agent Modeling Language) function definitions and generated client integration for structured AI orchestration with type-safe function calls, client configuration, and code generation",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "BAML functions in baml_src/functions.baml define all required AI operations with type signatures",
+            "Type definitions in baml_src/types.baml match Python data models in silmari_rlm_act/models.py",
+            "Client configurations in baml_src/clients.baml specify LLM endpoints, API keys, and retry policies",
+            "Generator configuration in baml_src/generators.baml produces Python client code",
+            "Generated client in baml_client/ provides sync_client.py and async_client.py with identical APIs",
+            "Type builder (type_builder.py) constructs BAML types from Python dictionaries",
+            "Inlined BAML (inlinedbaml.py) contains complete function definitions for runtime inspection",
+            "AI function calls validate input types before execution",
+            "AI function responses are parsed and validated against declared output types",
+            "Error handling captures LLM failures, timeout, and validation errors distinctly",
+            "Client supports streaming responses for long-running AI operations",
+            "BAML compilation step integrates into Python build process",
+            "Generated client code passes type checking with MyPy strict mode",
+            "Integration tests verify AI function calls produce expected structured outputs"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - BAML is backend-focused for AI orchestration"
+            ],
+            "backend": [
+              "BAML function definitions (baml_src/functions.baml) for all AI operations",
+              "Type schema (baml_src/types.baml) with enums, classes, and unions",
+              "Client configuration (baml_src/clients.baml) with API credentials and settings",
+              "Generator configuration (baml_src/generators.baml) targeting Python output",
+              "Code generation pipeline producing baml_client/ directory",
+              "Synchronous client implementation (baml_client/sync_client.py)",
+              "Asynchronous client implementation (baml_client/async_client.py)",
+              "Type builder (baml_client/type_builder.py) for dynamic type construction",
+              "Inlined BAML definitions (baml_client/inlinedbaml.py) for runtime access",
+              "Client factory selecting appropriate LLM endpoint based on function requirements",
+              "Response parser converting LLM outputs to typed Python objects",
+              "Validation engine ensuring responses match declared schemas",
+              "Retry logic with exponential backoff for transient failures",
+              "Streaming response handler for incremental processing"
+            ],
+            "middleware": [
+              "Input validation ensuring parameters match BAML function signatures",
+              "Output validation checking responses against type schemas",
+              "API key injection from environment variables or configuration",
+              "Rate limiting to respect LLM provider quotas",
+              "Timeout enforcement for long-running AI calls",
+              "Logging of AI function invocations with sanitized parameters",
+              "Error transformation from LLM errors to application exceptions"
+            ],
+            "shared": [
+              "BAML type definitions shared across functions",
+              "Common prompt templates and fragments",
+              "Client configuration schema",
+              "Error types for BAML-specific failures (parsing, validation, LLM errors)",
+              "Utility functions for type conversion between BAML and Python",
+              "Constants for default timeouts, retry counts, model names",
+              "Type annotations for generated client methods",
+              "JSON schema validators matching BAML types"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BAMLIntegration.aiOrchestration",
+          "related_concepts": [
+            "BAML DSL syntax",
+            "AI function definitions",
+            "Type system for structured AI outputs",
+            "Client configuration and routing",
+            "Code generation pipeline",
+            "Synchronous and asynchronous clients",
+            "Type builders and validation",
+            "Prompt templates",
+            "LLM model configuration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.4",
+          "description": "Implement multi-language integration layer ensuring seamless interoperability between Python orchestration, Go utilities, and BAML AI functions with shared data formats, IPC mechanisms, and unified error handling",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Python code successfully invokes Go CLI binaries with correct arguments and captures output",
+            "Go binaries read and write checkpoint files compatible with Python checkpoint manager",
+            "JSON schema validation ensures data consistency across Python, Go, and BAML components",
+            "Error codes from Go binaries map to Python exceptions with preserved context",
+            "BAML type definitions align with Python models.py and Go models structures",
+            "Configuration files (.silmari/, pyproject.toml, go.mod) specify compatible dependency versions",
+            "File paths are resolved consistently across Python and Go using shared path utilities",
+            "Checkpoint versioning prevents incompatibilities when formats evolve",
+            "Integration tests execute complete workflows spanning Python\u2192Go\u2192BAML\u2192Python",
+            "Performance overhead of IPC is <50ms per invocation",
+            "Error messages clearly indicate which component (Python/Go/BAML) generated the error",
+            "Logging formats are unified across components for correlation",
+            "Documentation describes data flow and component interactions with sequence diagrams"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Interoperability layer is backend infrastructure"
+            ],
+            "backend": [
+              "Python subprocess wrapper for invoking Go binaries (context-engine, loop-runner)",
+              "Go binary output parser converting stdout/stderr to Python objects",
+              "Shared JSON schema definitions in both Python and Go",
+              "Schema validation library used by both Python and Go components",
+              "Checkpoint format specification with version field",
+              "Checkpoint compatibility checker validating version on load",
+              "Error code mapping table translating Go exit codes to Python exceptions",
+              "Configuration loader reading .silmari/ settings into both Python and Go structures",
+              "Path resolution utility ensuring consistent behavior across platforms and languages",
+              "Type converter between BAML types, Python dataclasses, and Go structs",
+              "IPC coordinator managing lifecycle of Go subprocesses",
+              "File-based semaphore for workflow coordination between components",
+              "Unified logging adapter forwarding Go logs to Python logging system"
+            ],
+            "middleware": [
+              "Schema validation middleware enforcing JSON compatibility",
+              "Error transformation middleware wrapping cross-language exceptions",
+              "Logging middleware correlating logs from Python, Go, and BAML components",
+              "Configuration injection ensuring all components see consistent settings",
+              "Path normalization middleware resolving relative paths before cross-language calls",
+              "Timeout enforcement for Go binary invocations",
+              "Resource cleanup ensuring Go subprocesses are terminated on Python exit"
+            ],
+            "shared": [
+              "JSON schema definitions (shared between baml_src/types.baml, models.py, go/internal/models/)",
+              "Checkpoint format specification document",
+              "Error code constants and descriptions",
+              "Configuration schema with validation rules",
+              "Pathconstants for shared directories (.rlm-act-checkpoints/, .workflow-checkpoints/)",
+              "Logging format specification (timestamp, level, component, message, context)",
+              "Version compatibility matrix documenting compatible versions across components",
+              "Type mapping documentation showing equivalences (Python dict \u2194 Go map \u2194 BAML object)",
+              "IPC protocol specification (argument passing, output format, error signaling)",
+              "Performance benchmarks for cross-language operations"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PolyglotBridge.interoperability",
+          "related_concepts": [
+            "Inter-process communication (IPC)",
+            "JSON-based data interchange",
+            "Python subprocess management",
+            "Go binary invocation from Python",
+            "Shared data schema",
+            "Cross-language error handling",
+            "Type compatibility",
+            "File-based coordination",
+            "Checkpoint format standardization",
+            "Configuration sharing"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The system must provide 30 top-level directories organized into 6 functional categories for code organization",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Create and configure the 6 core application directories (silmari_rlm_act, planning_pipeline, go, baml_src, baml_client, context_window_array) with proper structure, entry points, and initialization files",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "silmari_rlm_act/ directory exists with __init__.py, cli.py, pipeline.py, models.py, and subdirectories /phases, /agents, /commands, /checkpoints, /context, /validation",
+            "planning_pipeline/ directory exists with __init__.py, autonomous_loop.py, decomposition.py, claude_runner.py, pipeline.py, steps.py, checkpoint_manager.py, beads_controller.py, and /phase_execution subdirectory",
+            "go/ directory exists with /cmd, /internal, /build subdirectories and proper go.mod file",
+            "go/cmd/ contains context-engine/ and loop-runner/ entry point directories with main.go files",
+            "go/internal/ contains /planning, /cli, /models, /exec, /concurrent, /fs, /path, /paths, /json, /jsonutil package directories",
+            "baml_src/ directory exists with functions.baml, types.baml, clients.baml, generators.baml files",
+            "baml_client/ directory exists with __init__.py, sync_client.py, async_client.py, type_builder.py, inlinedbaml.py",
+            "context_window_array/ directory exists with __init__.py, store.py, implementation_context.py, working_context.py, search_index.py, batching.py",
+            "All Python directories contain proper __init__.py files for package discovery",
+            "All directories have appropriate .gitkeep or README.md files to ensure version control tracking",
+            "Entry points (cli.py, autonomous_loop.py, main.go) are executable and properly configured",
+            "Dependencies are declared in pyproject.toml for Python packages and go.mod for Go modules"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create directory structure creation script or CLI command",
+              "Implement directory validation service to verify structure correctness",
+              "Create initialization templates for __init__.py, main.go, and configuration files",
+              "Implement entry point registration for CLI tools"
+            ],
+            "middleware": [
+              "Add path validation middleware to ensure directories exist before operations",
+              "Implement import resolution middleware for Python packages",
+              "Add Go module path resolution"
+            ],
+            "shared": [
+              "Define DirectoryStructureConfig model with paths for all 6 core directories",
+              "Create FileSystemUtility with methods for directory creation and validation",
+              "Define EntryPoint model with attributes for executable path, type (Python/Go), and configuration",
+              "Create TemplateGenerator utility for generating __init__.py and boilerplate files",
+              "Define PackageMetadata model for Python and Go package information"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.setupCoreApplicationDirectories",
+          "related_concepts": [
+            "polyglot_architecture",
+            "python_package_structure",
+            "go_module_organization",
+            "baml_function_definitions",
+            "context_management",
+            "entry_points",
+            "dependency_management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Create and configure the 4 supporting code directories (agents/, commands/, tests/, docs/) with proper file organization, markdown templates, and test structure",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "agents/ directory exists with markdown files: code-reviewer.md, debugger.md, feature-verifier.md, test-runner.md",
+            "commands/ directory exists with markdown files: status.md, blockers.md, next.md, debug.md, verify.md, revert.md, spec.md",
+            "tests/ directory exists with __init__.py, test_autonomous_loop.py, test_execute_phase.py, and subdirectories /integration, /unit, /fixtures",
+            "docs/ directory exists with ARCHITECTURE.md, NATIVE-HOOKS.md, README.md, and /screenshots subdirectory",
+            "All agent markdown files follow consistent template with sections: role, responsibilities, tools, output format",
+            "All command markdown files follow consistent template with sections: description, usage, examples, parameters",
+            "Test directory structure separates unit tests, integration tests, and test fixtures",
+            "Documentation includes architecture diagrams, API references, and getting started guides",
+            "All markdown files use consistent formatting (headings, code blocks, lists)",
+            "Test files are discoverable by pytest with proper naming convention (test_*.py or *_test.py)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create markdown template generator for agents and commands",
+              "Implement test suite scaffolding service",
+              "Create documentation index generator",
+              "Implement agent definition parser to validate markdown structure",
+              "Create command definition parser to validate markdown structure"
+            ],
+            "middleware": [
+              "Add markdown validation middleware to ensure consistent formatting",
+              "Implement test discovery middleware for pytest integration",
+              "Add documentation linting middleware"
+            ],
+            "shared": [
+              "Define AgentDefinition model with attributes: name, role, responsibilities, tools, output_format",
+              "Define CommandDefinition model with attributes: name, description, usage, examples, parameters",
+              "Create MarkdownTemplate utility with methods for generating agent and command files",
+              "Define TestStructure model with paths for unit, integration, and fixture directories",
+              "Create DocumentationIndex model to track all documentation files",
+              "Define MarkdownValidator utility to verify template compliance"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.setupSupportingCodeDirectories",
+          "related_concepts": [
+            "agent_definitions",
+            "command_definitions",
+            "test_organization",
+            "documentation_structure",
+            "markdown_templates",
+            "test_framework_setup"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Create and configure the 6 configuration directories (.agent/, .beads/, .claude/, .cursor/, .silmari/, .specstory/) with appropriate configuration files, schemas, and initialization data",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            ".agent/ directory exists with memory.db (SQLite database) for agent state persistence",
+            ".beads/ directory exists with configuration for Build Execution Artifact Definition System",
+            ".claude/ directory exists with IDE configuration files for Claude editor integration",
+            ".cursor/ directory exists with IDE configuration files for Cursor editor integration",
+            ".silmari/ directory exists with application-specific configuration (config.json or config.yaml)",
+            ".specstory/ directory exists with specification tracking files and history",
+            "All configuration directories have proper .gitignore entries where appropriate",
+            "Configuration files follow JSON or YAML schema validation",
+            ".agent/memory.db has proper SQLite schema for agent state storage",
+            ".silmari/config contains sections for: pipeline settings, context window settings, checkpoint settings, logging configuration",
+            "IDE configuration files (.claude/, .cursor/) contain proper editor settings, extensions, and keybindings",
+            "Configuration directories have README.md files explaining their purpose and structure"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create configuration directory initialization service",
+              "Implement SQLite schema migration service for .agent/memory.db",
+              "Create configuration validation service for JSON/YAML files",
+              "Implement configuration loader service with environment-specific overrides",
+              "Create BEADS framework integration service",
+              "Implement specification tracking service for .specstory/"
+            ],
+            "middleware": [
+              "Add configuration validation middleware to verify JSON/YAML schema compliance",
+              "Implement configuration encryption middleware for sensitive settings",
+              "Add configuration caching middleware for performance"
+            ],
+            "shared": [
+              "Define AgentStateSchema model for SQLite database structure (tables: states, memories, contexts)",
+              "Define SilmariConfig model with attributes: pipeline_settings, context_window_settings, checkpoint_settings, logging_config",
+              "Create ConfigurationLoader utility with methods for loading JSON/YAML and environment variables",
+              "Define BeadsConfig model for build artifact definitions",
+              "Define SpecStoryEntry model with attributes: spec_id, title, status, history, last_updated",
+              "Create DatabaseMigration utility for SQLite schema versioning",
+              "Define IDEConfig model for Claude and Cursor editor settings"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.setupConfigurationDirectories",
+          "related_concepts": [
+            "configuration_management",
+            "framework_integration",
+            "ide_configuration",
+            "agent_state_management",
+            "specification_tracking",
+            "build_artifact_definition"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Create and configure the 2 checkpoint directories (.rlm-act-checkpoints/, .workflow-checkpoints/) with proper file naming conventions, JSON schemas, and recovery mechanisms",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            ".rlm-act-checkpoints/ directory exists for storing RLM-Act pipeline checkpoints",
+            ".workflow-checkpoints/ directory exists for storing workflow state snapshots",
+            "Checkpoint files follow naming convention: {timestamp}_{phase}_{checkpoint_id}.json",
+            "Each checkpoint JSON file contains: checkpoint_id, timestamp, phase, state_data, metadata",
+            "Checkpoint files are automatically created at phase boundaries and critical execution points",
+            "Maximum checkpoint retention policy is configurable (e.g., keep last 50 checkpoints)",
+            "Checkpoint cleanup service removes old checkpoints based on retention policy",
+            "Checkpoint files include version information for backward compatibility",
+            "Recovery mechanism can load and resume from any valid checkpoint file",
+            "Checkpoint integrity validation (checksum/hash) prevents corruption",
+            "Both directories have .gitignore entries to prevent accidental commit of checkpoints"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create checkpoint manager service for creating and loading checkpoints",
+              "Implement checkpoint serialization service for converting state to JSON",
+              "Create checkpoint cleanup service with configurable retention policies",
+              "Implement checkpoint recovery service for resuming from saved state",
+              "Create checkpoint validation service to verify integrity and version compatibility",
+              "Implement checkpoint indexing service for fast lookup and retrieval"
+            ],
+            "middleware": [
+              "Add checkpoint creation middleware to automatically save state at phase boundaries",
+              "Implement checkpoint validation middleware to verify JSON schema compliance",
+              "Add checkpoint compression middleware for large state files"
+            ],
+            "shared": [
+              "Define CheckpointMetadata model with attributes: checkpoint_id, timestamp, phase, version, checksum",
+              "Define RLMActCheckpoint model with attributes: metadata, pipeline_state, phase_data, context_snapshot",
+              "Define WorkflowCheckpoint model with attributes: metadata, workflow_state, execution_stack, variables",
+              "Create CheckpointSerializer utility for JSON serialization/deserialization",
+              "Define CheckpointRetentionPolicy model with attributes: max_count, max_age_days, keep_phase_boundaries",
+              "Create CheckpointValidator utility with methods for schema validation and integrity checking",
+              "Define CheckpointIndex model for tracking all available checkpoints with quick lookup"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.setupCheckpointDirectories",
+          "related_concepts": [
+            "checkpoint_based_resumability",
+            "state_persistence",
+            "recovery_mechanisms",
+            "pipeline_state_management",
+            "workflow_state_management",
+            "json_serialization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5",
+          "description": "Create and configure the 6 build and output directories (output/, dist/, .venv/, .pytest_cache/, .mypy_cache/, .ruff_cache/) with proper isolation, cleanup policies, and artifact management",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "output/ directory exists for storing generated analysis results and file groupings",
+            "dist/ directory exists for Python package distribution files (wheels, source distributions)",
+            ".venv/ directory exists with isolated Python virtual environment",
+            ".pytest_cache/ directory exists for pytest test result caching",
+            ".mypy_cache/ directory exists for MyPy type checking cache",
+            ".ruff_cache/ directory exists for Ruff linter cache",
+            "All build and output directories have .gitignore entries to prevent version control",
+            ".venv/ contains proper Python interpreter and installed dependencies from pyproject.toml",
+            "output/ has subdirectories for different analysis types: /analysis, /reports, /file_groupings",
+            "dist/ cleanup is triggered before new package builds",
+            "Cache directories (.pytest_cache/, .mypy_cache/, .ruff_cache/) have automatic cleanup based on age",
+            "Virtual environment activation scripts are present (.venv/bin/activate, .venv/Scripts/activate.bat)",
+            "Build artifact retention policy is configurable and enforced"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create virtual environment initialization service",
+              "Implement build artifact manager service for dist/ directory",
+              "Create output directory manager for organizing analysis results",
+              "Implement cache cleanup service with configurable policies",
+              "Create dependency installation service for .venv/",
+              "Implement build artifact archiving service for long-term storage"
+            ],
+            "middleware": [
+              "Add virtual environment activation middleware for command execution",
+              "Implement build artifact validation middleware",
+              "Add cache invalidation middleware based on dependency changes"
+            ],
+            "shared": [
+              "Define BuildArtifact model with attributes: artifact_type, path, timestamp, size, checksum",
+              "Define OutputResult model with attributes: analysis_type, output_path, timestamp, metadata",
+              "Create VirtualEnvironmentManager utility with methods for creation, activation, and dependency installation",
+              "Define CachePolicy model with attributes: max_age_days, max_size_mb, auto_cleanup_enabled",
+              "Create CacheManager utility for managing pytest, mypy, and ruff caches",
+              "Define DistributionPackage model with attributes: package_name, version, format (wheel/sdist), path",
+              "Create ArtifactRetentionPolicy model with attributes: keep_latest_count, max_age_days, archive_old"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.setupBuildOutputDirectories",
+          "related_concepts": [
+            "build_artifacts",
+            "output_generation",
+            "virtual_environment_isolation",
+            "cache_management",
+            "dependency_isolation",
+            "test_caching",
+            "type_checking_cache",
+            "linter_cache"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must implement the RLM-Act (Reinforcement Loop Model - Act) framework with phase-based pipeline execution",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Implement the Research phase to analyze requirements, gather context, and explore the codebase to understand what needs to be built",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Phase can parse and decompose high-level requirements into specific tasks",
+            "Phase can search codebase using Glob and Grep tools to find relevant files",
+            "Phase can read and analyze existing code structure and patterns",
+            "Phase populates context_window_array with relevant codebase information",
+            "Phase identifies existing components, services, and utilities that can be reused",
+            "Phase creates a searchable index of project files and their purposes",
+            "Phase outputs a structured research report with findings and recommendations",
+            "Phase creates checkpoint data for resumability if interrupted",
+            "Phase integrates with BAML functions for structured analysis",
+            "Phase validates that all required context is gathered before proceeding"
+          ],
+          "implementation": {
+            "frontend": [
+              "CLI progress indicator showing research activities (searching, analyzing, indexing)",
+              "Interactive prompts for user clarification when requirements are ambiguous",
+              "Research report display with findings, file locations, and recommendations",
+              "Visualization of dependency graph if applicable"
+            ],
+            "backend": [
+              "ResearchPhase class in silmari_rlm_act/phases/research.py",
+              "execute() method orchestrating research activities",
+              "analyze_requirements() service to parse and decompose tasks",
+              "search_codebase() service using Glob/Grep for file discovery",
+              "extract_patterns() service to identify code patterns and conventions",
+              "identify_dependencies() service to map component relationships",
+              "generate_research_report() service to compile findings",
+              "Integration with baml_client for structured AI analysis"
+            ],
+            "middleware": [
+              "Checkpoint creation before and after research activities",
+              "Error handling for file access failures",
+              "Timeout handling for long-running searches",
+              "Validation of research completeness before phase transition",
+              "Context size limits management"
+            ],
+            "shared": [
+              "ResearchResult model with findings, file_paths, patterns, dependencies",
+              "RequirementDecomposition model for task breakdown",
+              "CodebaseIndex model for searchable file index",
+              "PhaseCheckpoint model for state persistence",
+              "ContextEntry model for context_window_array entries",
+              "Utility functions: parse_requirement(), search_files(), analyze_code_structure()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ResearchPhase.execute",
+          "related_concepts": [
+            "requirement_decomposition",
+            "context_gathering",
+            "codebase_exploration",
+            "dependency_analysis",
+            "architectural_understanding",
+            "search_indexing",
+            "working_context_initialization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Implement the Learn phase to read relevant files, understand existing patterns, extract reusable components, and build comprehensive implementation context",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Phase reads all files identified during Research phase",
+            "Phase extracts code patterns, naming conventions, and architectural styles",
+            "Phase identifies reusable functions, classes, and components",
+            "Phase builds implementation context with examples and templates",
+            "Phase populates episodic memory with code examples",
+            "Phase populates semantic memory with pattern definitions",
+            "Phase creates a knowledge base of 'how things are done' in this codebase",
+            "Phase outputs learning summary with key insights and examples",
+            "Phase validates context completeness against implementation requirements",
+            "Phase creates checkpoint with learned knowledge for resumability"
+          ],
+          "implementation": {
+            "frontend": [
+              "Progress display showing files being read and analyzed",
+              "Learning summary display with discovered patterns and examples",
+              "Interactive view of reusable components found",
+              "Pattern library visualization"
+            ],
+            "backend": [
+              "LearnPhase class in silmari_rlm_act/phases/learn.py",
+              "execute() method orchestrating learning activities",
+              "read_identified_files() service to load relevant code",
+              "extract_patterns() service to identify coding patterns",
+              "identify_reusable_components() service to find utilities and helpers",
+              "build_implementation_context() service to compile examples and templates",
+              "populate_episodic_memory() service for code example storage",
+              "populate_semantic_memory() service for pattern knowledge",
+              "generate_learning_summary() service to compile insights",
+              "Integration with context_window_array for memory management"
+            ],
+            "middleware": [
+              "Checkpoint creation after file reading and analysis",
+              "Memory layer validation (episodic, semantic)",
+              "Context size management and batching",
+              "Error handling for file parsing failures",
+              "Validation of learned context against requirements"
+            ],
+            "shared": [
+              "LearningResult model with patterns, components, examples, insights",
+              "CodePattern model for pattern definitions",
+              "ReusableComponent model for component metadata",
+              "ImplementationContext model for context_window_array",
+              "EpisodicMemoryEntry model for code examples",
+              "SemanticMemoryEntry model for pattern knowledge",
+              "Utility functions: extract_pattern(), parse_code(), identify_component_type()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "LearnPhase.execute",
+          "related_concepts": [
+            "code_reading",
+            "pattern_recognition",
+            "context_building",
+            "episodic_memory",
+            "semantic_memory",
+            "implementation_context",
+            "learning_from_examples"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Implement the Model phase to design the implementation plan, create step-by-step execution strategy, define data models, and specify component interactions",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Phase creates detailed implementation plan with ordered steps",
+            "Phase defines all required data models with fields and types",
+            "Phase specifies component interactions and dependencies",
+            "Phase identifies which files need to be created or modified",
+            "Phase defines API contracts (endpoints, request/response schemas)",
+            "Phase specifies validation rules and business logic",
+            "Phase creates procedural memory with implementation procedures",
+            "Phase generates execution strategy with fallback plans",
+            "Phase outputs comprehensive implementation specification",
+            "Phase validates plan completeness and feasibility",
+            "Phase creates checkpoint with full implementation model"
+          ],
+          "implementation": {
+            "frontend": [
+              "Implementation plan display with step-by-step breakdown",
+              "Data model visualization with fields and relationships",
+              "Component interaction diagram",
+              "Interactive plan review and approval interface",
+              "File change preview (create/modify/delete)"
+            ],
+            "backend": [
+              "ModelPhase class in silmari_rlm_act/phases/model.py",
+              "execute() method orchestrating modeling activities",
+              "create_implementation_plan() service to generate step-by-step strategy",
+              "define_data_models() service to specify schemas and types",
+              "specify_components() service to define component responsibilities",
+              "map_interactions() service to model component dependencies",
+              "identify_file_changes() service to list files to create/modify",
+              "define_api_contracts() service to specify endpoints and schemas",
+              "generate_validation_rules() service for business logic",
+              "populate_procedural_memory() service for implementation steps",
+              "validate_plan_feasibility() service to check plan completeness",
+              "Integration with BAML for structured plan generation"
+            ],
+            "middleware": [
+              "Checkpoint creation with complete implementation model",
+              "Plan validation against learned patterns",
+              "Dependency resolution and ordering",
+              "Conflict detection (e.g., file already exists)",
+              "User approval workflow for plan confirmation",
+              "Error handling for invalid plan structures"
+            ],
+            "shared": [
+              "ImplementationPlan model with ordered steps, dependencies, estimates",
+              "DataModelSpec model for schema definitions",
+              "ComponentSpec model for component responsibilities",
+              "APIContract model for endpoint definitions",
+              "ValidationRule model for business logic",
+              "FileChangeSpec model (create/modify/delete operations)",
+              "ProceduralMemoryEntry model for step-by-step procedures",
+              "InteractionMap model for component dependencies",
+              "Utility functions: order_steps(), resolve_dependencies(), validate_plan()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ModelPhase.execute",
+          "related_concepts": [
+            "implementation_planning",
+            "architecture_design",
+            "data_modeling",
+            "component_specification",
+            "execution_strategy",
+            "procedural_memory",
+            "plan_generation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Implement the Act phase to execute the implementation plan, generate code, create/modify files, and build the solution according to the model specification",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Phase executes implementation plan steps in correct order",
+            "Phase generates code following learned patterns and conventions",
+            "Phase creates new files with proper structure and imports",
+            "Phase modifies existing files while preserving functionality",
+            "Phase handles file write operations with error recovery",
+            "Phase tracks implementation progress and updates checkpoints",
+            "Phase validates each step completion before proceeding",
+            "Phase uses working memory to maintain execution state",
+            "Phase integrates generated code with existing codebase",
+            "Phase creates git commits for implemented changes (if requested)",
+            "Phase handles interruptions and supports resumption from checkpoint",
+            "Phase outputs implementation summary with files changed and results"
+          ],
+          "implementation": {
+            "frontend": [
+              "Real-time progress indicator showing current step execution",
+              "File change preview before writing (create/modify)",
+              "Step-by-step execution log with success/failure status",
+              "Code diff display for modified files",
+              "Error messages with recovery options",
+              "Completion summary with files changed"
+            ],
+            "backend": [
+              "ActPhase class in silmari_rlm_act/phases/act.py",
+              "execute() method orchestrating implementation execution",
+              "execute_step() service to run individual plan steps",
+              "generate_code() service to create code following patterns",
+              "create_file() service with Write tool integration",
+              "modify_file() service with Edit tool integration",
+              "validate_step_completion() service to verify each step",
+              "update_working_memory() service to track execution state",
+              "handle_execution_error() service for error recovery",
+              "create_git_commit() service for version control (optional)",
+              "generate_implementation_summary() service to compile results",
+              "Integration with baml_client for code generation",
+              "Integration with context_window_array for state management"
+            ],
+            "middleware": [
+              "Checkpoint creation after each major step",
+              "Working memory updates for execution state",
+              "File operation validation and rollback on failure",
+              "Error handling with retry logic",
+              "Step dependency validation before execution",
+              "Code validation (syntax, imports) before file write",
+              "Interruption detection and state preservation"
+            ],
+            "shared": [
+              "ExecutionResult model with status, files_changed, errors",
+              "StepResult model for individual step outcomes",
+              "FileOperation model (create/modify with content)",
+              "WorkingMemoryEntry model for execution state",
+              "CodeGenerationConfig model for generation parameters",
+              "ExecutionCheckpoint model for resumability",
+              "ErrorRecoveryStrategy model for handling failures",
+              "Utility functions: generate_from_template(), apply_pattern(), validate_syntax(), rollback_changes()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ActPhase.execute",
+          "related_concepts": [
+            "code_generation",
+            "file_operations",
+            "implementation_execution",
+            "working_memory",
+            "incremental_development",
+            "error_handling",
+            "progress_tracking"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.5",
+          "description": "Implement the Verify phase to validate implementation correctness, run tests, check code quality, verify requirements satisfaction, and ensure the solution works as expected",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Phase runs all relevant tests (unit, integration, e2e)",
+            "Phase validates that all acceptance criteria from requirements are met",
+            "Phase checks code quality (linting, type checking, formatting)",
+            "Phase verifies that generated code follows project patterns",
+            "Phase tests integration with existing codebase components",
+            "Phase validates API contracts if applicable",
+            "Phase checks for regressions in existing functionality",
+            "Phase generates verification report with pass/fail results",
+            "Phase identifies and reports any issues or failures",
+            "Phase supports retry or rollback on verification failure",
+            "Phase creates checkpoint with verification results",
+            "Phase outputs comprehensive verification summary"
+          ],
+          "implementation": {
+            "frontend": [
+              "Test execution progress display with pass/fail counts",
+              "Verification checklist showing requirement satisfaction",
+              "Code quality metrics display (lint errors, type coverage)",
+              "Test failure details with error messages and stack traces",
+              "Verification summary with overall pass/fail status",
+              "Interactive options for retry or rollback on failure"
+            ],
+            "backend": [
+              "VerifyPhase class in silmari_rlm_act/phases/verify.py",
+              "execute() method orchestrating verification activities",
+              "run_tests() service using Bash tool for pytest/test runners",
+              "validate_requirements() service to check acceptance criteria",
+              "check_code_quality() service for linting and type checking",
+              "verify_patterns() service to validate code follows conventions",
+              "test_integration() service for integration testing",
+              "validate_api_contracts() service for API testing",
+              "check_regressions() service to run regression tests",
+              "generate_verification_report() service to compile results",
+              "handle_verification_failure() service for retry/rollback logic",
+              "Integration with test runners (pytest, go test, etc.)",
+              "Integration with quality tools (ruff, mypy, etc.)"
+            ],
+            "middleware": [
+              "Checkpoint creation with verification results",
+              "Test execution timeout handling",
+              "Error aggregation and reporting",
+              "Validation of test environment setup",
+              "Rollback capability on critical failures",
+              "User notification on verification completion",
+              "Integration with CI/CD pipelines if applicable"
+            ],
+            "shared": [
+              "VerificationResult model with tests_passed, quality_checks, requirement_status",
+              "TestResult model for individual test outcomes",
+              "QualityMetrics model for code quality measurements",
+              "RequirementStatus model for acceptance criteria tracking",
+              "RegressionCheck model for regression test results",
+              "VerificationCheckpoint model for state persistence",
+              "FailureReport model for issue details",
+              "Utility functions: run_test_suite(), parse_test_output(), check_lint_errors(), validate_types()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "VerifyPhase.execute",
+          "related_concepts": [
+            "testing",
+            "validation",
+            "quality_assurance",
+            "requirement_verification",
+            "integration_testing",
+            "code_quality",
+            "acceptance_testing"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must implement checkpoint-based resumability for pipeline and workflow recovery",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Implement RLM-Act checkpoint persistence mechanism to save pipeline state at critical execution points, enabling recovery from interruptions during the Research-Learn-Model-Act-Verify-Deploy phases",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Checkpoint files are stored in `.rlm-act-checkpoints/` directory with unique identifiers",
+            "Each checkpoint contains complete pipeline state including current phase, execution context, and progress markers",
+            "Checkpoint writes are atomic to prevent corruption during system failures",
+            "Checkpoints include timestamp, pipeline_id, phase_name, context_data, and execution_metadata",
+            "Failed checkpoint writes do not corrupt existing checkpoint files",
+            "Checkpoint file format is valid JSON with schema validation",
+            "Maximum checkpoint file size does not exceed 10MB to prevent disk space issues",
+            "Checkpoints are created at phase boundaries and critical decision points",
+            "Old checkpoints are automatically pruned based on retention policy (default: keep last 50)",
+            "Checkpoint creation latency does not exceed 500ms to avoid blocking pipeline execution"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required for checkpoint persistence"
+            ],
+            "backend": [
+              "CheckpointManager.save_checkpoint(pipeline_state: PipelineState) -> CheckpointId",
+              "CheckpointManager.validate_checkpoint(checkpoint_data: dict) -> bool",
+              "CheckpointManager.get_checkpoint_path(pipeline_id: str, checkpoint_id: str) -> Path",
+              "CheckpointSerializer.serialize_pipeline_state(state: PipelineState) -> dict",
+              "CheckpointWriter.atomic_write(path: Path, data: bytes) -> bool",
+              "CheckpointPruner.prune_old_checkpoints(max_count: int) -> int",
+              "Phase-specific state extractors for each RLM-Act phase",
+              "Context serializers for working memory, episodic memory, semantic memory",
+              "Error handling and retry logic for file system failures",
+              "Checkpoint metadata tracking (creation time, phase, size, status)"
+            ],
+            "middleware": [
+              "Pipeline execution hooks to trigger checkpoint creation at phase boundaries",
+              "Checkpoint validation middleware to ensure state consistency before persistence",
+              "File system permissions verification for checkpoint directory",
+              "Disk space monitoring before checkpoint creation",
+              "Concurrent checkpoint access prevention using file locks"
+            ],
+            "shared": [
+              "PipelineState model with all phase data and execution context",
+              "CheckpointMetadata model (id, timestamp, phase, size, hash)",
+              "CheckpointSchema JSON schema definition for validation",
+              "PhaseContext model for each RLM-Act phase state",
+              "ExecutionMetadata model (start_time, elapsed_time, resource_usage)",
+              "CheckpointConfig model (retention_policy, max_size, compression_enabled)",
+              "Constants for checkpoint file naming conventions and paths",
+              "Utility functions for file path generation and validation",
+              "JSON serialization utilities with custom encoders for complex types"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointManager.persistRLMActCheckpoint",
+          "related_concepts": [
+            "Pipeline state serialization",
+            "Phase context preservation",
+            "Atomic checkpoint writes",
+            "Checkpoint versioning",
+            "State consistency guarantees",
+            "Transaction safety",
+            "File system operations"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Implement RLM-Act checkpoint recovery mechanism to restore pipeline execution from the last valid checkpoint, reconstructing all phase contexts and execution state to resume from the interruption point",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "System can identify and load the most recent valid checkpoint for a given pipeline_id",
+            "Corrupted checkpoint files are detected and skipped in favor of earlier valid checkpoints",
+            "Pipeline state is fully reconstructed including phase context, working memory, and execution metadata",
+            "Recovery process validates checkpoint schema before attempting restoration",
+            "System can resume execution from any RLM-Act phase boundary",
+            "All agent contexts and memory layers are restored to their checkpoint state",
+            "Recovery failure falls back gracefully with clear error messages",
+            "Recovered pipeline produces identical results as if no interruption occurred",
+            "Recovery process completes in under 2 seconds for checkpoints up to 10MB",
+            "System logs recovery events with checkpoint_id, recovery_time, and validation_status"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required for checkpoint recovery"
+            ],
+            "backend": [
+              "CheckpointManager.load_latest_checkpoint(pipeline_id: str) -> Optional[PipelineState]",
+              "CheckpointManager.list_checkpoints(pipeline_id: str) -> List[CheckpointMetadata]",
+              "CheckpointManager.validate_checkpoint_integrity(checkpoint_path: Path) -> ValidationResult",
+              "CheckpointDeserializer.deserialize_pipeline_state(checkpoint_data: dict) -> PipelineState",
+              "CheckpointReader.safe_read(path: Path) -> dict",
+              "PipelineReconstructor.rebuild_from_checkpoint(state: PipelineState) -> Pipeline",
+              "Phase-specific state reconstructors for each RLM-Act phase",
+              "Context deserializers for all memory layers",
+              "Checkpoint version compatibility checker",
+              "Recovery verification logic to ensure state consistency"
+            ],
+            "middleware": [
+              "Pipeline initialization hook to check for existing checkpoints before starting new execution",
+              "Recovery decision logic to determine if checkpoint recovery should be attempted",
+              "State validation middleware to verify reconstructed pipeline integrity",
+              "Recovery audit logging for compliance and debugging",
+              "Checkpoint file locking during recovery to prevent concurrent access"
+            ],
+            "shared": [
+              "CheckpointRecoveryResult model (success, recovered_state, errors, warnings)",
+              "ValidationResult model (is_valid, schema_errors, integrity_errors)",
+              "RecoveryConfig model (auto_recovery_enabled, max_recovery_attempts, fallback_strategy)",
+              "CheckpointVersionInfo model for backward compatibility",
+              "Error types for recovery failures (CorruptCheckpointError, IncompatibleVersionError)",
+              "Utility functions for checkpoint file discovery and sorting by timestamp",
+              "JSON deserialization utilities with error handling for missing fields",
+              "Constants for recovery timeouts and retry policies"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointManager.recoverRLMActPipeline",
+          "related_concepts": [
+            "State deserialization",
+            "Pipeline reconstruction",
+            "Context restoration",
+            "Checkpoint validation",
+            "Recovery verification",
+            "State consistency checks",
+            "Partial execution handling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "Implement workflow checkpoint snapshot management to capture complete workflow execution state including task decomposition, step progress, autonomous loop state, and BEADS artifact tracking",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Workflow snapshots are stored in `.workflow-checkpoints/` directory with workflow-specific identifiers",
+            "Each snapshot contains task decomposition tree, completed steps, pending steps, and current execution state",
+            "Snapshots capture autonomous loop iteration state including planning decisions and execution results",
+            "BEADS artifact references and build state are included in workflow snapshots",
+            "Snapshot files include workflow_id, timestamp, decomposition_state, step_history, and loop_state",
+            "Concurrent workflow executions maintain isolated snapshots without interference",
+            "Snapshots are created after each major workflow step completion",
+            "Workflow snapshot format supports partial completion tracking at task and subtask levels",
+            "Snapshot creation does not block workflow execution for more than 200ms",
+            "Snapshots include dependency graphs for task relationships and execution ordering"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required for workflow snapshot management"
+            ],
+            "backend": [
+              "WorkflowCheckpointManager.create_snapshot(workflow_state: WorkflowState) -> SnapshotId",
+              "WorkflowCheckpointManager.get_workflow_snapshots(workflow_id: str) -> List[SnapshotMetadata]",
+              "WorkflowSerializer.serialize_workflow_state(state: WorkflowState) -> dict",
+              "DecompositionTreeSerializer.serialize_tree(tree: DecompositionTree) -> dict",
+              "StepHistoryTracker.capture_step_history(workflow_id: str) -> List[StepExecution]",
+              "AutonomousLoopStateCapture.capture_loop_state(loop: AutonomousLoop) -> dict",
+              "BeadsArtifactTracker.capture_artifact_state(workflow_id: str) -> dict",
+              "WorkflowSnapshotWriter.write_snapshot(path: Path, snapshot_data: dict) -> bool",
+              "DependencyGraphSerializer.serialize_dependencies(graph: TaskGraph) -> dict",
+              "Concurrent workflow isolation logic to prevent snapshot collisions"
+            ],
+            "middleware": [
+              "Workflow execution hooks to trigger snapshots after step completions",
+              "Workflow state validation before snapshot creation",
+              "Snapshot isolation enforcement for concurrent workflows",
+              "Workflow progress tracking integration",
+              "Snapshot notification system for external monitoring tools"
+            ],
+            "shared": [
+              "WorkflowState model with task tree, step history, and loop state",
+              "SnapshotMetadata model (snapshot_id, workflow_id, timestamp, size, step_count)",
+              "DecompositionTree model with hierarchical task structure",
+              "StepExecution model (step_id, status, start_time, end_time, result)",
+              "AutonomousLoopState model (iteration, planning_state, execution_state)",
+              "BeadsArtifactState model (artifact_id, build_status, dependencies)",
+              "TaskGraph model for dependency relationships",
+              "WorkflowSnapshotSchema JSON schema for validation",
+              "Constants for snapshot retention policies and file naming",
+              "Utility functions for workflow state comparison and diff generation"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "WorkflowCheckpointManager.snapshotWorkflowState",
+          "related_concepts": [
+            "Workflow state tracking",
+            "Task decomposition preservation",
+            "Step execution history",
+            "Autonomous loop checkpointing",
+            "BEADS artifact snapshots",
+            "Concurrent workflow handling",
+            "Incremental snapshotting"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.4",
+          "description": "Implement interrupted workflow recovery mechanism to restore workflow execution from snapshots, reconstructing task decomposition state, resuming from the last completed step, and re-establishing autonomous loop continuity",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "System identifies interrupted workflows by detecting incomplete snapshots on startup",
+            "Most recent valid snapshot is selected for recovery based on timestamp and completeness",
+            "Task decomposition tree is fully reconstructed with all parent-child relationships",
+            "Completed steps are marked and skipped during recovery to avoid duplicate execution",
+            "Pending steps resume execution in correct dependency order",
+            "Autonomous loop state is restored with correct iteration counter and planning context",
+            "BEADS artifact states are synchronized after workflow recovery",
+            "Recovery process handles partial step completions by determining safe resume points",
+            "Workflow recovery validates all dependencies are satisfied before resuming execution",
+            "System provides recovery report showing steps completed, steps skipped, and steps remaining",
+            "Recovery completes in under 5 seconds for workflows with up to 100 steps",
+            "User is notified of workflow recovery with summary of restored state"
+          ],
+          "implementation": {
+            "frontend": [
+              "Recovery notification component to inform user of workflow resumption",
+              "Recovery summary dashboard showing recovered workflow state",
+              "Step status visualization highlighting completed vs. pending steps"
+            ],
+            "backend": [
+              "WorkflowCheckpointManager.detect_interrupted_workflows() -> List[WorkflowId]",
+              "WorkflowCheckpointManager.recover_workflow(workflow_id: str) -> RecoveryResult",
+              "WorkflowDeserializer.deserialize_workflow_state(snapshot_data: dict) -> WorkflowState",
+              "DecompositionTreeReconstructor.rebuild_tree(tree_data: dict) -> DecompositionTree",
+              "StepExecutionReconciler.identify_completed_steps(history: List[StepExecution]) -> Set[StepId]",
+              "StepExecutionReconciler.determine_resume_point(workflow_state: WorkflowState) -> StepId",
+              "AutonomousLoopReconstructor.restore_loop_state(loop_data: dict) -> AutonomousLoop",
+              "DependencyResolver.validate_step_dependencies(step: Step, completed: Set[StepId]) -> bool",
+              "WorkflowExecutionResumer.resume_from_step(workflow: Workflow, resume_step: StepId) -> None",
+              "BeadsArtifactReconciler.synchronize_artifacts(workflow_id: str) -> None",
+              "Recovery verification to ensure workflow state consistency",
+              "Recovery report generator with detailed recovery statistics"
+            ],
+            "middleware": [
+              "Startup hook to trigger interrupted workflow detection",
+              "Recovery decision logic to determine recovery strategy (automatic vs. manual)",
+              "Step idempotency enforcement to prevent duplicate side effects",
+              "Recovery progress tracking and logging",
+              "Recovery failure handling with rollback capabilities"
+            ],
+            "shared": [
+              "RecoveryResult model (success, recovered_workflow, resume_step, recovery_report)",
+              "RecoveryReport model (workflow_id, steps_completed, steps_skipped, steps_remaining, recovery_time)",
+              "InterruptedWorkflowInfo model (workflow_id, interruption_time, last_snapshot_time, recovery_status)",
+              "StepResumePoint model (step_id, dependencies_satisfied, partial_completion_data)",
+              "RecoveryStrategy enum (AUTOMATIC, MANUAL, PROMPT_USER)",
+              "Error types for recovery failures (InconsistentStateError, MissingDependencyError, CorruptSnapshotError)",
+              "Utility functions for workflow state comparison and validation",
+              "Constants for recovery timeouts and retry policies",
+              "Notification templates for user alerts about recovery events"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "WorkflowCheckpointManager.recoverInterruptedWorkflow",
+          "related_concepts": [
+            "Workflow state restoration",
+            "Task graph reconstruction",
+            "Step replay avoidance",
+            "Autonomous loop resumption",
+            "Partial result preservation",
+            "Idempotent step execution",
+            "Dependency resolution"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.5",
+          "description": "Implement JSON checkpoint file storage management including file organization, compression, retention policies, disk space monitoring, and cleanup operations for both RLM-Act and workflow checkpoints",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Checkpoint files are organized in directory structure: `.rlm-act-checkpoints/{pipeline_id}/` and `.workflow-checkpoints/{workflow_id}/`",
+            "Each checkpoint file is named with format: `{type}_checkpoint_{timestamp}_{id}.json`",
+            "JSON files use consistent formatting with 2-space indentation for debugging readability",
+            "Optional gzip compression reduces checkpoint file sizes by at least 60% for large checkpoints",
+            "Retention policy automatically deletes checkpoints older than configured threshold (default: 7 days)",
+            "System monitors disk space and prevents checkpoint creation if available space is below 500MB",
+            "Checkpoint file metadata is indexed in SQLite database for fast queries",
+            "Concurrent file access is handled safely with file locks and atomic operations",
+            "Storage quota enforcement limits total checkpoint storage per pipeline/workflow",
+            "Checkpoint archiving moves old checkpoints to compressed archive files",
+            "File corruption detection using checksums or hashes",
+            "Cleanup operations can be triggered manually or run automatically on schedule"
+          ],
+          "implementation": {
+            "frontend": [
+              "Storage management UI panel showing checkpoint disk usage by pipeline/workflow",
+              "Manual cleanup trigger button with confirmation dialog",
+              "Storage quota configuration interface",
+              "Checkpoint browser to view and delete individual checkpoints"
+            ],
+            "backend": [
+              "CheckpointStorage.organize_checkpoint_directory(checkpoint_type: str) -> None",
+              "CheckpointStorage.generate_filename(checkpoint_type: str, id: str) -> str",
+              "CheckpointStorage.write_json_file(path: Path, data: dict, compress: bool) -> None",
+              "CheckpointStorage.read_json_file(path: Path, decompress: bool) -> dict",
+              "CheckpointStorage.apply_retention_policy(checkpoint_dir: Path, retention_days: int) -> int",
+              "CheckpointStorage.check_disk_space(required_space: int) -> bool",
+              "CheckpointStorage.get_storage_usage(checkpoint_type: str) -> StorageStats",
+              "CheckpointIndexer.index_checkpoint(metadata: CheckpointMetadata) -> None",
+              "CheckpointIndexer.query_checkpoints(filter: CheckpointFilter) -> List[CheckpointMetadata]",
+              "CheckpointArchiver.archive_old_checkpoints(cutoff_date: datetime) -> ArchiveResult",
+              "CheckpointCompressor.compress_checkpoint(path: Path) -> Path",
+              "CheckpointValidator.verify_checksum(path: Path) -> bool",
+              "CheckpointCleaner.cleanup_old_checkpoints(retention_policy: RetentionPolicy) -> CleanupResult",
+              "StorageQuotaEnforcer.enforce_quota(pipeline_id: str, quota: int) -> None"
+            ],
+            "middleware": [
+              "Scheduled task to run retention policy enforcement daily",
+              "Disk space monitoring service with alerts for low space conditions",
+              "Storage quota enforcement before checkpoint creation",
+              "File system event monitoring for checkpoint directory changes",
+              "Checkpoint indexing triggers after file writes"
+            ],
+            "shared": [
+              "StorageStats model (total_size, file_count, oldest_checkpoint, newest_checkpoint)",
+              "RetentionPolicy model (retention_days, max_checkpoint_count, archive_enabled)",
+              "CheckpointFilter model (pipeline_id, workflow_id, start_date, end_date, status)",
+              "ArchiveResult model (archived_count, archive_path, total_size_saved)",
+              "CleanupResult model (deleted_count, space_freed, errors)",
+              "StorageConfig model (base_path, compression_enabled, quota_per_pipeline, retention_days)",
+              "CheckpointFileMetadata model (path, size, checksum, creation_time, access_time)",
+              "Constants for file naming conventions, compression levels, and default quotas",
+              "Utility functions for file size calculations and date comparisons",
+              "JSON serialization utilities with custom encoders for efficient storage"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CheckpointStorage.manageJSONCheckpointFiles",
+          "related_concepts": [
+            "File system organization",
+            "JSON serialization optimization",
+            "Compression strategies",
+            "Retention policy enforcement",
+            "Disk space management",
+            "Checkpoint archiving",
+            "Storage quotas"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The system must implement a multi-layer memory architecture for context management",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Implement Working Memory layer for short-term context storage of active task state, current variables, and immediate execution context with fast read/write access and automatic expiration",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Working memory can store and retrieve current task context within 10ms",
+            "Memory automatically expires entries after configurable TTL (default 5 minutes of inactivity)",
+            "Implements LRU eviction when capacity limit is reached",
+            "Supports atomic updates to prevent race conditions during concurrent access",
+            "Provides clear() method to reset working memory between tasks",
+            "Maintains size limits (default 10MB) to prevent memory bloat",
+            "Exposes metrics for hit rate, miss rate, and eviction count",
+            "Integrates with context_window_array/store.py for persistence",
+            "Supports serialization/deserialization for checkpoint recovery",
+            "Handles nested context structures (task > subtask > operation)"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend memory system"
+            ],
+            "backend": [
+              "WorkingMemory class in context_window_array/working_context.py",
+              "In-memory cache using OrderedDict or lru_cache for O(1) access",
+              "TTL manager with background thread for expiration cleanup",
+              "Capacity manager with configurable size limits",
+              "get(key) method with optional default value",
+              "set(key, value, ttl) method with optional TTL override",
+              "update(key, transform_fn) method for atomic updates",
+              "clear() method to reset state",
+              "snapshot() method for checkpoint creation",
+              "restore(snapshot) method for checkpoint recovery",
+              "metrics() method returning usage statistics"
+            ],
+            "middleware": [
+              "Thread-safe access controls using threading.Lock or asyncio.Lock",
+              "Validation of key types (string keys only)",
+              "Validation of value serializability",
+              "Size calculation for capacity management"
+            ],
+            "shared": [
+              "WorkingMemoryConfig data model (ttl, capacity, eviction_policy)",
+              "WorkingMemoryEntry data model (key, value, timestamp, access_count)",
+              "WorkingMemoryMetrics data model (hits, misses, evictions, size)",
+              "Serialization utilities for checkpoint support",
+              "Clock interface for testable time-based expiration"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MemoryArchitecture.WorkingMemory",
+          "related_concepts": [
+            "short-term memory",
+            "active context",
+            "session state",
+            "LRU caching",
+            "TTL expiration",
+            "context_window_array/working_context.py"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Implement Episodic Memory layer for storing sequential execution history, past task outcomes, error events, and temporal context with timeline-based retrieval and pattern recognition",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Stores complete execution episodes with timestamp, phase, action, result, and metadata",
+            "Supports temporal queries (e.g., 'last 10 episodes', 'episodes in last hour', 'episodes between timestamps')",
+            "Implements efficient append-only storage with indexing on timestamp and phase",
+            "Provides pattern detection for recurring errors or successful sequences",
+            "Maintains episode relationships (parent task > child subtask > operations)",
+            "Supports querying by phase (Research, Learn, Model, Act, Verify, Deploy)",
+            "Integrates with checkpoint system for historical state recovery",
+            "Implements automatic archival of old episodes (configurable retention period)",
+            "Provides similarity search for 'similar past situations'",
+            "Supports exporting episode timeline for debugging and visualization"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend memory system"
+            ],
+            "backend": [
+              "EpisodicMemory class in context_window_array/implementation_context.py",
+              "SQLite or PostgreSQL storage for structured episode data",
+              "Episode model with id, timestamp, phase, action, result, parent_id, metadata",
+              "append_episode(episode) method for adding new events",
+              "query_by_time(start, end) method for temporal range queries",
+              "query_by_phase(phase) method for phase-specific retrieval",
+              "get_recent(n) method for last N episodes",
+              "find_similar(episode, threshold) method using embedding similarity",
+              "detect_patterns(window_size) method for recurring sequence detection",
+              "archive_old(retention_days) method for cleanup",
+              "export_timeline(start, end, format) method for visualization",
+              "Integration with .rlm-act-checkpoints/ for checkpoint correlation"
+            ],
+            "middleware": [
+              "Transaction management for atomic episode writes",
+              "Index creation for timestamp, phase, and parent_id",
+              "Validation of episode structure and required fields",
+              "Compression for large metadata fields"
+            ],
+            "shared": [
+              "Episode data model (id, timestamp, phase, action, result, parent_id, metadata, embeddings)",
+              "PhaseEnum (Research, Learn, Model, Act, Verify, Deploy)",
+              "EpisodeQuery data model for complex query construction",
+              "TimeRange data model for temporal queries",
+              "PatternMatch data model for detected sequences",
+              "Database schema migration utilities",
+              "Embedding generator for similarity search"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MemoryArchitecture.EpisodicMemory",
+          "related_concepts": [
+            "event sourcing",
+            "execution history",
+            "temporal database",
+            "timeline queries",
+            "pattern recognition",
+            "checkpoint history",
+            ".rlm-act-checkpoints/",
+            ".workflow-checkpoints/"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Implement Semantic Memory layer for storing domain knowledge, learned concepts, code patterns, and contextual understanding with vector-based similarity search and knowledge graph relationships",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Stores semantic concepts with embeddings for similarity-based retrieval",
+            "Supports CRUD operations for concepts (create, read, update, delete)",
+            "Implements vector similarity search with configurable threshold (default 0.7)",
+            "Maintains relationships between concepts (is-a, has-a, related-to, depends-on)",
+            "Integrates with embedding model (e.g., OpenAI embeddings or local model)",
+            "Provides hybrid search combining keyword and semantic matching",
+            "Supports concept categorization (code patterns, domain knowledge, errors, solutions)",
+            "Implements incremental learning from successful executions",
+            "Maintains version history for concept evolution",
+            "Supports querying by category, tag, or relationship type"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend memory system"
+            ],
+            "backend": [
+              "SemanticMemory class in context_window_array/store.py",
+              "Vector database integration (ChromaDB, Pinecone, or FAISS)",
+              "Concept model with id, name, description, category, embeddings, metadata, relationships",
+              "store_concept(concept) method for adding knowledge",
+              "retrieve_concept(id) method for direct access",
+              "search_similar(query, top_k, threshold) method for semantic search",
+              "search_hybrid(query, filters, top_k) method combining keyword and semantic",
+              "add_relationship(source_id, target_id, relationship_type) method",
+              "get_related(concept_id, relationship_type) method for graph traversal",
+              "update_concept(id, updates) method with version tracking",
+              "learn_from_episode(episode) method for knowledge extraction",
+              "Integration with context_window_array/search_index.py for indexing"
+            ],
+            "middleware": [
+              "Embedding generation pipeline with caching",
+              "Validation of concept structure and required fields",
+              "Deduplication logic to prevent redundant concepts",
+              "Access control for concept categories"
+            ],
+            "shared": [
+              "Concept data model (id, name, description, category, embeddings, metadata, version, created_at, updated_at)",
+              "ConceptCategory enum (CodePattern, DomainKnowledge, Error, Solution, Principle)",
+              "Relationship data model (source_id, target_id, type, strength, metadata)",
+              "RelationshipType enum (IsA, HasA, RelatedTo, DependsOn, Contradicts)",
+              "SearchQuery data model for hybrid search",
+              "EmbeddingConfig for model selection and parameters",
+              "Embedding utility functions for text preprocessing and vectorization"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MemoryArchitecture.SemanticMemory",
+          "related_concepts": [
+            "knowledge base",
+            "vector embeddings",
+            "similarity search",
+            "knowledge graph",
+            "semantic search",
+            "learned concepts",
+            "context_window_array/search_index.py"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Implement Procedural Memory layer for storing executable workflows, proven action sequences, best practices, and reusable procedures with execution templates and success metrics",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Stores executable procedures with steps, preconditions, postconditions, and expected outcomes",
+            "Supports procedure versioning with success rate tracking",
+            "Implements procedure retrieval by goal, context, or past success rate",
+            "Maintains procedure execution history with success/failure outcomes",
+            "Supports composition of procedures into higher-level workflows",
+            "Provides templating system for parameterized procedures",
+            "Tracks procedure effectiveness metrics (success rate, avg duration, error frequency)",
+            "Supports procedure recommendation based on current context",
+            "Implements automatic procedure refinement from successful executions",
+            "Integrates with agents/ and commands/ definitions for procedure library"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend memory system"
+            ],
+            "backend": [
+              "ProceduralMemory class in context_window_array/store.py",
+              "Procedure model with id, name, goal, steps, preconditions, postconditions, parameters, metadata",
+              "store_procedure(procedure) method for adding workflows",
+              "retrieve_procedure(id) method for direct access",
+              "find_by_goal(goal_description) method using semantic matching",
+              "recommend_procedures(context, top_k) method for context-based suggestions",
+              "execute_procedure(id, parameters) method with execution tracking",
+              "record_outcome(execution_id, success, duration, errors) method",
+              "get_metrics(procedure_id) method for effectiveness statistics",
+              "refine_procedure(id, feedback) method for improvement",
+              "compose_procedures(procedure_ids, composition_logic) method for workflow building",
+              "Integration with planning_pipeline/steps.py for execution",
+              "Integration with agents/ and commands/ for procedure templates"
+            ],
+            "middleware": [
+              "Validation of procedure structure (steps, preconditions, postconditions)",
+              "Parameter validation and type checking",
+              "Execution sandbox for safe procedure testing",
+              "Rollback mechanism for failed procedure executions"
+            ],
+            "shared": [
+              "Procedure data model (id, name, goal, steps, preconditions, postconditions, parameters, version, created_at)",
+              "ProcedureStep data model (order, action, parameters, expected_outcome, timeout)",
+              "ProcedureExecution data model (id, procedure_id, parameters, start_time, end_time, success, errors)",
+              "ProcedureMetrics data model (success_rate, avg_duration, total_executions, last_success_time)",
+              "ProcedureTemplate for parameterized workflows",
+              "ConditionEvaluator for precondition/postcondition checking",
+              "CompositionLogic enum (Sequential, Parallel, Conditional, Loop)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MemoryArchitecture.ProceduralMemory",
+          "related_concepts": [
+            "workflow templates",
+            "action sequences",
+            "best practices",
+            "execution patterns",
+            "skill library",
+            "planning_pipeline/steps.py",
+            "agents/",
+            "commands/"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.5",
+          "description": "Implement Context Window Array management system that orchestrates all memory layers, manages context size limits, handles context batching, and provides unified access interface with intelligent prioritization and LLM context window optimization",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "Orchestrates all four memory layers (Working, Episodic, Semantic, Procedural)",
+            "Manages LLM context window size limits (e.g., 200k tokens for Claude)",
+            "Implements intelligent context selection based on relevance and priority",
+            "Provides unified query interface across all memory layers",
+            "Supports context batching for large operations",
+            "Implements token counting for context size management",
+            "Provides priority-based context inclusion (current task > recent history > relevant knowledge)",
+            "Supports context compression for fitting within token limits",
+            "Implements context refresh strategy for long-running tasks",
+            "Integrates with BAML client for structured context injection",
+            "Provides context preview for debugging (show what will be sent to LLM)",
+            "Maintains context coherence across memory layers"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend memory system"
+            ],
+            "backend": [
+              "ContextWindowArray class in context_window_array/store.py as main orchestrator",
+              "get_context(task, max_tokens) method for assembling complete context",
+              "query_all_layers(query) method for cross-layer search",
+              "prioritize_context(items, max_tokens) method for intelligent selection",
+              "batch_context(large_context, batch_size) method for chunking",
+              "count_tokens(text) method using tiktoken or similar",
+              "compress_context(context, target_tokens) method for summarization",
+              "refresh_context(task_id) method for updating long-running task context",
+              "preview_context(task) method for debugging and transparency",
+              "Integration with context_window_array/batching.py for batch operations",
+              "Integration with baml_client/ for structured LLM calls",
+              "Working memory integration via context_window_array/working_context.py",
+              "Implementation context integration via context_window_array/implementation_context.py",
+              "Search index integration via context_window_array/search_index.py"
+            ],
+            "middleware": [
+              "Priority calculation based on recency, relevance, and importance",
+              "Token budget allocation across memory layers",
+              "Context validation for LLM compatibility",
+              "Rate limiting for expensive operations (embeddings, compression)"
+            ],
+            "shared": [
+              "ContextWindow data model (working, episodic, semantic, procedural, metadata, total_tokens)",
+              "ContextItem data model (source_layer, content, priority, tokens, timestamp)",
+              "PriorityLevel enum (Critical, High, Medium, Low)",
+              "ContextBatch data model for batched operations",
+              "TokenCounter utility with model-specific tokenization",
+              "ContextCompressor utility for summarization",
+              "MemoryLayerConfig for layer-specific settings (weights, limits, refresh rates)",
+              "ContextQuery data model for unified querying across layers"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "MemoryArchitecture.ContextWindowArray",
+          "related_concepts": [
+            "context management",
+            "LLM context limits",
+            "context batching",
+            "priority queuing",
+            "memory orchestration",
+            "context_window_array/",
+            "baml_src/",
+            "baml_client/"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must provide autonomous loop orchestration with decomposition and execution capabilities",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Autonomous execution loop implementation",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.autonomous",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Requirement and task decomposition logic",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.requirement",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Claude API integration for AI orchestration",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "API.claude",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.4",
+          "description": "Phase-specific execution logic",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.phase-specific",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.5",
+          "description": "Step definitions and execution management",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.step",
+          "related_concepts": [],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must integrate with multiple frameworks including BEADS, agent framework, and specification tracking systems",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Implement BEADS (Build Execution Artifact Definition System) integration to track build artifacts, execution definitions, and deployment states across the autonomous pipeline",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            ".beads/ directory structure is properly initialized with config files",
+            "BEADS artifact definitions are created for each pipeline phase (Research, Learn, Model, Act, Verify, Deploy)",
+            "Build artifacts from go/build/ are tracked and versioned in BEADS",
+            "Integration with beads_controller.py in planning_pipeline/ is functional",
+            "Artifact metadata (timestamp, commit hash, phase, status) is captured",
+            "BEADS state persists across pipeline interruptions and resumes",
+            "Artifact retrieval API returns correct artifacts by phase/version",
+            "BEADS integration tests pass with 100% coverage for core functionality"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - backend/CLI only integration"
+            ],
+            "backend": [
+              "BeadsController class in planning_pipeline/beads_controller.py with init(), register_artifact(), get_artifact(), list_artifacts() methods",
+              "Artifact schema definitions in baml_src/types.baml for BuildArtifact, ExecutionDefinition, DeploymentState",
+              "BEADS storage service in silmari_rlm_act/services/beads_storage.py with file-based persistence",
+              "Phase-specific artifact registration hooks in silmari_rlm_act/phases/ for each phase",
+              "Artifact versioning logic using git commit hashes and timestamps",
+              "Cleanup service to prune old artifacts based on retention policy"
+            ],
+            "middleware": [
+              "Artifact validation middleware to ensure schema compliance before storage",
+              "Phase transition middleware to automatically register artifacts on phase completion",
+              "Error handling for corrupted or missing artifact files"
+            ],
+            "shared": [
+              "BuildArtifact data model with fields: artifact_id, phase, timestamp, commit_hash, file_path, metadata",
+              "ExecutionDefinition data model with fields: definition_id, phase, parameters, dependencies",
+              "DeploymentState data model with fields: state_id, environment, status, artifacts[]",
+              "BeadsConfig utility class to read/write .beads/config.json",
+              "Path resolution utilities for .beads/ directory structure"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BeadsIntegration.initialize",
+          "related_concepts": [
+            "Build artifact tracking",
+            "Execution definition schemas",
+            "Checkpoint integration",
+            "Pipeline phase artifacts",
+            "Deployment state management",
+            "Artifact versioning"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Implement agent framework state management system using memory.db to track agent roles, execution history, and persistent memory across autonomous loop iterations",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            ".agent/memory.db SQLite database is created with proper schema (agents, executions, memory, interactions tables)",
+            "Agent role definitions from agents/ directory are loaded and stored in database",
+            "Agent execution history is recorded with timestamp, role, task, result, and status",
+            "Memory persistence allows agents to recall previous executions and decisions",
+            "Database queries support filtering by agent role, time range, and execution status",
+            "State recovery mechanism restores agent context after interruptions",
+            "Concurrent access to memory.db is handled with proper locking mechanisms",
+            "Database migrations are versioned and can be applied incrementally",
+            "Memory cleanup service removes stale entries older than configured retention period"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - backend/CLI only integration"
+            ],
+            "backend": [
+              "AgentStateManager class in silmari_rlm_act/agents/state_manager.py with initialize_db(), register_agent(), log_execution(), query_memory() methods",
+              "SQLite schema definition in .agent/schema.sql with tables: agents(id, role, definition_path, created_at), executions(id, agent_id, task, result, status, timestamp), memory(id, agent_id, key, value, context, timestamp), interactions(id, from_agent_id, to_agent_id, message, timestamp)",
+              "AgentMemoryService in silmari_rlm_act/services/agent_memory.py for CRUD operations on memory entries",
+              "Agent loader service to parse agents/*.md files and extract role definitions, capabilities, and constraints",
+              "Execution logger middleware integrated into planning_pipeline/autonomous_loop.py to auto-log agent actions",
+              "State recovery service to rebuild agent context from memory.db on pipeline restart",
+              "Database migration manager using Alembic or custom versioning"
+            ],
+            "middleware": [
+              "Database connection pooling to handle concurrent agent operations",
+              "Transaction management to ensure atomic writes for multi-step agent operations",
+              "Input sanitization for agent memory entries to prevent SQL injection",
+              "Retry logic for database lock timeouts during high concurrency"
+            ],
+            "shared": [
+              "Agent data model with fields: agent_id, role, definition_path, capabilities[], constraints[], created_at",
+              "Execution data model with fields: execution_id, agent_id, task, input_context, result, status, duration_ms, timestamp",
+              "Memory data model with fields: memory_id, agent_id, key, value, context, ttl, timestamp",
+              "Interaction data model with fields: interaction_id, from_agent, to_agent, message, interaction_type, timestamp",
+              "DatabaseConfig utility for connection string management and pool configuration",
+              "QueryBuilder utility for complex memory queries with filtering and pagination"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "AgentFramework.initializeState",
+          "related_concepts": [
+            "Agent role definitions",
+            "Memory persistence",
+            "SQLite database schema",
+            "Agent execution history",
+            "Multi-agent coordination",
+            "State recovery"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Implement specification and story history tracking system in .specstory/ to maintain versioned requirements, user stories, acceptance criteria, and implementation decisions throughout the project lifecycle",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            ".specstory/ directory structure contains specs/, stories/, decisions/, and history/ subdirectories",
+            "Specification files are stored in markdown format with YAML frontmatter for metadata",
+            "Each spec has unique ID, version, status (draft/approved/implemented/deprecated), and timestamps",
+            "Story tracking links stories to parent specs with traceability references",
+            "Decision log captures architectural decisions, alternatives considered, and rationale",
+            "History tracking shows evolution of specs with diff capability",
+            "Version comparison tool shows changes between spec versions",
+            "Search functionality finds specs/stories by keyword, tag, or status",
+            "Integration with git to track spec changes alongside code changes"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - backend/CLI only integration"
+            ],
+            "backend": [
+              "SpecStoryManager class in silmari_rlm_act/spec/manager.py with create_spec(), update_spec(), create_story(), link_story_to_spec(), log_decision() methods",
+              "File-based storage service in silmari_rlm_act/services/spec_storage.py to read/write markdown files with YAML frontmatter",
+              "Spec versioning service to create new versions on updates and maintain version history",
+              "Traceability service to build and query relationships between specs, stories, and implementation files",
+              "Decision logger in silmari_rlm_act/spec/decision_logger.py to capture architectural decisions with timestamp, context, alternatives, and rationale",
+              "Search indexer for specs and stories with keyword, tag, and full-text search capabilities",
+              "Diff generator to compare spec versions and show changes",
+              "Git integration service to commit spec changes with descriptive messages"
+            ],
+            "middleware": [
+              "YAML frontmatter parser to extract and validate metadata from markdown files",
+              "Schema validation for spec metadata (required fields: id, version, status, title, created_at)",
+              "File locking mechanism to prevent concurrent edits to same spec",
+              "Markdown sanitization to ensure safe content storage"
+            ],
+            "shared": [
+              "Specification data model with fields: spec_id, version, title, description, status, parent_requirement, acceptance_criteria[], tags[], created_at, updated_at, author",
+              "Story data model with fields: story_id, spec_id, title, description, acceptance_criteria[], status, priority, created_at",
+              "Decision data model with fields: decision_id, context, problem, alternatives[], chosen_solution, rationale, consequences[], timestamp",
+              "SpecVersion data model with fields: version_id, spec_id, version_number, changes[], timestamp",
+              "TraceabilityLink data model with fields: link_id, from_type, from_id, to_type, to_id, relationship_type",
+              "SpecConfig utility to read .specstory/config.yaml for directory paths and versioning strategy",
+              "MarkdownParser utility to parse frontmatter and content from spec files",
+              "DiffUtil to compute and format differences between spec versions"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "SpecTracking.manageHistory",
+          "related_concepts": [
+            "Requirement versioning",
+            "User story tracking",
+            "Acceptance criteria management",
+            "Decision logging",
+            "Traceability matrix",
+            "Change history"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Configure IDE integration for Claude and Cursor editors with project-specific settings, commands, agents, and workflow optimizations to enhance developer experience",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            ".claude/ directory contains commands.json, agents.json, and settings.json configuration files",
+            ".cursor/ directory contains workspace settings and custom keybindings",
+            "Custom commands from commands/ directory (status, blockers, next, debug, verify, revert, spec) are registered in IDE configs",
+            "Agent definitions from agents/ directory (code-reviewer, debugger, feature-verifier, test-runner) are available in IDE",
+            "IDE settings include project-specific Python paths, linting rules, and formatter configurations",
+            "Workspace templates for common tasks (new feature, bug fix, refactor) are configured",
+            "IDE-specific ignore patterns exclude build artifacts and caches from indexing",
+            "Configuration validation ensures all referenced files and commands exist",
+            "Documentation in docs/ explains how to install and use IDE configurations"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - IDE configuration files only"
+            ],
+            "backend": [
+              "ConfigGenerator service in silmari_rlm_act/ide/config_generator.py to generate .claude/commands.json and .cursor/settings.json from templates",
+              "Command loader to parse commands/*.md files and extract command definitions (name, description, execution logic)",
+              "Agent loader to parse agents/*.md files and extract agent configurations (role, capabilities, prompts)",
+              "Settings synchronizer to update IDE configs when project settings change",
+              "Validation service to verify IDE configs reference valid files and commands",
+              "Documentation generator to create IDE setup guides from config templates"
+            ],
+            "middleware": [
+              "JSON schema validation for .claude/commands.json and .claude/agents.json",
+              "Path resolution to convert relative paths in configs to absolute paths",
+              "Environment variable expansion in IDE settings for flexibility across machines"
+            ],
+            "shared": [
+              "IDECommand data model with fields: command_id, name, description, execution_type, script_path, arguments[], keybinding",
+              "IDEAgent data model with fields: agent_id, role, description, prompt_template, capabilities[], constraints[]",
+              "IDESettings data model with fields: python_path, linter_rules, formatter_config, ignore_patterns[], extensions[]",
+              "WorkspaceTemplate data model with fields: template_id, name, description, files[], commands[], initial_state",
+              "ConfigTemplate utility to load and render IDE config templates with project-specific values",
+              "PathResolver utility to handle path conversion and validation for IDE configs",
+              "ConfigValidator to check IDE configs against schemas and verify file references"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "IDEConfig.setupEditorIntegration",
+          "related_concepts": [
+            "Editor configuration",
+            "Custom commands",
+            "Agent definitions",
+            "Workflow automation",
+            "Code completion settings",
+            "Project templates"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 14760,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 33,
+      "total_nodes": 40,
+      "extraction_time_ms": 17470,
+      "expansion_time_ms": 550517
+    },
+    "source_research": "thoughts/searchable/research/2026-01-14-main-directories.md",
+    "decomposed_at": "2026-01-14T16:36:28.058043"
+  }
+}

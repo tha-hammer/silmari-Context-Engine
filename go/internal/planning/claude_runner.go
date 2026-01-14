@@ -2,15 +2,185 @@ package planning
 
 import (
 	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 )
+
+// OAuth configuration for Claude CLI
+const (
+	// Official Claude Code CLI OAuth client ID
+	claudeOAuthClientID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+	// OAuth token refresh endpoint
+	claudeOAuthEndpoint = "https://console.anthropic.com/api/oauth/token"
+)
+
+// ClaudeCredentials represents the OAuth credentials stored by Claude CLI
+type ClaudeCredentials struct {
+	ClaudeAiOauth *ClaudeOAuthTokens `json:"claudeAiOauth,omitempty"`
+}
+
+// ClaudeOAuthTokens represents the OAuth token structure
+type ClaudeOAuthTokens struct {
+	AccessToken  string   `json:"accessToken"`
+	RefreshToken string   `json:"refreshToken"`
+	ExpiresAt    int64    `json:"expiresAt"`
+	Scopes       []string `json:"scopes"`
+}
+
+// OAuthRefreshResponse represents the response from the OAuth refresh endpoint
+type OAuthRefreshResponse struct {
+	TokenType    string `json:"token_type"`
+	AccessToken  string `json:"access_token"`
+	ExpiresIn    int    `json:"expires_in"`
+	RefreshToken string `json:"refresh_token"`
+	Scope        string `json:"scope"`
+}
+
+// getCredentialsPath returns the path to the Claude credentials file
+func getCredentialsPath() string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return ""
+	}
+	return filepath.Join(home, ".claude", ".credentials.json")
+}
+
+// readCredentials reads the Claude OAuth credentials from disk
+func readCredentials() (*ClaudeCredentials, error) {
+	path := getCredentialsPath()
+	if path == "" {
+		return nil, fmt.Errorf("could not determine credentials path")
+	}
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read credentials file: %w", err)
+	}
+
+	var creds ClaudeCredentials
+	if err := json.Unmarshal(data, &creds); err != nil {
+		return nil, fmt.Errorf("failed to parse credentials: %w", err)
+	}
+
+	return &creds, nil
+}
+
+// saveCredentials writes updated OAuth credentials to disk
+func saveCredentials(creds *ClaudeCredentials) error {
+	path := getCredentialsPath()
+	if path == "" {
+		return fmt.Errorf("could not determine credentials path")
+	}
+
+	// Create backup before writing
+	backupPath := path + ".bak"
+	if data, err := os.ReadFile(path); err == nil {
+		_ = os.WriteFile(backupPath, data, 0600)
+	}
+
+	data, err := json.MarshalIndent(creds, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal credentials: %w", err)
+	}
+
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		return fmt.Errorf("failed to write credentials: %w", err)
+	}
+
+	return nil
+}
+
+// RefreshOAuthToken refreshes the OAuth access token using the refresh token
+func RefreshOAuthToken() error {
+	creds, err := readCredentials()
+	if err != nil {
+		return fmt.Errorf("failed to read credentials: %w", err)
+	}
+
+	if creds.ClaudeAiOauth == nil || creds.ClaudeAiOauth.RefreshToken == "" {
+		return fmt.Errorf("no refresh token available")
+	}
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] Refreshing OAuth token...\n")
+
+	// Build refresh request
+	reqBody := map[string]string{
+		"grant_type":    "refresh_token",
+		"refresh_token": creds.ClaudeAiOauth.RefreshToken,
+		"client_id":     claudeOAuthClientID,
+	}
+
+	reqData, err := json.Marshal(reqBody)
+	if err != nil {
+		return fmt.Errorf("failed to marshal refresh request: %w", err)
+	}
+
+	// Make HTTP request
+	req, err := http.NewRequest("POST", claudeOAuthEndpoint, bytes.NewReader(reqData))
+	if err != nil {
+		return fmt.Errorf("failed to create refresh request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send refresh request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read refresh response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("OAuth refresh failed with status %d: %s", resp.StatusCode, string(body))
+	}
+
+	// Parse response
+	var oauthResp OAuthRefreshResponse
+	if err := json.Unmarshal(body, &oauthResp); err != nil {
+		return fmt.Errorf("failed to parse refresh response: %w", err)
+	}
+
+	// Update credentials
+	creds.ClaudeAiOauth.AccessToken = oauthResp.AccessToken
+	creds.ClaudeAiOauth.RefreshToken = oauthResp.RefreshToken
+	creds.ClaudeAiOauth.ExpiresAt = time.Now().UnixMilli() + int64(oauthResp.ExpiresIn*1000)
+
+	// Parse scopes
+	if oauthResp.Scope != "" {
+		creds.ClaudeAiOauth.Scopes = strings.Split(oauthResp.Scope, " ")
+	}
+
+	// Save updated credentials
+	if err := saveCredentials(creds); err != nil {
+		return fmt.Errorf("failed to save refreshed credentials: %w", err)
+	}
+
+	fmt.Fprintf(os.Stderr, "[DEBUG] OAuth token refreshed successfully, expires at %s\n",
+		time.UnixMilli(creds.ClaudeAiOauth.ExpiresAt).Format(time.RFC3339))
+
+	return nil
+}
+
+// isOAuthExpiredError checks if the error indicates an expired OAuth token
+func isOAuthExpiredError(output string) bool {
+	return strings.Contains(output, "authentication_error") &&
+		(strings.Contains(output, "OAuth token has expired") ||
+			strings.Contains(output, "401"))
+}
 
 // ClaudeResult represents the result of a Claude SDK/CLI invocation.
 type ClaudeResult struct {
@@ -28,9 +198,29 @@ func shellQuote(s string) string {
 // RunClaudeSync runs Claude synchronously via the CLI using stream-json format with PTY.
 // This matches the Python implementation's approach for real-time streaming.
 // The cwd parameter sets the working directory for Claude execution.
+//
+// Authentication: Uses OAuth tokens from ~/.claude/.credentials.json.
+// If tokens expire, the function will automatically refresh them and retry.
 func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *ClaudeResult {
+	return runClaudeSyncWithRetry(prompt, timeoutSecs, stream, cwd, true)
+}
+
+// runClaudeSyncWithRetry is the internal implementation with retry control
+func runClaudeSyncWithRetry(prompt string, timeoutSecs int, stream bool, cwd string, allowRetry bool) *ClaudeResult {
 	result := &ClaudeResult{Success: true}
 	startTime := time.Now()
+
+	// Proactively check if OAuth token is about to expire (within 5 minutes)
+	if creds, err := readCredentials(); err == nil && creds.ClaudeAiOauth != nil {
+		expiresAt := time.UnixMilli(creds.ClaudeAiOauth.ExpiresAt)
+		if time.Until(expiresAt) < 5*time.Minute {
+			fmt.Fprintf(os.Stderr, "[DEBUG] OAuth token expires soon (%s), proactively refreshing...\n",
+				time.Until(expiresAt).Round(time.Second))
+			if err := RefreshOAuthToken(); err != nil {
+				fmt.Fprintf(os.Stderr, "[DEBUG] Proactive OAuth refresh failed: %v\n", err)
+			}
+		}
+	}
 
 	// Diagnostic logging
 	fmt.Fprintf(os.Stderr, "[DEBUG] RunClaudeSync called: stream=%v, timeout=%ds, cwd=%s, prompt_size=%d bytes\n",
@@ -191,11 +381,8 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *Cla
 		fmt.Fprintf(os.Stderr, "[DEBUG] stderr goroutine finished\n")
 	}()
 
-	fmt.Fprintf(os.Stderr, "[DEBUG] Waiting for Claude process to complete...\n")
 	err = cmd.Wait()
-	fmt.Fprintf(os.Stderr, "[DEBUG] Claude process exited, waiting for goroutines...\n")
 	wg.Wait() // Wait for goroutines to finish processing all buffered data
-	fmt.Fprintf(os.Stderr, "[DEBUG] All goroutines finished, syncing stdout...\n")
 	os.Stdout.Sync() // Flush stdout buffer
 
 	// Build output (matching Python lines 486-487)
@@ -206,7 +393,23 @@ func RunClaudeSync(prompt string, timeoutSecs int, stream bool, cwd string) *Cla
 	}
 
 	elapsed := time.Since(startTime).Seconds()
-	fmt.Fprintf(os.Stderr, "[DEBUG] Output captured (%d bytes, %.2fs elapsed)\n", len(result.Output), elapsed)
+
+	// Log completion to stderr AFTER stdout is synced
+	fmt.Fprintf(os.Stderr, "[DEBUG] Claude process completed: %d bytes in %.2fs\n", len(result.Output), elapsed)
+
+	// Check for OAuth expiration in output (CLI may return non-zero exit but output the error)
+	combinedOutput := result.Output + stderrBuilder.String()
+	if isOAuthExpiredError(combinedOutput) && allowRetry {
+		fmt.Fprintf(os.Stderr, "[DEBUG] OAuth token expired, refreshing and retrying...\n")
+		if refreshErr := RefreshOAuthToken(); refreshErr != nil {
+			result.Success = false
+			result.Error = fmt.Sprintf("OAuth token expired and refresh failed: %v", refreshErr)
+			return result
+		}
+		// Retry once after refresh
+		fmt.Fprintf(os.Stderr, "[DEBUG] OAuth token refreshed, retrying Claude invocation...\n")
+		return runClaudeSyncWithRetry(prompt, timeoutSecs, stream, cwd, false)
+	}
 
 	// Handle errors (matching Python lines 488-492)
 	if err != nil {

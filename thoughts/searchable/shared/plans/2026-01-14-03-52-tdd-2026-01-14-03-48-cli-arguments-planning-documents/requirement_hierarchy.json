@@ -1,0 +1,1504 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The CLI must support a --research-path option that accepts a path to an existing research document and skips the research phase when provided",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Add --research-path CLI option using click.Path with file existence validation",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Option is defined with type click.Path(exists=True, file_okay=True, dir_okay=False)",
+            "Option has both long form --research-path and is accessible via parameter name research_path",
+            "Help text clearly indicates the option accepts a path to an existing research document",
+            "Help text states that providing this option skips the research phase",
+            "Option default is None to indicate optional usage",
+            "Invalid file paths produce clear error messages from click's built-in validation",
+            "Option appears in silmari-rlm-act run --help output"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add @click.option decorator before run function with parameters: '--research-path', type=click.Path(exists=True, file_okay=True, dir_okay=False), default=None, help='Path to existing research document (skips research phase)'",
+              "Add research_path: Optional[str] parameter to run() function signature after question parameter",
+              "Ensure parameter ordering follows existing pattern: question, research_path, project, plan_name, autonomous, batch, resume"
+            ],
+            "middleware": [],
+            "shared": [
+              "Import Optional from typing module if not already imported"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.run.research_path_option",
+          "related_concepts": [
+            "Click framework",
+            "Path validation",
+            "CLI argument parsing",
+            "File existence check"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Pass research_path to pipeline.run() kwargs when the --research-path option is provided",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "When research_path is provided (not None), it is passed to pipeline.run() as a keyword argument",
+            "The research_path value is passed as-is without modification to preserve the original path",
+            "Existing pipeline.run() call in non-resume mode includes research_path=research_path in kwargs",
+            "The research_path kwarg is propagated to phase_kwargs in pipeline.py lines 360-374",
+            "DecompositionPhase receives research_path via kwargs.get('research_path') at pipeline.py line 167",
+            "Path is converted to Path object in pipeline._execute_phase() if needed"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Modify pipeline.run() call at cli.py line 139 to include research_path=research_path keyword argument",
+              "Ensure pipeline.run() method at pipeline.py line 340 accepts **kwargs and propagates to phase_kwargs",
+              "Verify pipeline.py line 371-373 loop propagates research_path to all phase kwargs"
+            ],
+            "middleware": [],
+            "shared": []
+          },
+          "testable_properties": [],
+          "function_id": "cli.run.pass_research_path_to_pipeline",
+          "related_concepts": [
+            "Kwargs passing",
+            "Pipeline execution",
+            "Phase input propagation",
+            "RLMActPipeline.run()"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Skip ResearchPhase execution when --research-path is provided with valid document",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "When research_path kwarg is provided, ResearchPhase.execute_with_checkpoint() is NOT called",
+            "A synthetic PhaseResult is created for RESEARCH phase with status=COMPLETE when skipped",
+            "The synthetic PhaseResult includes the research_path in artifacts list",
+            "The synthetic PhaseResult includes metadata indicating phase was skipped: {'skipped': True, 'reason': 'research_path provided'}",
+            "Pipeline state is updated to mark RESEARCH phase as complete via state.set_phase_result()",
+            "DecompositionPhase receives the research_path and proceeds normally",
+            "Checkpoint is created for skipped research phase with phase name 'research-skipped'",
+            "Console output indicates research phase is being skipped with provided document path"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add conditional check in pipeline._execute_phase() for PhaseType.RESEARCH at line 152",
+              "If kwargs.get('research_path') is truthy, create PhaseResult with status=COMPLETE, artifacts=[research_path]",
+              "Include started_at and completed_at timestamps in synthetic PhaseResult",
+              "Return early from RESEARCH case without calling _research_phase.execute_with_checkpoint()",
+              "Add echo message in cli.py before pipeline.run() when research_path is provided: 'Skipping research phase, using existing document: {research_path}'"
+            ],
+            "middleware": [],
+            "shared": [
+              "PhaseResult model already supports all required fields",
+              "PhaseStatus.COMPLETE is available from silmari_rlm_act.models"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.run.skip_research_phase",
+          "related_concepts": [
+            "Phase skipping",
+            "Pipeline flow control",
+            "Conditional execution",
+            "PhaseType.RESEARCH"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.4",
+          "description": "Validate that the research document file exists before processing pipeline",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "click.Path(exists=True) automatically validates file existence at CLI parsing time",
+            "Invalid paths produce error message: 'Error: Invalid value for --research-path: Path X does not exist'",
+            "Empty string paths are rejected with appropriate error",
+            "Paths to directories are rejected with error: 'Error: Invalid value for --research-path: Path X is a directory'",
+            "Symbolic links to valid files are accepted",
+            "Both absolute and relative paths are accepted (resolved to absolute internally)",
+            "File permissions are not checked at CLI level (handled by read operations later)",
+            "Path validation occurs before any pipeline initialization"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "click.Path(exists=True, file_okay=True, dir_okay=False) handles all validation automatically",
+              "No additional validation code needed in run() function body",
+              "Optionally add secondary validation in pipeline to check file is readable markdown"
+            ],
+            "middleware": [
+              "Click framework provides built-in path validation through Path type",
+              "Error messages are automatically formatted by Click"
+            ],
+            "shared": []
+          },
+          "testable_properties": [],
+          "function_id": "cli.run.validate_research_path_exists",
+          "related_concepts": [
+            "File validation",
+            "Click path validation",
+            "Early error handling",
+            "User feedback"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.5",
+          "description": "Update argument validation to make --question optional when --research-path is provided",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Command succeeds with --research-path alone (no --question required)",
+            "Command succeeds with --question alone (original behavior preserved)",
+            "Command succeeds with both --question and --research-path (research_path takes precedence)",
+            "Command fails without --question, --research-path, or --resume with error: '--question is required unless using --resume or --research-path'",
+            "Validation occurs after Click parses all arguments but before pipeline execution",
+            "Error message is clear and actionable for the user",
+            "Help text for --question is updated to reflect new optional conditions",
+            "When both --question and --research-path provided, log warning that question will be ignored"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Modify validation at cli.py lines 87-89 to check: 'if not resume and not question and not research_path'",
+              "Update error message to: '--question is required unless using --resume or --research-path'",
+              "Update --question help text at line 36 to: 'Research question to start the pipeline (required unless --research-path or --resume)'",
+              "Add optional warning when both question and research_path provided: click.echo('Warning: --question ignored when --research-path is provided', err=True)",
+              "Ensure pipeline.run() receives empty string for research_question when research_path is provided"
+            ],
+            "middleware": [],
+            "shared": []
+          },
+          "testable_properties": [],
+          "function_id": "cli.run.optional_question_with_research_path",
+          "related_concepts": [
+            "Mutual exclusivity",
+            "Conditional requirements",
+            "CLI argument validation",
+            "Click validation"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The CLI must support a --plan-path option that accepts a path to an existing TDD plan/hierarchy JSON document and skips decomposition phase when provided",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Add --plan-path option to the CLI using Click framework with proper path validation to accept existing TDD plan/hierarchy JSON files",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "The --plan-path option is added to the run command in silmari_rlm_act/cli.py",
+            "Option uses click.Path(exists=True, file_okay=True, dir_okay=False) type",
+            "Option has default=None to make it optional",
+            "Option includes help text: 'Path to existing TDD plan/hierarchy JSON (skips decomposition phase)'",
+            "CLI raises appropriate error when --plan-path points to non-existent file",
+            "CLI raises appropriate error when --plan-path points to a directory instead of a file",
+            "The plan_path parameter is added to the run() function signature as Optional[str]",
+            "Option follows existing naming convention pattern (kebab-case for CLI, snake_case for Python)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add @click.option decorator for --plan-path in silmari_rlm_act/cli.py around line 45-50",
+              "Update run() function signature to include plan_path: Optional[str] parameter",
+              "Ensure click.Path validator enforces file existence at CLI parsing time"
+            ],
+            "middleware": [
+              "Validate that --plan-path and --question are not both provided (mutually exclusive logic)",
+              "Validate that file has .json extension or contains valid JSON structure"
+            ],
+            "shared": [
+              "Define PATH_VALIDATION_OPTIONS constant for reuse: {'exists': True, 'file_okay': True, 'dir_okay': False}"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.add_plan_path_option",
+          "related_concepts": [
+            "click.Path",
+            "CLI argument validation",
+            "file_okay parameter",
+            "dir_okay parameter",
+            "exists validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Pass the hierarchy_path from CLI --plan-path argument through to pipeline kwargs so downstream phases can consume it",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "When --plan-path is provided, it is passed as kwargs['hierarchy_path'] to pipeline.run()",
+            "The existing pipeline.py integration point at lines 174-201 receives hierarchy_path via kwargs",
+            "The hierarchy_path is available in self.state for phase result tracking",
+            "Pipeline logs which hierarchy_path is being used when provided via CLI",
+            "The kwargs passthrough does not break existing functionality when --plan-path is not provided",
+            "The hierarchy_path value is stored in PipelineState for downstream phase access"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Modify run() function in cli.py to construct kwargs dict including hierarchy_path when plan_path is provided",
+              "Pass kwargs to Pipeline.run() method call",
+              "Ensure pipeline.py line 174-201 continues to work with existing kwargs.get('hierarchy_path') pattern",
+              "Add logging statement to record hierarchy_path source (CLI vs previous phase)"
+            ],
+            "middleware": [
+              "Validate hierarchy_path is a valid Path object before adding to kwargs",
+              "Convert string path to Path object if needed for consistency"
+            ],
+            "shared": [
+              "Document kwargs schema including hierarchy_path in type annotations or docstrings"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline.pass_hierarchy_path_to_kwargs",
+          "related_concepts": [
+            "kwargs passthrough",
+            "pipeline configuration",
+            "phase context",
+            "dependency injection"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Skip DecompositionPhase execution when --plan-path is provided since the hierarchy already exists",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "When hierarchy_path is provided via kwargs, DecompositionPhase.execute() is NOT called",
+            "Pipeline state is updated to mark DECOMPOSITION phase as SKIPPED (not COMPLETE)",
+            "PhaseResult for DECOMPOSITION includes metadata indicating it was skipped due to --plan-path",
+            "The skipped phase does not produce artifacts but passes hierarchy_path to next phase",
+            "Pipeline logs 'Skipping DecompositionPhase: using existing hierarchy from {path}'",
+            "Subsequent phases (TDDPlanningPhase) still receive the hierarchy_path correctly",
+            "Phase ordering and dependencies are maintained despite skip"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add conditional check in pipeline.py around lines 161-172 before DecompositionPhase execution",
+              "Create PhaseResult with status=PhaseStatus.SKIPPED when hierarchy_path provided",
+              "Store skipped phase result in self.state.set_phase_result()",
+              "Ensure phase flow continues to TDD_PLANNING phase after skip"
+            ],
+            "middleware": [
+              "Add PhaseStatus.SKIPPED enum value if not already present",
+              "Create skip reason metadata schema for audit trail"
+            ],
+            "shared": [
+              "Define SKIP_REASON_PLAN_PATH constant = 'hierarchy_path_provided_via_cli'",
+              "Add type for SkippedPhaseMetadata with reason and source_path fields"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline.skip_decomposition_phase",
+          "related_concepts": [
+            "phase skipping",
+            "conditional execution",
+            "PhaseType.DECOMPOSITION",
+            "phase orchestration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Skip ResearchPhase execution when --plan-path is provided since the hierarchy already contains decomposed requirements",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "When hierarchy_path is provided via kwargs, ResearchPhase.execute() is NOT called",
+            "Pipeline state is updated to mark RESEARCH phase as SKIPPED",
+            "PhaseResult for RESEARCH includes metadata indicating it was skipped due to --plan-path",
+            "The --question argument is NOT required when --plan-path is provided",
+            "CLI validation is updated: --question required unless --research-path OR --plan-path OR --resume",
+            "Pipeline logs 'Skipping ResearchPhase: using existing hierarchy from {path}'",
+            "No research artifacts are produced when skipped"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add conditional check in pipeline.py before ResearchPhase execution",
+              "Create PhaseResult with status=PhaseStatus.SKIPPED for RESEARCH phase",
+              "Update cli.py validation logic at lines 88-89 to include plan_path in required_unless check",
+              "Modify run() function to handle case where question is None but plan_path is provided"
+            ],
+            "middleware": [
+              "Update argument validation: raise error if neither --question, --research-path, --plan-path, nor --resume provided",
+              "Add mutual exclusivity check: --plan-path cannot be combined with --question"
+            ],
+            "shared": [
+              "Update CLI help text to explain that --plan-path skips both Research and Decomposition phases"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline.skip_research_phase",
+          "related_concepts": [
+            "phase skipping",
+            "ResearchPhase",
+            "PhaseType.RESEARCH",
+            "upstream phase dependency"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.5",
+          "description": "Support and validate the JSON hierarchy format produced by DecompositionPhase output when loading from --plan-path",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "JSON file from --plan-path is loaded and parsed using json.load()",
+            "Parsed JSON is validated by deserializing to RequirementHierarchy.from_dict()",
+            "Each RequirementNode in hierarchy triggers __post_init__ validation",
+            "Validation checks: type in VALID_REQUIREMENT_TYPES ('parent', 'sub_process', 'implementation')",
+            "Validation checks: category in VALID_CATEGORIES ('functional', 'non_functional', 'security', etc.)",
+            "Validation checks: description is non-empty string",
+            "Clear error message returned if JSON is malformed: 'Plan validation failed: {specific_error}'",
+            "Clear error message returned if RequirementNode validation fails with field name and invalid value",
+            "PhaseResult with status=FAILED and errors list is returned on validation failure",
+            "Successful validation returns PhaseResult with metadata including requirements_count and total_nodes"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement _validate_plan_before_decomposition(plan_path: Path) -> PhaseResult function",
+              "Use RequirementHierarchy.from_dict(data) from planning_pipeline/models.py lines 207-308",
+              "Catch json.JSONDecodeError for malformed JSON files",
+              "Catch ValueError from RequirementNode.__post_init__ for invalid node data",
+              "Catch FileNotFoundError as backup (though click.Path should prevent this)",
+              "Calculate total_nodes by summing 1 + len(r.children) for each requirement"
+            ],
+            "middleware": [
+              "Add optional --validate-full flag to invoke BAML ProcessGate1RequirementValidationPrompt() for semantic validation",
+              "Log validation results including number of nodes validated"
+            ],
+            "shared": [
+              "Define PlanValidationResult dataclass with validated: bool, requirements_count: int, total_nodes: int, errors: list[str]",
+              "Ensure RequirementNode and RequirementHierarchy models are importable from planning_pipeline.models"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Validation.support_json_hierarchy_format",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "RequirementNode",
+            "JSON deserialization",
+            "structural validation",
+            "__post_init__"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must validate plan documents before decomposition using the three-tier validation architecture",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Validate JSON structure and file format ensuring the plan document is well-formed JSON with expected schema (Tier 1 validation)",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "File must exist at the provided path (click.Path(exists=True) enforces this)",
+            "File must have .json extension or be parseable as valid JSON",
+            "JSON.loads() must succeed without JSONDecodeError",
+            "JSON structure must contain required top-level keys: 'requirements' (list) and 'metadata' (dict)",
+            "Must return descriptive error message with line number and character position on parse failure",
+            "Must handle empty files gracefully with specific error message",
+            "Must handle files with invalid UTF-8 encoding with appropriate error",
+            "Must validate file size is within acceptable limits (e.g., < 10MB) before parsing"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "PlanValidator.validateJsonStructure(plan_path: Path) -> ValidationResult - Main validation function",
+              "PlanValidator._check_file_exists(plan_path: Path) -> bool - Verify file accessibility",
+              "PlanValidator._parse_json_safe(plan_path: Path) -> tuple[dict, Optional[str]] - Parse JSON with error capture",
+              "PlanValidator._validate_schema_keys(data: dict) -> list[str] - Check for required top-level keys"
+            ],
+            "middleware": [
+              "CLI validation: click.Path(exists=True, file_okay=True, dir_okay=False) for --plan-path option",
+              "Pre-parse validation to check file is readable before attempting JSON parse"
+            ],
+            "shared": [
+              "ValidationResult dataclass with fields: is_valid, errors, warnings, validated_data",
+              "PlanValidationError exception class for structured error reporting",
+              "REQUIRED_SCHEMA_KEYS constant: frozenset(['requirements', 'metadata'])"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanValidator.validateJsonStructure",
+          "related_concepts": [
+            "JSON parsing",
+            "file I/O",
+            "schema validation",
+            "error handling",
+            "click.Path validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Deserialize JSON to RequirementHierarchy triggering __post_init__ validation on all RequirementNode instances (Tier 2 validation)",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Must successfully deserialize valid JSON into RequirementHierarchy instance",
+            "Must recursively construct all RequirementNode children at any depth level",
+            "Must trigger RequirementNode.__post_init__() for every node (parent, sub_process, implementation)",
+            "Must reconstruct ImplementationComponents for implementation nodes via ImplementationComponents.from_dict()",
+            "Must reconstruct TestableProperty list for nodes with testable_properties via TestableProperty.from_dict()",
+            "Must preserve parent_id relationships throughout hierarchy",
+            "Must raise ValueError with descriptive message if any node fails validation",
+            "Must capture all validation errors (not fail-fast) and report complete list of issues",
+            "Must handle missing optional fields with sensible defaults (function_id=None, related_concepts=[], category='functional')"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "RequirementHierarchy.from_dict(data: dict) -> RequirementHierarchy - Existing method in planning_pipeline/models.py:299-308",
+              "RequirementNode.from_dict(data: dict) -> RequirementNode - Existing method in planning_pipeline/models.py:176-204",
+              "PlanValidator._validate_hierarchy(data: dict) -> HierarchyValidationResult - Wrapper that catches all ValueErrors",
+              "PlanValidator._collect_validation_errors(data: dict) -> list[ValidationError] - Non-fail-fast validation"
+            ],
+            "middleware": [
+              "Validation middleware to intercept from_dict() calls and collect errors",
+              "Error aggregation middleware to combine multiple validation failures into single report"
+            ],
+            "shared": [
+              "RequirementHierarchy dataclass (existing) in planning_pipeline/models.py:207-308",
+              "RequirementNode dataclass (existing) in planning_pipeline/models.py:108-204",
+              "HierarchyValidationResult dataclass with fields: hierarchy, errors, node_count, depth"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RequirementHierarchy.from_dict",
+          "related_concepts": [
+            "dataclass deserialization",
+            "recursive validation",
+            "RequirementNode",
+            "ImplementationComponents",
+            "TestableProperty",
+            "post-initialization hooks"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Validate requirement type is in VALID_REQUIREMENT_TYPES set (parent, sub_process, implementation)",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Must accept exactly these type values: 'parent', 'sub_process', 'implementation'",
+            "Must reject any type value not in VALID_REQUIREMENT_TYPES frozenset",
+            "Must raise ValueError with message format: \"Invalid type '{type}'. Must be one of: parent, sub_process, implementation\"",
+            "Must be case-sensitive (e.g., 'Parent' is invalid)",
+            "Must reject None, empty string, and whitespace-only strings",
+            "Validation must occur during __post_init__ before object is fully constructed",
+            "Error message must list all valid options for user guidance",
+            "Type validation must precede other validations (fail fast on invalid type)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "RequirementNode.__post_init__() validation block at lines 145-150 in planning_pipeline/models.py",
+              "VALID_REQUIREMENT_TYPES = frozenset(['parent', 'sub_process', 'implementation']) at line 16"
+            ],
+            "middleware": [],
+            "shared": [
+              "VALID_REQUIREMENT_TYPES constant: frozenset(['parent', 'sub_process', 'implementation'])",
+              "RequirementTypeError subclass of ValueError for specific type validation failures"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RequirementNode.__post_init__.validateType",
+          "related_concepts": [
+            "dataclass validation",
+            "type constraints",
+            "three-tier hierarchy",
+            "frozenset membership",
+            "ValueError"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Validate requirement category is in VALID_CATEGORIES set (functional, non_functional, security, performance, usability, integration)",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Must accept exactly these category values: 'functional', 'non_functional', 'security', 'performance', 'usability', 'integration'",
+            "Must reject any category value not in VALID_CATEGORIES frozenset",
+            "Must raise ValueError with message format: \"Invalid category '{category}'. Must be one of: functional, integration, non_functional, performance, security, usability\"",
+            "Must default to 'functional' when category field is not provided in input JSON",
+            "Must be case-sensitive (e.g., 'Functional' is invalid)",
+            "Must sort valid options alphabetically in error message for consistency",
+            "Category validation must occur after type validation in __post_init__",
+            "Must handle None value by using default 'functional' during from_dict() deserialization"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "RequirementNode.__post_init__() validation block at lines 155-158 in planning_pipeline/models.py",
+              "VALID_CATEGORIES = frozenset(['functional', 'non_functional', 'security', 'performance', 'usability', 'integration']) at lines 22-25",
+              "RequirementNode.from_dict() default handling: category=data.get('category', 'functional') at line 203"
+            ],
+            "middleware": [],
+            "shared": [
+              "VALID_CATEGORIES constant: frozenset(['functional', 'non_functional', 'security', 'performance', 'usability', 'integration'])",
+              "CategoryValidationError subclass of ValueError for specific category validation failures"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RequirementNode.__post_init__.validateCategory",
+          "related_concepts": [
+            "requirement classification",
+            "category taxonomy",
+            "frozenset membership",
+            "default values",
+            "dataclass field defaults"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.5",
+          "description": "Validate requirement description is not empty, null, or whitespace-only",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Must reject None value for description field",
+            "Must reject empty string '' for description field",
+            "Must reject whitespace-only strings (e.g., '   ', '\\t\\n') after stripping",
+            "Must raise ValueError with message: 'Requirement description must not be empty'",
+            "Description validation must occur after type validation in __post_init__ sequence",
+            "Must preserve original description value (no auto-stripping of valid descriptions)",
+            "Must handle description containing only unicode whitespace characters",
+            "Validation applies to all requirement types (parent, sub_process, implementation)",
+            "Must not truncate or modify valid descriptions - validation only, not normalization"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "RequirementNode.__post_init__() validation block at lines 152-153 in planning_pipeline/models.py",
+              "Validation logic: if not self.description or not self.description.strip(): raise ValueError(...)"
+            ],
+            "middleware": [],
+            "shared": [
+              "DescriptionValidationError subclass of ValueError for specific description validation failures",
+              "String utility: is_empty_or_whitespace(value: Optional[str]) -> bool"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RequirementNode.__post_init__.validateDescription",
+          "related_concepts": [
+            "string validation",
+            "empty value handling",
+            "whitespace stripping",
+            "required fields",
+            "data integrity"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must support BAML-level validation for semantic checking of requirements against research scope",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Invoke ProcessGate1RequirementValidationPrompt function to perform semantic validation of requirements against the research scope, ensuring requirements align with the original research question and scope boundaries",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Function accepts scope_text (string) and current_requirements (string) as input parameters",
+            "Function calls ProcessGate1RequirementValidationPrompt BAML function with properly formatted inputs",
+            "scope_text contains the research document content or scope summary",
+            "current_requirements contains serialized requirement hierarchy in expected format",
+            "Function handles BAML client initialization and connection management",
+            "Function returns RequirementValidationResponse with validation_results array and metadata",
+            "Function logs validation request details for debugging and audit purposes",
+            "Function handles network timeouts with configurable retry logic",
+            "Function gracefully handles BAML service unavailability with appropriate error messages"
+          ],
+          "implementation": {
+            "frontend": [
+              "Display validation status indicator during BAML validation execution",
+              "Show progress spinner with estimated time for LLM validation",
+              "Render validation results in human-readable format after completion"
+            ],
+            "backend": [
+              "Create BAMLValidationService class in silmari_rlm_act/services/validation.py",
+              "Implement invoke_requirement_validation(scope_text: str, requirements: str) -> RequirementValidationResponse",
+              "Initialize BAML client with proper configuration from environment",
+              "Serialize requirements to string format expected by BAML function",
+              "Parse and return RequirementValidationResponse from BAML response",
+              "Implement async variant for non-blocking validation in pipeline"
+            ],
+            "middleware": [
+              "Add request timeout configuration for BAML calls (default 30 seconds)",
+              "Implement retry middleware with exponential backoff for transient failures",
+              "Add request/response logging middleware for BAML validation calls"
+            ],
+            "shared": [
+              "Define RequirementValidationRequest dataclass with scope_text and requirements fields",
+              "Define BAMLValidationConfig with timeout, retry_count, and service_url settings",
+              "Create constants for BAML function names and parameter limits"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BAMLValidationService.invokeRequirementValidation",
+          "related_concepts": [
+            "BAML functions",
+            "LLM validation",
+            "semantic checking",
+            "research scope alignment",
+            "requirement validation pipeline"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Construct and return a ValidationResult object containing requirement_id, is_valid boolean, validation_issues list, suggestions list, and confidence_score for each validated requirement",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "ValidationResult contains requirement_id (string) that matches the source requirement",
+            "ValidationResult contains is_valid (boolean) indicating pass/fail status",
+            "ValidationResult contains validation_issues (list of strings) with specific problem descriptions",
+            "ValidationResult contains suggestions (list of strings) with actionable improvement recommendations",
+            "ValidationResult contains confidence_score (optional float between 0.0 and 1.0)",
+            "All ValidationResult objects are serializable to JSON for persistence",
+            "ValidationResult supports comparison for testing and assertions",
+            "Empty validation_issues list implies is_valid=True unless explicitly set otherwise",
+            "Confidence score is None when LLM cannot determine confidence level",
+            "ValidationResult includes timestamp of when validation was performed"
+          ],
+          "implementation": {
+            "frontend": [
+              "Create ValidationResultCard component to display individual requirement validation status",
+              "Display validation issues as collapsible error list with severity indicators",
+              "Show suggestions as actionable items with copy-to-clipboard functionality",
+              "Render confidence score as visual gauge or percentage badge",
+              "Color-code results based on is_valid status (green/red)"
+            ],
+            "backend": [
+              "Define ValidationResult dataclass in planning_pipeline/models.py",
+              "Implement from_baml_response(response: dict) class method for deserialization",
+              "Implement to_dict() method for JSON serialization",
+              "Add __post_init__ validation for confidence_score range (0.0-1.0 or None)",
+              "Implement aggregate_results(results: list[ValidationResult]) -> ValidationSummary helper",
+              "Add method to generate human-readable validation report string"
+            ],
+            "middleware": [
+              "Add response transformer to normalize BAML ValidationResult to internal model",
+              "Implement validation result caching to avoid duplicate LLM calls for same requirements"
+            ],
+            "shared": [
+              "Define ValidationResult dataclass with all required fields and type hints",
+              "Define ValidationSummary dataclass with total_count, valid_count, invalid_count, avg_confidence",
+              "Create ValidationIssue enum for categorized issue types (SCOPE_MISMATCH, AMBIGUOUS, INCOMPLETE, etc.)",
+              "Add JSON schema for ValidationResult for external API documentation"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ValidationResultBuilder.buildValidationResult",
+          "related_concepts": [
+            "ValidationResult class",
+            "requirement_id tracking",
+            "validation issues aggregation",
+            "improvement suggestions",
+            "confidence scoring",
+            "dataclass serialization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "Add optional --validate-full flag to CLI that enables comprehensive BAML semantic checking, allowing users to choose between fast structural validation and thorough LLM-based validation",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "CLI accepts --validate-full or -vf flag as optional boolean argument",
+            "Flag defaults to False (structural validation only) when not specified",
+            "When --validate-full is True, BAML ProcessGate1RequirementValidationPrompt is invoked",
+            "When --validate-full is False, only Python model validation (__post_init__) is performed",
+            "Help text clearly explains the tradeoff: '--validate-full: Enable comprehensive LLM-based semantic validation (slower but more thorough)'",
+            "Flag is mutually compatible with --plan-path argument",
+            "Flag has no effect when --plan-path is not provided (validation only applies to imported plans)",
+            "CLI displays warning if --validate-full used without --plan-path",
+            "Validation mode is logged for audit and debugging purposes"
+          ],
+          "implementation": {
+            "frontend": [
+              "Add checkbox toggle for 'Enable full validation' in any GUI wrapper",
+              "Display tooltip explaining validation modes and time implications",
+              "Show different icons for structural vs full validation in status displays"
+            ],
+            "backend": [
+              "Add @click.option decorator for --validate-full/-vf in silmari_rlm_act/cli.py",
+              "Pass validate_full parameter through to pipeline kwargs",
+              "Implement conditional validation logic in _validate_plan_before_decomposition()",
+              "Add validation_mode field to PhaseResult.metadata for tracking",
+              "Update run() function signature to include validate_full: bool parameter"
+            ],
+            "middleware": [
+              "Add validation mode check before BAML service invocation",
+              "Implement early return for structural-only validation path"
+            ],
+            "shared": [
+              "Define ValidationMode enum with STRUCTURAL and FULL values",
+              "Add CLI_DEFAULTS constant including validate_full=False",
+              "Document validation modes in CLI help strings and docstrings"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLIValidationOptions.addValidateFullFlag",
+          "related_concepts": [
+            "Click CLI framework",
+            "optional flags",
+            "validation modes",
+            "user control",
+            "performance vs thoroughness tradeoff"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.4",
+          "description": "Handle validation latency from LLM calls appropriately by implementing async execution, progress feedback, timeout management, and graceful degradation when BAML service is slow or unavailable",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Validation executes asynchronously to prevent CLI blocking during LLM calls",
+            "User receives progress feedback during validation (spinner, progress bar, or status messages)",
+            "Configurable timeout (default 60 seconds) prevents indefinite waiting",
+            "Timeout triggers graceful degradation: structural validation passes, warning issued about skipped semantic validation",
+            "User can cancel validation with Ctrl+C without corrupting state",
+            "Estimated time to completion is displayed based on requirement count",
+            "Validation can be run in background with --batch mode",
+            "Failed LLM validation does not block pipeline execution (warning-only mode available)",
+            "Latency metrics are logged for performance monitoring",
+            "Retry logic attempts validation up to 3 times before degrading"
+          ],
+          "implementation": {
+            "frontend": [
+              "Implement animated progress indicator during BAML validation",
+              "Display estimated remaining time based on requirements count and historical latency",
+              "Show cancelation confirmation dialog when user attempts to interrupt",
+              "Render timeout warning with option to continue without semantic validation"
+            ],
+            "backend": [
+              "Implement async def validate_with_baml() coroutine in validation service",
+              "Add asyncio.wait_for() wrapper with configurable timeout",
+              "Implement progress callback mechanism for status updates",
+              "Create ValidationTimeoutError custom exception class",
+              "Add latency tracking with timing decorators",
+              "Implement retry_with_backoff() utility for transient failures",
+              "Add --validation-timeout CLI option for user-configurable timeout",
+              "Implement graceful_degradation_handler() for timeout scenarios"
+            ],
+            "middleware": [
+              "Add async middleware for BAML client requests",
+              "Implement circuit breaker pattern for repeated BAML failures",
+              "Add request queuing for batch validation scenarios"
+            ],
+            "shared": [
+              "Define ValidationConfig dataclass with timeout_seconds, max_retries, backoff_factor fields",
+              "Define ValidationLatencyMetrics dataclass for performance tracking",
+              "Create constants: DEFAULT_VALIDATION_TIMEOUT=60, MAX_VALIDATION_RETRIES=3",
+              "Add LatencyTracker utility class for measuring and reporting validation times"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ValidationLatencyHandler.manageAsyncValidation",
+          "related_concepts": [
+            "async/await patterns",
+            "LLM latency",
+            "progress indicators",
+            "timeout handling",
+            "graceful degradation",
+            "user experience"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The pipeline must support kwargs passthrough for research_path and hierarchy_path to enable phase skipping",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Pipeline must pass research_path kwarg to DecompositionPhase when ResearchPhase is skipped. When a user provides --research-path CLI argument, the pipeline should bypass the ResearchPhase entirely and pass the provided path directly to the DecompositionPhase via kwargs.",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "When research_path kwarg is provided, ResearchPhase.execute() is NOT invoked",
+            "DecompositionPhase receives research_path from kwargs when no ResearchPhase result exists",
+            "The research_path file must exist and be a valid markdown file (validated by click.Path before pipeline)",
+            "Pipeline state correctly reflects that ResearchPhase was skipped (status=SKIPPED or equivalent)",
+            "DecompositionPhase can read and parse the provided research document successfully",
+            "Pipeline logs indicate research phase was skipped due to --research-path argument",
+            "If research_path is invalid or unreadable, pipeline fails with descriptive error before DecompositionPhase starts"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Modify Pipeline.execute_phase() at lines 161-172 to check kwargs['research_path'] before attempting to get ResearchPhase result",
+              "Add conditional logic: if kwargs.get('research_path') exists, skip ResearchPhase invocation entirely",
+              "Ensure research_path is passed to DecompositionPhase.execute() as positional or keyword argument",
+              "Update Pipeline state to mark ResearchPhase as SKIPPED when research_path kwarg provided",
+              "Add validation to verify research_path file is readable before passing to DecompositionPhase"
+            ],
+            "middleware": [
+              "CLI layer validates file existence via click.Path(exists=True, file_okay=True, dir_okay=False)",
+              "Pipeline should perform secondary validation for file format/readability"
+            ],
+            "shared": [
+              "PhaseStatus enum may need SKIPPED status if not already present",
+              "PhaseResult dataclass to store skip reason in metadata",
+              "Utility function to validate research document format (markdown with expected structure)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline.execute_phase",
+          "related_concepts": [
+            "phase skipping",
+            "kwargs passthrough",
+            "ResearchPhase",
+            "DecompositionPhase",
+            "PhaseType.DECOMPOSITION",
+            "PhaseResult.artifacts"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Pipeline must pass hierarchy_path kwarg to TDDPlanningPhase when DecompositionPhase is skipped. When a user provides --plan-path CLI argument pointing to a valid requirement hierarchy JSON, the pipeline should bypass both ResearchPhase and DecompositionPhase, passing the hierarchy directly to TDDPlanningPhase.",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "When hierarchy_path (plan-path) kwarg is provided, both ResearchPhase and DecompositionPhase are NOT invoked",
+            "TDDPlanningPhase receives hierarchy_path from kwargs when no DecompositionPhase result exists",
+            "The hierarchy_path file must exist and be valid JSON conforming to RequirementHierarchy schema",
+            "Pipeline state correctly reflects that ResearchPhase and DecompositionPhase were skipped",
+            "TDDPlanningPhase can deserialize the provided JSON into RequirementHierarchy successfully",
+            "Pipeline logs indicate which phases were skipped due to --plan-path argument",
+            "If hierarchy_path JSON is malformed or schema-invalid, pipeline fails with descriptive error before TDDPlanningPhase starts",
+            "Metadata from the provided hierarchy JSON is preserved and passed through to TDDPlanningPhase"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Modify Pipeline.execute_phase() at lines 174-201 to check kwargs['hierarchy_path'] before attempting to get DecompositionPhase result",
+              "Add conditional logic: if kwargs.get('hierarchy_path') exists, skip both ResearchPhase and DecompositionPhase invocations",
+              "Ensure hierarchy_path is passed to TDDPlanningPhase.execute() as the hierarchy_path parameter",
+              "Update Pipeline state to mark ResearchPhase and DecompositionPhase as SKIPPED when hierarchy_path kwarg provided",
+              "Invoke RequirementHierarchy.from_dict() to validate JSON structure before passing to TDDPlanningPhase"
+            ],
+            "middleware": [
+              "CLI layer validates file existence via click.Path(exists=True, file_okay=True, dir_okay=False)",
+              "Pipeline performs JSON parsing and RequirementHierarchy deserialization as pre-validation"
+            ],
+            "shared": [
+              "RequirementHierarchy.from_dict() class method for deserialization with validation",
+              "RequirementNode dataclass with __post_init__ validation for type, description, category",
+              "VALID_REQUIREMENT_TYPES and VALID_CATEGORIES constants for validation",
+              "Utility function to load and validate hierarchy JSON files"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline.execute_phase",
+          "related_concepts": [
+            "phase skipping",
+            "kwargs passthrough",
+            "DecompositionPhase",
+            "TDDPlanningPhase",
+            "PhaseType.TDD_PLANNING",
+            "RequirementHierarchy",
+            "hierarchy_path"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Return PhaseResult with status=COMPLETE and metadata for validated plans. When an existing plan document is provided via --plan-path, the pipeline must validate the document structure and content, then return a PhaseResult indicating successful validation with comprehensive metadata about the validated hierarchy.",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "PhaseResult returned has status=PhaseStatus.COMPLETE when validation succeeds",
+            "PhaseResult.metadata contains 'validated': True flag",
+            "PhaseResult.metadata contains 'requirements_count' with count of top-level requirements",
+            "PhaseResult.metadata contains 'total_nodes' with recursive count of all requirement nodes including children",
+            "PhaseResult.metadata contains 'hierarchy_path' pointing to the validated file",
+            "PhaseResult.metadata contains 'validation_timestamp' with ISO format timestamp",
+            "PhaseResult.artifacts list contains the hierarchy_path as first element",
+            "All RequirementNode objects pass __post_init__ validation (type in VALID_REQUIREMENT_TYPES, non-empty description, category in VALID_CATEGORIES)",
+            "JSON structure conforms to RequirementHierarchy schema with 'requirements' array and optional 'metadata' object",
+            "If --validate-full flag provided, BAML ProcessGate1RequirementValidationPrompt() is invoked and results included in metadata"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _validate_plan_before_decomposition(plan_path: Path) -> PhaseResult function in pipeline.py",
+              "Load JSON file using json.load() with proper exception handling",
+              "Invoke RequirementHierarchy.from_dict(data) to trigger recursive validation",
+              "Calculate requirements_count as len(hierarchy.requirements)",
+              "Calculate total_nodes by recursively counting all nodes: sum(1 + len(r.children) for r in hierarchy.requirements)",
+              "Build PhaseResult with phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.COMPLETE",
+              "Populate metadata dict with validated, requirements_count, total_nodes, hierarchy_path, validation_timestamp",
+              "Set artifacts=[str(plan_path)] for downstream phase access",
+              "Optionally invoke BAML validation if comprehensive checking requested"
+            ],
+            "middleware": [],
+            "shared": [
+              "PhaseResult dataclass with phase_type, status, metadata, artifacts, errors fields",
+              "PhaseStatus enum with COMPLETE status",
+              "PhaseType enum with TDD_PLANNING type",
+              "RequirementHierarchy.from_dict() classmethod for deserialization",
+              "datetime.now().isoformat() for validation_timestamp"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline._validate_plan_before_decomposition",
+          "related_concepts": [
+            "PhaseResult",
+            "PhaseStatus.COMPLETE",
+            "RequirementHierarchy validation",
+            "RequirementNode validation",
+            "metadata passthrough",
+            "structural validation",
+            "BAML validation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Return PhaseResult with status=FAILED and errors array for invalid plans. When an existing plan document provided via --plan-path fails validation (malformed JSON, missing required fields, invalid requirement types, empty descriptions, or invalid categories), return a PhaseResult indicating failure with detailed error messages.",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "PhaseResult returned has status=PhaseStatus.FAILED when any validation fails",
+            "PhaseResult.errors array contains at least one descriptive error message",
+            "JSON parsing errors (JSONDecodeError) produce error message: 'Plan validation failed: Invalid JSON - {specific_error}'",
+            "Missing file errors (FileNotFoundError) produce error message: 'Plan validation failed: File not found - {path}'",
+            "RequirementNode type validation errors include the invalid type and valid options: 'Invalid requirement type '{type}'. Must be one of: parent, sub_process, implementation'",
+            "Empty description errors identify the requirement: 'Requirement {id} has empty description'",
+            "Invalid category errors include the invalid category and valid options: 'Invalid category '{category}' for requirement {id}. Must be one of: functional, non_functional, security, performance, usability, integration'",
+            "Multiple validation errors are collected and all reported in errors array (not fail-fast)",
+            "PhaseResult.metadata contains 'validated': False flag",
+            "PhaseResult.metadata contains 'error_count' with total number of validation errors",
+            "Pipeline execution halts gracefully after returning FAILED PhaseResult",
+            "Error messages are actionable and help user fix the plan document"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Wrap validation logic in try-except block catching json.JSONDecodeError, ValueError, FileNotFoundError",
+              "For JSONDecodeError: extract line/column info if available for precise error location",
+              "For ValueError from RequirementNode.__post_init__: capture the specific validation message",
+              "For FileNotFoundError: include the attempted file path in error message",
+              "Collect all validation errors rather than failing on first error (modify RequirementHierarchy.from_dict to collect errors)",
+              "Build PhaseResult with phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.FAILED",
+              "Populate errors list with all collected validation error messages",
+              "Set metadata with validated=False and error_count=len(errors)",
+              "Log validation failures at ERROR level with full details",
+              "Return PhaseResult immediately without proceeding to TDDPlanningPhase"
+            ],
+            "middleware": [],
+            "shared": [
+              "PhaseResult dataclass with errors: list[str] field",
+              "PhaseStatus enum with FAILED status",
+              "Custom ValidationError exception class for structured error handling",
+              "Error message templates as constants for consistency",
+              "Utility function to format validation errors with context (requirement ID, field name, expected values)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Pipeline._validate_plan_before_decomposition",
+          "related_concepts": [
+            "PhaseResult",
+            "PhaseStatus.FAILED",
+            "error handling",
+            "validation errors",
+            "JSON parsing errors",
+            "RequirementNode validation errors",
+            "user-friendly error messages"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The CLI argument validation must follow established Click framework patterns for file path validation and mutual exclusivity",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Implement 'required unless' pattern for --question argument that makes it required unless --research-path or --resume flags are provided",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "--question is required when neither --research-path nor --resume is provided",
+            "CLI exits with error code and descriptive message when --question is missing and no alternative is provided",
+            "Error message clearly states: 'Error: --question is required unless --research-path or --resume is provided'",
+            "--question becomes optional when --research-path is provided",
+            "--question becomes optional when --resume flag is set",
+            "--question can still be provided alongside --research-path or --resume without error",
+            "Validation occurs in callback function before command execution",
+            "Unit tests cover all permutations: question-only, research-path-only, resume-only, question+research-path, none-provided"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create callback function '_validate_question_requirement' that receives ctx, param, and value",
+              "Access other parameter values via ctx.params dictionary",
+              "Check if 'research_path' is None and 'resume' is False when 'question' is None",
+              "Raise click.BadParameter with descriptive error message on validation failure",
+              "Attach callback to --question option via 'callback=_validate_question_requirement'",
+              "Ensure callback runs after other options are parsed using 'is_eager=False'"
+            ],
+            "middleware": [
+              "Validation callback must handle ctx.params potentially missing keys during parsing",
+              "Use ctx.params.get('research_path') and ctx.params.get('resume', False) for safe access"
+            ],
+            "shared": [
+              "Define constant ERROR_QUESTION_REQUIRED = 'Error: --question is required unless --research-path or --resume is provided'",
+              "Add to existing CLI error message constants if present"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.validate_required_unless_pattern",
+          "related_concepts": [
+            "Click framework validation",
+            "mutual exclusivity",
+            "conditional requirements",
+            "CLI argument dependencies"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Implement click.Path validation for --research-path argument ensuring file exists and is a valid file (not directory)",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "--research-path uses click.Path(exists=True, file_okay=True, dir_okay=False) type specification",
+            "CLI exits with error when provided path does not exist",
+            "CLI exits with error when provided path is a directory instead of file",
+            "Error message from Click clearly indicates 'Path does not exist' for missing files",
+            "Error message from Click clearly indicates 'is a directory' for directory paths",
+            "Argument accepts both absolute and relative paths",
+            "Path is resolved to absolute path before passing to pipeline",
+            "Default value is None when argument not provided",
+            "Help text states: 'Path to existing research document (skips research phase)'"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Add @click.option decorator with name '--research-path' (hyphenated for CLI consistency)",
+              "Set type=click.Path(exists=True, file_okay=True, dir_okay=False, readable=True, resolve_path=True)",
+              "Set default=None for optional behavior",
+              "Set help='Path to existing research document (skips research phase)'",
+              "In run() function signature, add parameter 'research_path: Optional[str]'",
+              "Convert to Path object using pathlib.Path(research_path) if not None before passing to pipeline",
+              "Pass research_path to pipeline.execute() via kwargs dict"
+            ],
+            "middleware": [
+              "resolve_path=True ensures path is absolute before validation",
+              "readable=True ensures file can be opened for reading"
+            ],
+            "shared": [
+              "Import Optional from typing if not already imported",
+              "Import Path from pathlib for path handling"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.research_path_option",
+          "related_concepts": [
+            "Click Path type",
+            "file existence validation",
+            "file vs directory validation",
+            "path normalization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Support default values for optional arguments following established patterns in existing CLI options",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "--research-path defaults to None when not provided (not empty string)",
+            "--plan-path defaults to None when not provided (not empty string)",
+            "Existing --project default='.' pattern is preserved",
+            "Existing --plan-name default='feature' pattern is preserved",
+            "None default allows truthiness check in run() function: 'if research_path:'",
+            "Type annotations match default values: Optional[str] for None defaults, str for string defaults",
+            "Help text for each option documents default behavior where applicable",
+            "Default values are documented in CLI --help output"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Set default=None for --research-path option",
+              "Set default=None for --plan-path option",
+              "Ensure type annotation Optional[str] in function signature for nullable string parameters",
+              "Add show_default=True to options with non-None defaults for --help visibility",
+              "Preserve existing default='.' for --project option",
+              "Preserve existing default='feature' for --plan-name option",
+              "Document in help text: 'Path to existing research document (skips research phase, default: None)'"
+            ],
+            "middleware": [
+              "Ensure None values are properly handled in pipeline execution",
+              "Add null checks before Path operations: 'if research_path is not None'"
+            ],
+            "shared": [
+              "Add type hint Optional[str] to shared type definitions if centralized",
+              "Ensure consistent None handling across all optional path arguments"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.optional_argument_defaults",
+          "related_concepts": [
+            "Click option defaults",
+            "optional parameters",
+            "None vs empty string defaults",
+            "type coercion"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.4",
+          "description": "Follow existing flag argument patterns using is_flag=True for boolean options consistent with --autonomous and --resume flags",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [
+            "Any new boolean options use is_flag=True pattern",
+            "Flag options default to False when not provided",
+            "Flag options become True when flag is present on command line",
+            "Flag naming follows existing convention: --flag-name with hyphen separator",
+            "Short form aliases follow existing pattern: -a for --autonomous, -r for --resume",
+            "Function signature uses bool type annotation for flag parameters",
+            "Flags do not require values: 'silmari run -a' not 'silmari run -a=True'",
+            "Help text uses imperative verb form: 'Enable autonomous mode' not 'Autonomous mode flag'"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Use @click.option('--flag-name', '-f', is_flag=True, default=False, help='Enable feature X') pattern",
+              "Add parameter 'flag_name: bool' to run() function signature",
+              "Ensure flag parameters appear after required/path options in decorator order",
+              "If adding --validate-full flag for plan validation: is_flag=True, default=False",
+              "Preserve existing flag patterns: --autonomous/-a, --batch/-b, --resume/-r"
+            ],
+            "middleware": [
+              "Boolean flags do not need additional validation - Click handles True/False automatically",
+              "Ensure flag combinations are valid in callback validation if mutual exclusivity needed"
+            ],
+            "shared": [
+              "Document flag options in CLI usage guide if one exists",
+              "Add flag options to any CLI argument documentation or constants file"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "cli.flag_argument_patterns",
+          "related_concepts": [
+            "Click boolean flags",
+            "is_flag option",
+            "flag_value",
+            "secondary flag options"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must return appropriate PhaseResult objects with validation metadata for plan validation operations",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Include validated=True in metadata for successful plan validation operations, indicating the plan passed all structural and semantic validation checks",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "PhaseResult.metadata must contain 'validated' key set to boolean True when validation succeeds",
+            "The 'validated' key must only be True when all RequirementNode validation passes (type, description, category checks)",
+            "The 'validated' key must be accessible via PhaseResult.metadata['validated'] pattern",
+            "If any validation check fails, 'validated' must be False or absent from metadata",
+            "Metadata must be serializable to JSON via PhaseResult.to_dict() method",
+            "Unit tests must verify validated=True is present for valid hierarchy input",
+            "Unit tests must verify validated is absent or False for invalid hierarchy input"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _build_success_metadata() helper in plan validation module that returns dict with validated=True",
+              "Invoke helper when constructing PhaseResult with status=PhaseStatus.COMPLETE",
+              "Ensure metadata dict is passed to PhaseResult constructor: PhaseResult(phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.COMPLETE, metadata={'validated': True, ...})",
+              "Add validated field to PhaseResult.to_dict() serialization (already inherited from metadata dict)"
+            ],
+            "middleware": [],
+            "shared": [
+              "Ensure PhaseResult dataclass metadata field (dict[str, Any]) supports 'validated' boolean key",
+              "Verify Go PhaseResult struct Metadata map[string]interface{} supports validated boolean"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanValidationService.buildSuccessMetadata",
+          "related_concepts": [
+            "PhaseResult",
+            "metadata",
+            "validation_status",
+            "PhaseStatus.COMPLETE",
+            "RequirementHierarchy"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Include requirements_count for number of top-level requirements in the validated hierarchy metadata",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "PhaseResult.metadata must contain 'requirements_count' key with integer value representing len(RequirementHierarchy.requirements)",
+            "Count must only include top-level requirements (direct children of hierarchy), not nested children",
+            "Count must be 0 for empty hierarchy, accurate positive integer for populated hierarchy",
+            "Count must be calculated after successful validation, before returning PhaseResult",
+            "The requirements_count must match the number of RequirementNode objects at the root level",
+            "Unit test: empty hierarchy returns requirements_count=0",
+            "Unit test: hierarchy with 3 top-level requirements returns requirements_count=3",
+            "Unit test: hierarchy with nested children only counts top-level (parent.children not counted)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "After loading hierarchy via RequirementHierarchy.from_dict(data), calculate requirements_count = len(hierarchy.requirements)",
+              "Add 'requirements_count': requirements_count to metadata dict before PhaseResult construction",
+              "Ensure count is performed on validated hierarchy object, not raw JSON data",
+              "Handle edge case of empty requirements list (count = 0)"
+            ],
+            "middleware": [],
+            "shared": [
+              "Use RequirementHierarchy.requirements list from planning_pipeline/models.py",
+              "Python: len(hierarchy.requirements) for count",
+              "Go: len(hierarchy.Requirements) for count"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanValidationService.countTopLevelRequirements",
+          "related_concepts": [
+            "RequirementHierarchy.requirements",
+            "len()",
+            "metadata",
+            "top-level requirements",
+            "hierarchy structure"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Include total_nodes count for all requirement nodes including children at all nesting levels",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "PhaseResult.metadata must contain 'total_nodes' key with integer value representing all nodes in hierarchy",
+            "Count must include all top-level requirements AND all children at every nesting level (recursive)",
+            "total_nodes >= requirements_count always (equal when no children exist)",
+            "Count algorithm: sum(1 + count_children_recursive(node) for node in hierarchy.requirements)",
+            "Unit test: hierarchy with 1 parent, 2 children, 1 grandchild returns total_nodes=4",
+            "Unit test: hierarchy with no children returns total_nodes equal to requirements_count",
+            "Unit test: deeply nested hierarchy (3+ levels) returns accurate total count"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement _count_nodes_recursive(node: RequirementNode) -> int helper that returns 1 + sum(_count_nodes_recursive(child) for child in node.children)",
+              "Calculate total_nodes = sum(_count_nodes_recursive(req) for req in hierarchy.requirements)",
+              "Add 'total_nodes': total_nodes to metadata dict",
+              "Ensure recursive function handles empty children list (base case returns 1)"
+            ],
+            "middleware": [],
+            "shared": [
+              "Use RequirementNode.children list from planning_pipeline/models.py for recursion",
+              "Python pattern: for child in node.children: total += count_recursive(child)",
+              "Go pattern: for _, child := range node.Children { total += countRecursive(child) }"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanValidationService.countTotalNodes",
+          "related_concepts": [
+            "RequirementHierarchy",
+            "RequirementNode.children",
+            "recursive tree traversal",
+            "node counting",
+            "hierarchy depth"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Handle json.JSONDecodeError, ValueError, and FileNotFoundError with descriptive error messages in PhaseResult",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "json.JSONDecodeError must produce PhaseResult with status=FAILED and error message 'Plan validation failed: Invalid JSON format - {specific_error}'",
+            "ValueError (from RequirementNode.__post_init__ validation) must produce error message 'Plan validation failed: {validation_message}' (e.g., 'Invalid type', 'description must not be empty')",
+            "FileNotFoundError must produce error message 'Plan validation failed: File not found - {file_path}'",
+            "PhaseResult.errors list must contain exactly one descriptive error string for each failure",
+            "PhaseResult.status must be PhaseStatus.FAILED for any exception",
+            "PhaseResult.metadata must NOT contain validated=True on failure",
+            "Original exception details must be preserved in error message for debugging",
+            "Unit test: malformed JSON triggers JSONDecodeError handling",
+            "Unit test: invalid requirement type triggers ValueError handling",
+            "Unit test: non-existent file path triggers FileNotFoundError handling"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Wrap plan loading in try-except block catching (json.JSONDecodeError, ValueError, FileNotFoundError)",
+              "For json.JSONDecodeError: return PhaseResult(phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.FAILED, errors=[f'Plan validation failed: Invalid JSON format - {e}'])",
+              "For ValueError: return PhaseResult(phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.FAILED, errors=[f'Plan validation failed: {e}'])",
+              "For FileNotFoundError: return PhaseResult(phase_type=PhaseType.TDD_PLANNING, status=PhaseStatus.FAILED, errors=[f'Plan validation failed: File not found - {plan_path}'])",
+              "Ensure no partial metadata is included on failure (no validated, requirements_count, total_nodes)",
+              "Log exception details at DEBUG level before returning PhaseResult"
+            ],
+            "middleware": [],
+            "shared": [
+              "Import json.JSONDecodeError from json module",
+              "ValueError is built-in, raised by RequirementNode.__post_init__ for invalid type/description/category",
+              "FileNotFoundError is built-in, raised by open() or Path operations",
+              "PhaseStatus enum from silmari_rlm_act/models.py (COMPLETE, FAILED, etc.)",
+              "Go equivalent: use custom error types and error wrapping with fmt.Errorf"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "PlanValidationService.handleValidationErrors",
+          "related_concepts": [
+            "exception handling",
+            "PhaseStatus.FAILED",
+            "PhaseResult.errors",
+            "error messages",
+            "try-except",
+            "error propagation"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 18535,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 31,
+      "total_nodes": 38,
+      "extraction_time_ms": 23468,
+      "expansion_time_ms": 359393
+    }
+  }
+}

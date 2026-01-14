@@ -1,0 +1,1607 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must support two distinct approaches for invoking Claude Code: CLI/Subprocess approach (~670 lines) and Agent SDK approach (~65 lines)",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Implement CLI-based claude_runner.py with subprocess management including PTY wrapping, JSON stream parsing, OAuth token management, buffer management, and ANSI terminal output formatting",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "CLI command is constructed with required flags: --print --verbose --permission-mode bypassPermissions --output-format stream-json -p {prompt}",
+            "Process is wrapped with 'script -q -c {cmd} /dev/null' to create pseudo-TTY for real-time streaming",
+            "JSON stream events are parsed line-by-line handling content_block_delta, assistant, and result event types",
+            "content_block_delta events extract text from delta.text when delta.type == 'text_delta'",
+            "assistant events extract text from message.content[].text where type == 'text'",
+            "result events extract the final result string",
+            "Buffer management handles partial JSON lines split across read chunks using 4096-byte reads",
+            "UTF-8 decoding with error replacement is implemented for robust character handling",
+            "OAuth credentials are read from ~/.claude/.credentials.json",
+            "OAuth tokens are proactively refreshed when less than 5 minutes to expiry",
+            "OAuth token refresh POSTs to the OAuth endpoint and saves credentials with .bak backup",
+            "401/expired token errors trigger automatic OAuth refresh with single retry",
+            "ANSI color formatting is applied for terminal output using standard escape codes",
+            "Tool call formatting displays tool name in cyan with key argument in green",
+            "Stream-JSON events are emitted via sys.stdout.write(json.dumps(event) + '\\n') with flush",
+            "Timeout handling supports up to 600000ms (10 minutes) with configurable default of 120000ms",
+            "Output truncation occurs when exceeding 30000 characters",
+            "Exit codes and error states are properly captured and returned"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create run_claude_subprocess() function at ~line 460 accepting prompt, timeout, stream_json, cwd, and _allow_retry parameters",
+              "Implement CLI command construction using shlex.quote for safe prompt escaping",
+              "Create subprocess.Popen wrapper with stdin=PIPE, stdout=PIPE, stderr=STDOUT",
+              "Implement read loop with process.stdout.read1(4096) for streaming chunk reading",
+              "Create line_buffer accumulator with b'\\n' split logic for complete line extraction",
+              "Implement JSON event parser with try/except JSONDecodeError fallback to raw text",
+              "Create event type dispatcher for content_block_delta, assistant, and result types",
+              "Implement text_chunks list accumulator for progressive response assembly",
+              "Create final_result or join(text_chunks) return logic"
+            ],
+            "middleware": [
+              "Implement read_credentials() function at ~line 69 to read ~/.claude/.credentials.json",
+              "Create save_credentials() function at ~line 84 with atomic write and .bak backup",
+              "Implement refresh_oauth_token() function at ~line 103 with POST to OAuth endpoint",
+              "Create ensure_oauth_token_fresh() function at ~line 169 for proactive refresh <5 min to expiry",
+              "Implement is_oauth_expired_error() function at ~line 156 to detect 401/expired token errors",
+              "Create OAuth retry logic in main function at ~lines 637-649"
+            ],
+            "shared": [
+              "Define Colors class at ~lines 193-202 with RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN constants",
+              "Create _format_tool_call() function at ~lines 205-228 for tool display formatting",
+              "Implement _emit_stream_json() function at ~lines 231-270 for JSON event output",
+              "Define ClaudeRunnerResult TypedDict with success, output, error, and duration_ms fields",
+              "Create event type constants for content_block_delta, assistant, result"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeRunner.runClaudeSubprocess",
+          "related_concepts": [
+            "subprocess.Popen",
+            "PTY/script command wrapper",
+            "JSON stream event parsing",
+            "OAuth token refresh",
+            "ANSI terminal colors",
+            "Buffer management",
+            "stream-json output format"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Implement SDK-based conversation session using ClaudeSDKClient with connect/query/receive_response/disconnect lifecycle, hooks for behavior modification, and tool I/O for user activity updates and question handling during research and planning phases",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "ClaudeSDKClient is initialized with ClaudeAgentOptions configuration",
+            "Async context manager pattern is used: 'async with ClaudeSDKClient(options) as client'",
+            "client.connect() is called to establish session before first query",
+            "client.query(prompt) sends prompts while maintaining conversation context across turns",
+            "client.receive_response() returns AsyncIterator[Message] for streaming response processing",
+            "AssistantMessage content blocks are iterated to extract TextBlock.text for display",
+            "ToolUseBlock events are captured to show tool activity to user (e.g., 'Using: Read(file.py)')",
+            "ToolResultBlock events indicate tool completion status",
+            "ResultMessage signals conversation turn completion with session_id, duration_ms, total_cost_usd",
+            "client.interrupt() can stop Claude mid-execution for long-running tasks",
+            "client.disconnect() properly closes the session",
+            "PreToolUse hooks are registered to log/modify/block tool executions before they run",
+            "PostToolUse hooks are registered to log tool results after execution",
+            "UserPromptSubmit hooks can modify prompts (e.g., add timestamps, inject context)",
+            "HookMatcher.matcher field filters hooks to specific tools (e.g., 'Bash', 'Write|Edit')",
+            "HookMatcher.timeout field sets per-hook timeout (default 60s, configurable)",
+            "Hook callbacks return hookSpecificOutput with permissionDecision 'deny' to block tools",
+            "AskUserQuestion tool is used to pass questions to user during research/planning phases",
+            "Questions include header (max 12 chars), question text, and 2-4 options with labels and descriptions",
+            "multiSelect option allows multiple answers for non-mutually exclusive choices",
+            "User answers are collected in answers dict mapping question text to answer string",
+            "include_partial_messages=True enables real-time streaming events for progress updates",
+            "Permission mode is configurable: 'default', 'acceptEdits', 'plan', 'bypassPermissions'"
+          ],
+          "implementation": {
+            "frontend": [
+              "Create progress display component that shows tool activity in real-time",
+              "Implement question rendering for AskUserQuestion with header chips, option buttons",
+              "Support multi-select question UI with checkbox-style options",
+              "Display streaming text output as it arrives character-by-character",
+              "Show tool execution status with icons (e.g., hammer for Write, magnifier for Read)"
+            ],
+            "backend": [
+              "Create ConversationSession class wrapping ClaudeSDKClient",
+              "Implement __init__(options: ClaudeAgentOptions) with client initialization",
+              "Create async start() method with connect/query/receive_response loop",
+              "Implement turn_count tracker for conversation state",
+              "Create message processing loop with isinstance checks for AssistantMessage, ResultMessage",
+              "Implement content block iteration for TextBlock, ToolUseBlock, ToolResultBlock",
+              "Create graceful interrupt handling with client.interrupt() call",
+              "Implement session reset via disconnect/reconnect for 'new session' command"
+            ],
+            "middleware": [
+              "Create pre_tool_logger HookCallback for tool activity logging",
+              "Implement post_tool_logger HookCallback for result logging",
+              "Create user_prompt_modifier HookCallback for context injection",
+              "Implement validate_bash_command HookCallback for dangerous command blocking",
+              "Create HookMatcher configurations for PreToolUse, PostToolUse, UserPromptSubmit events",
+              "Implement custom_permission_handler (can_use_tool) for file operation redirection",
+              "Create activity_update_hook for real-time user notification during long operations"
+            ],
+            "shared": [
+              "Define ConversationOptions dataclass extending ClaudeAgentOptions",
+              "Create MessageHandler protocol for pluggable message processing",
+              "Define ToolActivityEvent type for tool use tracking",
+              "Create QuestionResponse type for AskUserQuestion results",
+              "Implement HookResult type with decision, systemMessage, hookSpecificOutput fields"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClient.conversationSession",
+          "related_concepts": [
+            "ClaudeSDKClient",
+            "ClaudeAgentOptions",
+            "AsyncIterator[Message]",
+            "HookEvent",
+            "HookMatcher",
+            "HookCallback",
+            "PreToolUse hook",
+            "PostToolUse hook",
+            "UserPromptSubmit hook",
+            "AskUserQuestion tool",
+            "ToolUseBlock",
+            "ToolResultBlock",
+            "TextBlock",
+            "AssistantMessage",
+            "ResultMessage"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Provide configuration options for selecting between CLI and SDK approaches with automatic fallback, feature detection, and unified interface abstraction",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "Configuration option 'invocation_mode' accepts values: 'cli', 'sdk', 'auto' (default: 'auto')",
+            "Auto mode detects SDK availability via import check for claude_agent_sdk",
+            "Auto mode falls back to CLI if SDK import fails or CLINotFoundError is raised",
+            "CLI mode is forced when stream-json output format is required (e.g., repomirror visualize)",
+            "SDK mode is preferred when hooks are configured (hooks only supported in ClaudeSDKClient)",
+            "SDK mode is preferred when custom tools are configured (custom tools only in ClaudeSDKClient)",
+            "SDK mode is preferred when interrupt capability is needed",
+            "SDK mode is preferred for multi-turn conversations requiring context persistence",
+            "CLI mode retained when explicit OAuth token management is required (SDK auth unclear)",
+            "Unified invoke_claude() function abstracts both approaches with common interface",
+            "Return type is consistent: dict with success, output, error, duration_ms, session_id fields",
+            "Configuration can be set via environment variable CLAUDE_INVOCATION_MODE",
+            "Configuration can be set via settings.json at project or user level",
+            "Programmatic options override environment and settings file configuration",
+            "Feature compatibility matrix is documented for CLI vs SDK capabilities",
+            "Decision logging indicates which mode was selected and why in verbose mode"
+          ],
+          "implementation": {
+            "frontend": [
+              "Add invocation mode selector in settings UI with 'CLI', 'SDK', 'Auto' options",
+              "Display current mode indicator in status bar during Claude operations",
+              "Show feature availability warnings when incompatible mode is selected"
+            ],
+            "backend": [
+              "Create InvocationMode enum with CLI, SDK, AUTO values",
+              "Implement detect_sdk_availability() function with import try/except",
+              "Create should_use_sdk() decision function evaluating hooks, custom_tools, interrupts, multi_turn",
+              "Implement should_use_cli() decision function evaluating stream_json, oauth_explicit requirements",
+              "Create invoke_claude() unified entry point accepting prompt and ClaudeInvocationConfig",
+              "Implement _invoke_via_cli() wrapper calling run_claude_subprocess()",
+              "Create _invoke_via_sdk() wrapper calling ClaudeSDKClient flow",
+              "Implement result normalization to ensure consistent return type from both approaches"
+            ],
+            "middleware": [
+              "Create configuration loader reading from environment, settings.json, programmatic options",
+              "Implement precedence resolver: programmatic > environment > settings.json",
+              "Create feature detection cache to avoid repeated import checks",
+              "Implement mode selection logger for debugging invocation decisions"
+            ],
+            "shared": [
+              "Define ClaudeInvocationConfig dataclass with invocation_mode, fallback_enabled, verbose_selection fields",
+              "Create ClaudeInvocationResult TypedDict unifying CLI and SDK return types",
+              "Define FeatureCapabilityMatrix mapping features to supported modes",
+              "Create InvocationModeSelectionReason enum for logging decision rationale",
+              "Implement CLAUDE_INVOCATION_MODE environment variable constant"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeInvocationConfig.selectApproach",
+          "related_concepts": [
+            "ClaudeAgentOptions",
+            "PermissionMode",
+            "InvocationMode enum",
+            "Feature detection",
+            "Fallback strategy",
+            "Configuration precedence",
+            "OAuth compatibility",
+            "Hooks availability"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The CLI approach must implement PTY wrapping via the 'script' command for real-time streaming output from Claude CLI",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Wrap Claude CLI command with script -q -c command /dev/null to enable real-time streaming output through pseudo-TTY emulation",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Claude CLI command is constructed with --print --verbose --permission-mode bypassPermissions --output-format stream-json -p flags",
+            "Command string is properly escaped using shlex.quote() to handle special characters in prompts",
+            "The script command is invoked with -q flag to suppress 'Script started/ended' messages",
+            "The script command uses -c flag to specify the claude command as the shell command to execute",
+            "Output transcript is discarded by directing to /dev/null as the final script argument",
+            "Full command array is ['script', '-q', '-c', claude_cmd, '/dev/null']",
+            "Command construction does not block or fail when prompt contains newlines, quotes, or shell metacharacters",
+            "Environment variables (especially CLAUDE_CODE_MAX_OUTPUT_TOKENS) are preserved through the script wrapper"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "ClaudeRunner.buildCliCommand(prompt: str) -> str: Construct the claude CLI command string with all required flags",
+              "ClaudeRunner.wrapWithScript(claude_cmd: str) -> list[str]: Wrap the claude command in script for PTY emulation",
+              "Implement shlex.quote() for safe prompt escaping to prevent shell injection",
+              "Support configurable flags: --permission-mode, --output-format, --verbose, --print",
+              "Return the complete command array ready for subprocess.Popen"
+            ],
+            "middleware": [
+              "OAuth token freshness check must complete before command construction (ensure_oauth_token_fresh())",
+              "Validate that 'script' command is available on the system before attempting execution"
+            ],
+            "shared": [
+              "Define CLI_FLAGS constant with default Claude CLI flags",
+              "Define SCRIPT_WRAPPER_FLAGS = ['-q', '-c'] constant",
+              "Define NULL_TRANSCRIPT_PATH = '/dev/null' constant"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeRunner.wrapWithScriptCommand",
+          "related_concepts": [
+            "PTY (Pseudo-Terminal)",
+            "Unix script command",
+            "Real-time streaming",
+            "Claude CLI output-format stream-json",
+            "Process wrapping"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Create pseudo-TTY environment for streaming output by leveraging the Unix script command to allocate a PTY and capture unbuffered output",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "The script command creates a PTY that makes Claude CLI believe it's running in an interactive terminal",
+            "Output from Claude is unbuffered and streams in real-time (not line-buffered or block-buffered)",
+            "The PTY correctly handles ANSI escape sequences and control characters from Claude CLI",
+            "No 'Script started' or 'Script done' messages appear in the captured output (verified by -q flag)",
+            "The PTY inherits the correct terminal settings (TERM environment variable) for proper formatting",
+            "Claude CLI's --output-format stream-json produces immediate JSON line emissions through the PTY",
+            "The script process terminates cleanly when the wrapped Claude CLI exits",
+            "PTY allocation failure is detected and reported with actionable error message"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Verify PTY allocation by checking process.stdout is a valid file descriptor",
+              "Ensure TERM environment variable is set appropriately (fallback to 'xterm' if not set)",
+              "Handle script command not found error with helpful message about installing util-linux",
+              "Implement detection of PTY allocation failures (script returning error codes)",
+              "Log PTY creation for debugging when verbose mode enabled"
+            ],
+            "middleware": [
+              "Cross-platform consideration: script command behavior differs on macOS vs Linux",
+              "On macOS, use: script -q /dev/null instead of script -q -c cmd /dev/null",
+              "Detect platform and adjust script invocation accordingly using sys.platform"
+            ],
+            "shared": [
+              "Define PlatformConfig dataclass with script_command_format field",
+              "Define LINUX_SCRIPT_ARGS = ['-q', '-c'] constant",
+              "Define MACOS_SCRIPT_ARGS = ['-q'] constant (macOS uses different syntax)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeRunner.createPseudoTty",
+          "related_concepts": [
+            "Pseudo-Terminal (PTY)",
+            "Terminal line discipline",
+            "Unbuffered I/O",
+            "tty device emulation",
+            "Stream buffering modes"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Handle stdin/stdout/stderr PIPE configuration in subprocess.Popen to enable bidirectional communication with the PTY-wrapped Claude process",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "subprocess.Popen is configured with stdin=subprocess.PIPE for potential input passing",
+            "subprocess.Popen is configured with stdout=subprocess.PIPE to capture all output",
+            "stderr is redirected to stdout using stderr=subprocess.STDOUT to merge output streams",
+            "The cwd parameter is correctly passed to set the working directory for Claude execution",
+            "Popen does not set shell=True to avoid shell injection vulnerabilities",
+            "Process file descriptors are properly inherited and closed as needed",
+            "The process can be polled for completion using process.poll()",
+            "Process termination via process.kill() works correctly for timeout handling",
+            "FileNotFoundError is caught and returns descriptive error about missing script/claude commands"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "ClaudeRunner.openSubprocess(cmd: list[str], cwd: Optional[str]) -> subprocess.Popen",
+              "Configure Popen with: stdin=PIPE, stdout=PIPE, stderr=STDOUT",
+              "Implement process cleanup in finally block to prevent zombie processes",
+              "Handle OSError and FileNotFoundError with specific error messages",
+              "Store process reference for timeout handling and cleanup",
+              "Implement graceful shutdown: SIGTERM first, then SIGKILL after grace period"
+            ],
+            "middleware": [
+              "Validate cwd path exists before passing to Popen",
+              "Set appropriate environment variables for the subprocess"
+            ],
+            "shared": [
+              "Define SubprocessConfig dataclass with pipe configuration options",
+              "Define ProcessResult dataclass with returncode, stdout, stderr fields",
+              "Define PIPE_BUFFER_SIZE = 4096 constant matching read1() chunk size"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeRunner.configurePipesForStreaming",
+          "related_concepts": [
+            "subprocess.Popen",
+            "File descriptor pipes",
+            "stdout/stderr redirection",
+            "Process communication",
+            "Pipe buffering"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Implement read loop with read1(4096) buffer management for efficient streaming of JSON events from Claude CLI output",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Read loop uses process.stdout.read1(4096) for efficient chunk-based reading",
+            "Fallback to select() + read() when read1() is not available (older Python versions)",
+            "Line buffer (bytes) accumulates partial data until newline delimiter found",
+            "Complete lines are extracted using line_buffer.split(b'\\n', 1) to preserve partial data",
+            "Lines are decoded from bytes to UTF-8 with errors='replace' for robustness",
+            "Empty lines and 'Script ' prefixed lines are filtered out before processing",
+            "Loop continues until process.poll() returns non-None (process exited)",
+            "Remaining buffer is drained after process exit to capture all output",
+            "Timeout is checked on each iteration and process is killed if exceeded",
+            "Small sleep (0.05s) prevents CPU spinning when no data available",
+            "JSON parsing errors do not break the loop - non-JSON lines are handled gracefully"
+          ],
+          "implementation": {
+            "frontend": [
+              "Progress indicator can be updated based on tool use events parsed from stream",
+              "Real-time display of Claude's text output to user when stream_json=False",
+              "Hook integration point for SDK hooks (PreToolUse, PostToolUse) to update UI"
+            ],
+            "backend": [
+              "ClaudeRunner.readLoop(process: Popen, timeout: int, stream_json: bool) -> tuple[list[str], str]",
+              "Implement line_buffer: bytes accumulator with efficient split-on-newline logic",
+              "Parse JSON events: content_block_delta, assistant, result message types",
+              "Extract text from content_block_delta.delta.text_delta.text path",
+              "Extract text from assistant.message.content[].text where type='text'",
+              "Extract final result from result.result field",
+              "Implement text_chunks: list[str] to accumulate extracted text",
+              "Implement final_result: str to store the result message content",
+              "Return assembled output: final_result or ''.join(text_chunks)"
+            ],
+            "middleware": [
+              "OAuth error detection: Check for 'authentication_error' and '401' in output",
+              "Retry logic: If OAuth expired and _allow_retry=True, refresh token and retry once",
+              "Prevent infinite retry loops by setting _allow_retry=False on retry call"
+            ],
+            "shared": [
+              "Define READ_CHUNK_SIZE = 4096 constant",
+              "Define SLEEP_INTERVAL = 0.05 constant for loop throttling",
+              "Define JSON_EVENT_TYPES = ['content_block_delta', 'assistant', 'result'] constant",
+              "Define StreamJsonEvent TypedDict with type, delta, message, result fields",
+              "Define ContentBlockDelta TypedDict for text_delta parsing",
+              "Define AssistantMessage TypedDict for content array parsing"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeRunner.implementReadLoop",
+          "related_concepts": [
+            "Non-blocking I/O",
+            "Buffer management",
+            "Line-based parsing",
+            "JSON stream processing",
+            "Partial read handling"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must parse JSON stream events from CLI output including content_block_delta, assistant, and result event types",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Parse content_block_delta events extracting delta.text from text_delta type for real-time streaming of assistant text content",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Parser correctly identifies events where type equals 'content_block_delta'",
+            "Parser extracts nested delta object from the event data structure",
+            "Parser validates delta.type equals 'text_delta' before extracting text",
+            "Parser extracts delta.text string and returns it for accumulation",
+            "Parser handles missing delta object gracefully by returning empty string",
+            "Parser handles missing delta.text field gracefully by returning empty string",
+            "Parser handles delta.type not equal to 'text_delta' by ignoring the event",
+            "Extracted text is immediately available for real-time display via sys.stdout.write()",
+            "Text chunks are accumulated into text_chunks list for final result assembly",
+            "When using SDK-native mode, equivalent logic uses TextBlock content type from AssistantMessage",
+            "Performance: Parser processes streaming chunks with O(1) per-event complexity"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "StreamEventParser class with parseContentBlockDelta(line: str) -> Optional[str] method",
+              "Event type validation logic checking data.get('type') == 'content_block_delta'",
+              "Nested delta extraction with data.get('delta', {})",
+              "Delta type validation checking delta.get('type') == 'text_delta'",
+              "Text extraction with delta.get('text', '') with empty string default",
+              "Integration with existing text_chunks accumulator list pattern from claude_runner.py:577",
+              "Real-time stdout emission logic compatible with stream_json flag"
+            ],
+            "middleware": [],
+            "shared": [
+              "StreamEvent dataclass with type: str, delta: Optional[DeltaContent] fields",
+              "DeltaContent dataclass with type: str, text: Optional[str] fields",
+              "Constants for EVENT_TYPE_CONTENT_BLOCK_DELTA = 'content_block_delta'",
+              "Constants for DELTA_TYPE_TEXT_DELTA = 'text_delta'"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "StreamEventParser.parseContentBlockDelta",
+          "related_concepts": [
+            "JSON stream parsing",
+            "content_block_delta event type",
+            "text_delta extraction",
+            "incremental text streaming",
+            "SDK Message types"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Parse assistant events extracting message.content[].text where type is text for complete message content blocks",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Parser correctly identifies events where type equals 'assistant'",
+            "Parser extracts message object from event data structure",
+            "Parser extracts content array from message object",
+            "Parser iterates through each content block in the array",
+            "Parser filters content blocks where type equals 'text'",
+            "Parser extracts text field from filtered text content blocks",
+            "Parser handles missing message object gracefully",
+            "Parser handles missing content array gracefully with empty list default",
+            "Parser handles content blocks without type field gracefully",
+            "Parser handles content blocks without text field gracefully",
+            "Multiple text blocks in single message are concatenated in order",
+            "When using SDK-native mode, equivalent logic uses AssistantMessage and TextBlock types directly",
+            "Tool use blocks (type='tool_use') within same message are handled separately",
+            "Extracted text emitted via _emit_assistant_text() when output_format is stream-json"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "StreamEventParser class with parseAssistantMessage(line: str) -> list[str] method",
+              "Event type validation checking data.get('type') == 'assistant'",
+              "Message extraction with data.get('message', {})",
+              "Content array extraction with message.get('content', [])",
+              "Content block iteration with list comprehension filtering",
+              "Type-based filtering: [c.get('text', '') for c in content if c.get('type') == 'text']",
+              "Integration with _emit_assistant_text() for stream-json output format",
+              "Integration with text_chunks accumulator for result assembly"
+            ],
+            "middleware": [],
+            "shared": [
+              "AssistantEvent dataclass with type: str, message: MessageContent fields",
+              "MessageContent dataclass with content: list[ContentBlock] field",
+              "ContentBlock union type supporting TextContent, ToolUseContent, ToolResultContent",
+              "TextContent dataclass with type: Literal['text'], text: str fields",
+              "Constants for EVENT_TYPE_ASSISTANT = 'assistant'",
+              "Constants for CONTENT_TYPE_TEXT = 'text'"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "StreamEventParser.parseAssistantMessage",
+          "related_concepts": [
+            "assistant event type",
+            "message content extraction",
+            "content block iteration",
+            "text content filtering",
+            "SDK AssistantMessage type"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Parse result events extracting final result string indicating completion of Claude response",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Parser correctly identifies events where type equals 'result'",
+            "Parser extracts result field from event data as final response string",
+            "Parser handles missing result field gracefully with empty string default",
+            "Result event signals completion of the current response cycle",
+            "Parser extracts is_error field to determine success/failure status",
+            "When is_error is true, result contains error message",
+            "When is_error is false or missing, result contains successful response",
+            "Final result takes precedence over accumulated text_chunks for output",
+            "When using SDK-native mode, equivalent logic uses ResultMessage.result and ResultMessage.is_error",
+            "Result event emitted via _emit_result() when output_format is stream-json",
+            "Parser extracts session_id if present for session tracking",
+            "Parser extracts duration_ms if present for performance metrics"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "StreamEventParser class with parseResultEvent(line: str) -> ResultData method",
+              "Event type validation checking data.get('type') == 'result'",
+              "Result extraction with data.get('result', '')",
+              "Error status extraction with data.get('is_error', False)",
+              "ResultData return type containing result, is_error, session_id, duration_ms fields",
+              "Integration with final_result variable assignment pattern from claude_runner.py:587",
+              "Integration with _emit_result() for stream-json output format",
+              "Completion signal handling to break main processing loop cleanly"
+            ],
+            "middleware": [],
+            "shared": [
+              "ResultEvent dataclass with type: str, result: str, is_error: bool fields",
+              "ResultData dataclass as return type with result: str, is_error: bool, session_id: Optional[str], duration_ms: Optional[int]",
+              "Constants for EVENT_TYPE_RESULT = 'result'"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "StreamEventParser.parseResultEvent",
+          "related_concepts": [
+            "result event type",
+            "final result extraction",
+            "response completion signal",
+            "SDK ResultMessage type",
+            "error status handling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Handle JSON decode errors by appending raw line content as fallback for non-JSON output from CLI",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Parser catches json.JSONDecodeError exceptions during line parsing",
+            "When JSONDecodeError occurs, raw line content is preserved for output",
+            "Raw line appended to text_chunks with newline separator",
+            "Parser filters out 'Script ' prefix lines from 'script' command wrapper",
+            "Parser filters out empty lines from output",
+            "Parser filters out lines starting with '{' when not in stream_json mode (partial JSON)",
+            "Non-JSON lines displayed to user when stream_json is False",
+            "Non-JSON lines suppressed when stream_json is True to maintain clean pipe output",
+            "Original JSONDecodeError exception details logged for debugging if needed",
+            "Error handling does not interrupt main processing loop",
+            "Line content with decode errors still contributes to final text output assembly",
+            "UTF-8 decode errors in line_buffer handled with 'replace' error mode"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Try-except block wrapping json.loads(line) call in main processing loop",
+              "JSONDecodeError exception handler with line content preservation",
+              "Conditional output based on stream_json flag: suppress or display",
+              "Script noise filtering with line.startswith('Script ') check",
+              "Empty line filtering with 'if not line' check",
+              "Partial JSON filtering with line.startswith('{') check when not stream_json",
+              "text_chunks.append(line + '\\n') for raw line accumulation",
+              "Optional debug logging with exception details to sys.stderr"
+            ],
+            "middleware": [],
+            "shared": [
+              "ParseError dataclass with line: str, error: Exception, handled_as: Literal['raw_text', 'filtered'] fields",
+              "Constants for noise patterns: SCRIPT_PREFIX = 'Script '",
+              "Utility function is_valid_json_prefix(line: str) -> bool"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "StreamEventParser.handleJsonDecodeError",
+          "related_concepts": [
+            "JSON parse error handling",
+            "fallback text processing",
+            "raw output capture",
+            "CLI noise filtering",
+            "graceful degradation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.5",
+          "description": "Manage line buffer for partial JSON split across read chunks from subprocess stdout",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Buffer accumulates byte data from process.stdout.read1(4096) calls",
+            "Buffer splits on newline delimiter b'\\n' to extract complete lines",
+            "Split operation returns complete line and remaining buffer separately",
+            "Complete lines are decoded from UTF-8 with 'replace' error handling",
+            "Decoded lines are stripped of whitespace before processing",
+            "Partial lines (without newline) remain in buffer for next iteration",
+            "Buffer handles multiple complete lines in single read chunk",
+            "Buffer handles JSON spanning multiple read chunks correctly",
+            "Buffer handles zero-length chunks (empty reads) without error",
+            "Buffer drains remaining content when process exits (process.poll() is not None)",
+            "Process exit triggers process.stdout.read() for remaining data",
+            "Remaining buffer processed line-by-line with same parsing logic",
+            "Buffer timeout integration with main processing loop timeout check",
+            "Small sleep (0.05s) prevents CPU busy loop when no data available"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "line_buffer = b'' initialization before main loop",
+              "chunk = process.stdout.read1(4096) with AttributeError fallback",
+              "Fallback using select.select() for older Python versions",
+              "line_buffer += chunk accumulation pattern",
+              "while b'\\n' in line_buffer: loop for multi-line chunk handling",
+              "line_bytes, line_buffer = line_buffer.split(b'\\n', 1) split pattern",
+              "line = line_bytes.decode('utf-8', errors='replace').strip() decode pattern",
+              "Process exit detection with process.poll() is not None",
+              "Buffer drain with remaining = process.stdout.read()",
+              "Final buffer processing with split('\\n') and same parse logic",
+              "time.sleep(0.05) to prevent busy loop when chunk is empty"
+            ],
+            "middleware": [],
+            "shared": [
+              "BufferConfig dataclass with chunk_size: int = 4096, sleep_interval: float = 0.05",
+              "Constants for BUFFER_CHUNK_SIZE = 4096",
+              "Constants for BUFFER_POLL_INTERVAL = 0.05",
+              "Utility function decode_line(line_bytes: bytes) -> str with UTF-8 replace handling"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "LineBufferManager.processPartialJson",
+          "related_concepts": [
+            "buffer management",
+            "partial line handling",
+            "stream chunking",
+            "newline-delimited JSON",
+            "subprocess I/O"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must implement OAuth token management with credential storage, proactive refresh, and automatic retry on 401 errors",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Read OAuth credentials from ~/.claude/.credentials.json with JSON parsing and error handling for missing or corrupted files",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Function reads from ~/.claude/.credentials.json path",
+            "Returns parsed JSON dictionary containing claudeAiOauth key with accessToken, refreshToken, expiresAt, and scopes fields",
+            "Raises FileNotFoundError with descriptive message when credentials file does not exist",
+            "Raises json.JSONDecodeError when credentials file contains invalid JSON",
+            "Uses Path.home() for cross-platform home directory resolution",
+            "Handles permission errors gracefully with appropriate exception type",
+            "Unit test verifies successful read of valid credentials file",
+            "Unit test verifies FileNotFoundError raised for missing file",
+            "Unit test verifies JSONDecodeError raised for malformed JSON"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement get_credentials_path() -> Path helper function returning Path.home() / '.claude' / '.credentials.json'",
+              "Implement read_credentials() -> dict[str, Any] that opens file in read mode and returns json.load() result",
+              "Handle both relative and absolute path cases",
+              "Validate that claudeAiOauth key exists in returned credentials"
+            ],
+            "middleware": [],
+            "shared": [
+              "Define OAuthCredentials TypedDict with fields: accessToken (str), refreshToken (str), expiresAt (int), scopes (list[str])",
+              "Define CredentialsFile TypedDict with claudeAiOauth field of type OAuthCredentials"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "OAuthCredentialManager.read_credentials",
+          "related_concepts": [
+            "credential_storage",
+            "file_io",
+            "json_parsing",
+            "oauth_tokens",
+            "error_handling"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Save OAuth credentials to disk with atomic write pattern using .bak backup file to prevent corruption during write failures",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Creates backup file with .json.bak extension before any write operation",
+            "Uses shutil.copy2() to preserve file metadata in backup",
+            "Writes credentials to disk with json.dump() using indent=2 for readability",
+            "Only creates backup if original file exists",
+            "Handles file permission errors with appropriate exception propagation",
+            "Unit test verifies backup file creation before write",
+            "Unit test verifies successful credential persistence",
+            "Unit test verifies backup is not created when original doesn't exist",
+            "Integration test verifies credential roundtrip (read after save matches original)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement save_credentials(creds: dict[str, Any]) -> None",
+              "Get credentials path using get_credentials_path() helper",
+              "Create backup_path by calling path.with_suffix('.json.bak')",
+              "Check path.exists() before attempting backup copy",
+              "Use shutil.copy2(path, backup_path) for metadata-preserving backup",
+              "Open file in write mode and call json.dump(creds, f, indent=2)"
+            ],
+            "middleware": [],
+            "shared": [
+              "Constants: CREDENTIALS_FILE_INDENT = 2"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "OAuthCredentialManager.save_credentials",
+          "related_concepts": [
+            "credential_storage",
+            "atomic_writes",
+            "backup_files",
+            "file_safety",
+            "json_serialization"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "POST to OAuth endpoint https://console.anthropic.com/api/oauth/token with refresh_token grant type to obtain new access and refresh tokens",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Reads existing credentials from disk using read_credentials()",
+            "Raises ValueError with message 'No refresh token available' if claudeAiOauth or refreshToken is missing",
+            "POSTs to CLAUDE_OAUTH_ENDPOINT (https://console.anthropic.com/api/oauth/token) with JSON body",
+            "Request body includes grant_type='refresh_token', refresh_token from credentials, client_id=CLAUDE_OAUTH_CLIENT_ID",
+            "Uses 30 second timeout for HTTP request",
+            "Calls response.raise_for_status() to propagate HTTP errors",
+            "Extracts access_token, refresh_token, expires_in from response JSON",
+            "Calculates new expiresAt as current timestamp (ms) + expires_in * 1000",
+            "Parses scope string into list by splitting on space character",
+            "Saves updated credentials to disk using save_credentials()",
+            "Logs debug message to stderr before refresh attempt",
+            "Logs success message with expiration timestamp after successful refresh",
+            "Unit test verifies ValueError raised when no refresh token exists",
+            "Integration test (with mocked HTTP) verifies correct request body construction",
+            "Integration test verifies credential update calculation (expiresAt math)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Define constant CLAUDE_OAUTH_CLIENT_ID = '9d1c250a-e61b-44d9-88ed-5944d1962f5e'",
+              "Define constant CLAUDE_OAUTH_ENDPOINT = 'https://console.anthropic.com/api/oauth/token'",
+              "Implement refresh_oauth_token() -> None",
+              "Call creds = read_credentials() to get current credentials",
+              "Extract oauth = creds.get('claudeAiOauth')",
+              "Validate oauth and oauth.get('refreshToken') exist, raise ValueError if not",
+              "Build req_body dict with grant_type, refresh_token, client_id",
+              "Call requests.post(CLAUDE_OAUTH_ENDPOINT, json=req_body, timeout=30)",
+              "Extract access_token, refresh_token, expires_in, scope from response.json()",
+              "Update oauth['accessToken'], oauth['refreshToken']",
+              "Calculate oauth['expiresAt'] = int(time.time() * 1000) + (expires_in * 1000)",
+              "Parse scopes: oauth['scopes'] = scope.split(' ') if scope exists",
+              "Call save_credentials(creds)"
+            ],
+            "middleware": [],
+            "shared": [
+              "Constants for OAuth endpoint and client ID"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "OAuthTokenRefresher.refresh_oauth_token",
+          "related_concepts": [
+            "oauth2_refresh_flow",
+            "http_requests",
+            "token_refresh",
+            "api_integration",
+            "credential_update"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.4",
+          "description": "Proactively refresh OAuth token if expiration is less than 5 minutes away to prevent mid-execution authentication failures",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Reads credentials from disk using read_credentials()",
+            "Extracts expiresAt timestamp from claudeAiOauth credentials",
+            "Calculates time_until_expiry_ms as expiresAt - current_time_ms",
+            "Triggers refresh_oauth_token() if time_until_expiry_ms < 300000 (5 minutes in ms)",
+            "Logs debug message showing minutes remaining before proactive refresh",
+            "Catches all exceptions and logs them to stderr without re-raising",
+            "Silently succeeds if credentials file doesn't exist (for non-OAuth auth methods)",
+            "Silently succeeds if expiresAt field is missing",
+            "Unit test verifies no refresh called when token valid for >5 minutes",
+            "Unit test verifies refresh called when token expires in <5 minutes",
+            "Unit test verifies exceptions are caught and logged, not propagated",
+            "Should be called before every Claude invocation (run_claude_sync, run_claude_subprocess)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement ensure_oauth_token_fresh() -> None",
+              "Wrap entire function body in try/except Exception",
+              "Call creds = read_credentials()",
+              "Extract oauth = creds.get('claudeAiOauth')",
+              "Check if oauth and oauth.get('expiresAt') exist, return early if not",
+              "Calculate expires_at_ms = oauth['expiresAt']",
+              "Calculate now_ms = int(time.time() * 1000)",
+              "Calculate time_until_expiry_ms = expires_at_ms - now_ms",
+              "If time_until_expiry_ms < 300000: log minutes_left and call refresh_oauth_token()",
+              "In except block: log error to stderr with f-string formatting"
+            ],
+            "middleware": [
+              "Hook integration: Consider registering as PreToolUse hook callback for SDK-based invocations",
+              "Use HookMatcher with no matcher to apply to all tool calls"
+            ],
+            "shared": [
+              "Constant: TOKEN_REFRESH_THRESHOLD_MS = 300000 (5 minutes)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "OAuthTokenRefresher.ensure_oauth_token_fresh",
+          "related_concepts": [
+            "proactive_refresh",
+            "token_expiration",
+            "time_based_logic",
+            "error_resilience",
+            "preventive_maintenance"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.5",
+          "description": "Detect 401/expired token errors from Claude CLI output to trigger automatic retry with fresh credentials",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "Takes combined stdout/stderr output string as input parameter",
+            "Returns True if output contains 'authentication_error' AND ('OAuth token has expired' OR '401')",
+            "Returns False for all other error types (rate limits, network errors, etc.)",
+            "Returns False for successful outputs",
+            "Case-sensitive string matching for error patterns",
+            "Used by run_claude_subprocess to determine if retry is appropriate",
+            "Unit test verifies True returned for 'authentication_error...OAuth token has expired' message",
+            "Unit test verifies True returned for 'authentication_error...401' message",
+            "Unit test verifies False returned for rate limit errors",
+            "Unit test verifies False returned for successful output",
+            "Unit test verifies False returned for empty string"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Implement is_oauth_expired_error(output: str) -> bool",
+              "Check 'authentication_error' in output as primary condition",
+              "Check ('OAuth token has expired' in output or '401' in output) as secondary condition",
+              "Return True only if both conditions are satisfied",
+              "Return False otherwise"
+            ],
+            "middleware": [
+              "Integration with retry logic: When is_oauth_expired_error returns True, call refresh_oauth_token() and retry the original operation",
+              "Retry should use _allow_retry=False flag to prevent infinite retry loops"
+            ],
+            "shared": [
+              "Constants for error patterns: OAUTH_EXPIRED_PATTERNS = ['OAuth token has expired', '401']",
+              "Constant: AUTH_ERROR_MARKER = 'authentication_error'"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "OAuthErrorDetector.is_oauth_expired_error",
+          "related_concepts": [
+            "error_detection",
+            "string_matching",
+            "authentication_errors",
+            "retry_logic",
+            "error_classification"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The SDK-based approach must use ClaudeSDKClient with connect/query/receive_response/disconnect pattern for multi-turn conversations",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Initialize ClaudeSDKClient with ClaudeAgentOptions configuration for multi-turn conversation support",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "ClaudeAgentOptions is created with required configuration: allowed_tools, permission_mode, cwd, system_prompt",
+            "OAuth token check is performed before client initialization (retain existing ensure_oauth_token_fresh() logic)",
+            "Hooks dictionary is configured with PreToolUse, PostToolUse, and UserPromptSubmit event handlers for activity monitoring",
+            "MCP servers are configured if custom tools are needed via create_sdk_mcp_server()",
+            "setting_sources is configured to load appropriate project settings (e.g., ['project'] to load CLAUDE.md)",
+            "include_partial_messages is set to true for real-time streaming progress updates",
+            "ClaudeSDKClient instance is created with the configured options",
+            "Error handling wraps CLINotFoundError, ProcessError to provide meaningful fallback to subprocess approach"
+          ],
+          "implementation": {
+            "frontend": [
+              "Progress indicator component showing client initialization status",
+              "Configuration panel for user-adjustable options (permission_mode, allowed_tools)"
+            ],
+            "backend": [
+              "ClaudeSDKClientFactory class that creates configured ClaudeSDKClient instances",
+              "ClaudeAgentOptionsBuilder for fluent option construction",
+              "OAuth token validation before client creation (integrate existing ensure_oauth_token_fresh())",
+              "Hook registry for registering PreToolUse/PostToolUse/UserPromptSubmit callbacks"
+            ],
+            "middleware": [
+              "OAuth token refresh interceptor that calls refresh_oauth_token() on expiry",
+              "Configuration validator ensuring required options are present",
+              "Permission mode resolver based on execution context (research vs implementation)"
+            ],
+            "shared": [
+              "ClaudeAgentOptions dataclass with project-specific defaults",
+              "HookCallback type definitions for type safety",
+              "PermissionMode enum ('default', 'acceptEdits', 'plan', 'bypassPermissions')",
+              "ClientConfiguration interface combining ClaudeAgentOptions with OAuth credentials"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClientManager.initializeClient",
+          "related_concepts": [
+            "ClaudeAgentOptions",
+            "PermissionMode",
+            "HookMatcher",
+            "McpServerConfig",
+            "OAuth token management",
+            "session lifecycle"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Call client.connect() for connection management establishing the session for multi-turn conversations",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "client.connect() is called with optional initial prompt parameter when available",
+            "Connection is established using async context manager pattern (async with ClaudeSDKClient() as client)",
+            "Connection success is verified before proceeding with queries",
+            "CLIConnectionError is caught and triggers retry with exponential backoff",
+            "Connection state is tracked for reconnection on failure",
+            "Hook for 'SessionStart' equivalent behavior is simulated since Python SDK doesn't support SessionStart hook",
+            "Logging captures connection establishment time for performance monitoring",
+            "Connection pool is managed for concurrent session support if needed"
+          ],
+          "implementation": {
+            "frontend": [
+              "Connection status indicator (connected/disconnected/connecting)",
+              "Reconnection prompt when connection drops during conversation",
+              "Activity spinner during connection establishment"
+            ],
+            "backend": [
+              "ConnectionManager class wrapping client.connect() with retry logic",
+              "ConnectionState enum (DISCONNECTED, CONNECTING, CONNECTED, RECONNECTING)",
+              "Exponential backoff retry strategy (initial: 1s, max: 30s, factor: 2)",
+              "Session ID tracking for conversation continuity"
+            ],
+            "middleware": [
+              "Connection health check performing periodic client.query() with empty/status prompt",
+              "Automatic reconnection trigger on CLIConnectionError during operations",
+              "Connection timeout handler (default 30s connection timeout)"
+            ],
+            "shared": [
+              "ConnectionConfig interface with timeout and retry settings",
+              "SessionInfo dataclass tracking session_id, connection_time, turn_count",
+              "ConnectionEvent callbacks for onConnect, onDisconnect, onReconnect"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClientManager.connectSession",
+          "related_concepts": [
+            "session continuity",
+            "connection lifecycle",
+            "async context manager",
+            "error recovery",
+            "reconnection strategy"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Send queries via client.query(user_input) supporting both string prompts and streaming input for research/planning phases",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "client.query(prompt) is called with string prompt for simple queries",
+            "client.query(message_stream()) is called with AsyncIterable for streaming multi-part input",
+            "session_id parameter is used to maintain conversation context ('default' or custom ID)",
+            "UserPromptSubmit hook is triggered before query execution for prompt logging/modification",
+            "Turn count is incremented after successful query submission",
+            "Query timeout is configurable and respected",
+            "Questions to user during research/planning phases are formatted using AskUserQuestion tool input structure",
+            "Streaming input generator yields {type: 'text', text: ...} dictionaries for incremental prompt delivery"
+          ],
+          "implementation": {
+            "frontend": [
+              "User input field with submit button",
+              "Multi-line input support for complex prompts",
+              "Question display component rendering AskUserQuestion options",
+              "Loading state during query submission"
+            ],
+            "backend": [
+              "QueryDispatcher class handling client.query() calls",
+              "StreamingInputGenerator async generator for multi-part prompts",
+              "AskUserQuestionFormatter converting questions to proper input structure",
+              "QueryContext tracking prompt, session_id, turn_number"
+            ],
+            "middleware": [
+              "UserPromptSubmit hook handler adding timestamps or context to prompts",
+              "Query rate limiter preventing rapid successive queries",
+              "Input sanitization ensuring prompts are properly formatted"
+            ],
+            "shared": [
+              "QueryRequest dataclass with prompt, session_id, streaming flag",
+              "MessageStreamItem TypedDict with type and text fields",
+              "TurnContext tracking conversation history for multi-turn sessions"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClientManager.sendQuery",
+          "related_concepts": [
+            "streaming input",
+            "AsyncIterable",
+            "message_stream",
+            "session_id",
+            "UserPromptSubmit hook",
+            "prompt modification"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Process responses via async for message in client.receive_response() with real-time streaming and tool activity monitoring",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "async for message in client.receive_response() iterates through all messages until ResultMessage",
+            "AssistantMessage instances are processed to extract content blocks",
+            "ToolUseBlock instances trigger activity update callbacks showing tool name and input summary",
+            "ToolResultBlock instances are captured for tool execution results",
+            "ResultMessage is detected to mark response completion (check subtype in ['success', 'error'])",
+            "include_partial_messages=True enables real-time text streaming for immediate user feedback",
+            "PreToolUse and PostToolUse hooks are invoked for tool activity monitoring",
+            "Response iteration completes naturally without using break to avoid asyncio cleanup issues",
+            "Cost and usage information from ResultMessage is captured for tracking"
+          ],
+          "implementation": {
+            "frontend": [
+              "Streaming text display component updating as TextBlock content arrives",
+              "Tool activity indicator showing 'Using tool: {name}' with progress",
+              "Result summary panel displaying cost, duration, turn count from ResultMessage",
+              "Error display for is_error=True in ResultMessage"
+            ],
+            "backend": [
+              "ResponseProcessor class iterating client.receive_response()",
+              "MessageTypeRouter dispatching to handlers based on message type (AssistantMessage, ResultMessage, etc.)",
+              "ContentBlockExtractor processing TextBlock, ToolUseBlock, ToolResultBlock, ThinkingBlock",
+              "ActivityCallback system notifying UI of tool usage in real-time"
+            ],
+            "middleware": [
+              "PreToolUse hook logging tool_name, tool_input before execution",
+              "PostToolUse hook logging tool results after execution",
+              "Response buffer aggregating text chunks for final output assembly"
+            ],
+            "shared": [
+              "ProcessedResponse dataclass with full_text, tool_calls, result_info, cost_usd",
+              "ToolActivity dataclass with tool_name, input_summary, output_summary, duration_ms",
+              "ResponseStreamEvent union type for UI updates (TextChunk, ToolStarted, ToolCompleted, ResponseComplete)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClientManager.receiveAndProcessResponse",
+          "related_concepts": [
+            "AsyncIterator",
+            "Message union type",
+            "AssistantMessage",
+            "ResultMessage",
+            "ToolUseBlock",
+            "ToolResultBlock",
+            "streaming output"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.5",
+          "description": "Extract TextBlock content from AssistantMessage objects for final response assembly and display",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "AssistantMessage.content list is iterated to find all ContentBlock instances",
+            "TextBlock instances are identified using isinstance(block, TextBlock) check",
+            "TextBlock.text property is extracted and accumulated in order",
+            "ThinkingBlock instances are optionally extracted for debugging/transparency (block.thinking)",
+            "ToolUseBlock instances are logged but not included in final text output",
+            "Text chunks are joined with appropriate separators for readable output",
+            "Model identifier from AssistantMessage.model is captured for logging",
+            "Empty text blocks are handled gracefully without adding empty strings",
+            "Final assembled text matches the streaming output for consistency"
+          ],
+          "implementation": {
+            "frontend": [
+              "Formatted text display with markdown rendering support",
+              "Expandable thinking section showing ThinkingBlock content",
+              "Model badge showing which model generated the response",
+              "Copy-to-clipboard button for extracted text"
+            ],
+            "backend": [
+              "TextContentExtractor class processing AssistantMessage instances",
+              "ContentBlockVisitor pattern for handling different block types",
+              "TextAccumulator collecting text chunks with configurable separators",
+              "ThinkingExtractor for optional extended thinking content"
+            ],
+            "middleware": [
+              "Text sanitization removing any residual ANSI codes",
+              "Markdown preservation ensuring code blocks and formatting are maintained",
+              "Response validation ensuring non-empty text extraction"
+            ],
+            "shared": [
+              "ExtractedContent dataclass with text, thinking, model, tool_uses",
+              "ContentBlockType enum (TEXT, THINKING, TOOL_USE, TOOL_RESULT)",
+              "TextExtractionOptions with include_thinking, strip_ansi flags"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ClaudeSDKClientManager.extractTextContent",
+          "related_concepts": [
+            "ContentBlock",
+            "TextBlock",
+            "ThinkingBlock",
+            "text aggregation",
+            "ANSI formatting removal",
+            "response assembly"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must implement hooks for behavior modification and use tool I/O to update users on activity and pass questions during research and planning phases",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Implement hooks per SDK documentation for behavior modification",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.implement",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Use tool input/output types to communicate activity status to users",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "User.use",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Enable question passing to users during research phase",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "User.enable",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.4",
+          "description": "Enable question passing to users during planning phase",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "User.enable",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.5",
+          "description": "Integrate with SDK streaming mode for real-time feedback",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.integrate",
+          "related_concepts": [],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must provide terminal output formatting with ANSI color codes and structured tool call display",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Implement Colors class with ANSI escape code constants for terminal text formatting including RESET, BOLD, DIM, and standard colors (RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN)",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Colors class defines RESET constant as '\\033[0m' for clearing all formatting",
+            "Colors class defines BOLD constant as '\\033[1m' for bold text",
+            "Colors class defines DIM constant as '\\033[2m' for dimmed/faded text",
+            "Colors class defines RED constant as '\\033[31m' for red foreground",
+            "Colors class defines GREEN constant as '\\033[32m' for green foreground",
+            "Colors class defines YELLOW constant as '\\033[33m' for yellow foreground",
+            "Colors class defines BLUE constant as '\\033[34m' for blue foreground",
+            "Colors class defines MAGENTA constant as '\\033[35m' for magenta foreground",
+            "Colors class defines CYAN constant as '\\033[36m' for cyan foreground",
+            "All color codes are class-level string constants accessible without instantiation",
+            "Colors can be concatenated with text strings (e.g., Colors.CYAN + 'text' + Colors.RESET)",
+            "Unit tests verify each color code outputs correct ANSI sequence",
+            "Colors gracefully degrade when terminal does not support ANSI (detect via environment)"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create Colors class in shared/formatting/colors.py",
+              "Define all ANSI escape code constants as class attributes",
+              "Add optional is_tty_supported() helper to detect terminal capability",
+              "Add colorize(text, color) convenience method for wrapping text"
+            ],
+            "middleware": [],
+            "shared": [
+              "Colors class should be importable from shared formatting module",
+              "Consider TypedDict or dataclass for type safety if needed",
+              "Export Colors from package __init__.py for easy imports"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "TerminalColors.Colors",
+          "related_concepts": [
+            "ANSI escape sequences",
+            "terminal formatting",
+            "text styling",
+            "color codes",
+            "cross-platform terminal support"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Format tool call display with tool name in CYAN and key argument in GREEN, extracting the most relevant argument for each tool type",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Tool name is displayed wrapped in CYAN color codes",
+            "Key argument (when present) is displayed in parentheses wrapped in GREEN color codes",
+            "Format follows pattern: '{CYAN}tool_name{RESET}({GREEN}key_arg{RESET})'",
+            "When no key argument is extractable, display only '{CYAN}tool_name{RESET}' without parentheses",
+            "Function accepts tool_name (str) and tool_input (dict) as parameters",
+            "Output string is suitable for direct print() to terminal",
+            "Works correctly with SDK ToolUseBlock.name and ToolUseBlock.input properties",
+            "Integration test verifies correct ANSI sequence generation for sample tools"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _format_tool_call(tool_name: str, tool_input: dict) -> str function",
+              "Import Colors class for ANSI codes",
+              "Build formatted string with color wrapping",
+              "Call _extract_key_argument() helper to get displayable key",
+              "Return complete formatted string ready for terminal output"
+            ],
+            "middleware": [
+              "Can be used in PreToolUse hook callback to display tool calls in real-time",
+              "Can be integrated with SDK's HookMatcher for automatic logging"
+            ],
+            "shared": [
+              "Define ToolDisplayFormat TypedDict if structured output is needed",
+              "Function should handle None/empty tool_input gracefully"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ToolCallFormatter.format_tool_call",
+          "related_concepts": [
+            "ToolUseBlock",
+            "tool_name",
+            "tool_input",
+            "PreToolUse hook",
+            "PostToolUse hook",
+            "terminal display"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Extract the most relevant key argument from tool input based on tool-specific patterns including file_path, command, pattern, query, and url fields",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "For tools with 'file_path' input (Read, Write, Edit, NotebookEdit), extract and return file_path value",
+            "For Bash tool with 'command' input, extract command value",
+            "For Grep tool with 'pattern' input, extract pattern value",
+            "For Glob tool with 'pattern' input, extract pattern value",
+            "For WebFetch tool with 'url' input, extract url value",
+            "For WebSearch tool with 'query' input, extract query value",
+            "For Task tool, extract 'description' field as key argument",
+            "Return None when no recognized key field is present in tool_input",
+            "Function handles empty dict input returning None",
+            "Priority order for extraction: file_path > command > pattern > query > url > description",
+            "Unit tests cover all standard Claude Code tool types"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _extract_key_argument(tool_input: dict) -> str | None function",
+              "Define ordered list of key field names to check",
+              "Iterate through fields checking tool_input.get(field)",
+              "Return first non-None, non-empty value found",
+              "Return None if no key fields are present"
+            ],
+            "middleware": [],
+            "shared": [
+              "Document the extraction priority order in docstring",
+              "Define KEY_ARGUMENT_FIELDS constant list for maintainability",
+              "Consider tool_input schemas from SDK documentation for completeness"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ToolCallFormatter.extract_key_argument",
+          "related_concepts": [
+            "tool_input schema",
+            "Read tool",
+            "Write tool",
+            "Edit tool",
+            "Bash tool",
+            "Grep tool",
+            "Glob tool",
+            "WebFetch tool",
+            "argument extraction"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Truncate long command arguments and other display strings to 50 characters with ellipsis suffix for terminal readability",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Arguments longer than 50 characters are truncated to 50 characters",
+            "Truncated arguments end with '...' ellipsis suffix",
+            "Total output length including ellipsis is 53 characters maximum (50 + '...')",
+            "Arguments 50 characters or shorter are returned unchanged",
+            "Empty string input returns empty string",
+            "None input returns None or empty string",
+            "Truncation happens at character boundary, not mid-word (optional enhancement)",
+            "Function is idempotent - truncating already truncated string produces same result",
+            "Works correctly with Unicode characters and multi-byte strings"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _truncate_argument(arg: str, max_length: int = 50) -> str function",
+              "Check if len(arg) > max_length",
+              "If exceeds, return arg[:max_length] + '...'",
+              "If not, return arg unchanged",
+              "Handle edge cases (None, empty string)"
+            ],
+            "middleware": [],
+            "shared": [
+              "MAX_ARGUMENT_DISPLAY_LENGTH constant defaulting to 50",
+              "ELLIPSIS constant as '...' for consistency",
+              "Consider making max_length configurable via environment variable"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ToolCallFormatter.truncate_argument",
+          "related_concepts": [
+            "string truncation",
+            "ellipsis",
+            "terminal width",
+            "display formatting",
+            "command preview"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.5",
+          "description": "Emit stream-json formatted events to stdout with type field and data payload for real-time tool activity display and structured event output",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [
+            "Function accepts event_type (str) and data (dict) parameters",
+            "Output is a single JSON object per line (JSON-lines format)",
+            "Output JSON contains 'type' field set to event_type value",
+            "Output JSON contains all key-value pairs from data dict spread at top level",
+            "Each event is followed by newline character for streaming compatibility",
+            "stdout is flushed immediately after write for real-time display",
+            "JSON serialization handles common Python types (str, int, float, bool, list, dict)",
+            "Events match SDK streaming format: content_block_delta, assistant, result types",
+            "Function is synchronous and thread-safe for stdout writes",
+            "Integration with SDK hooks via PreToolUse/PostToolUse callbacks",
+            "Can be used in ClaudeAgentOptions.hooks for automatic event emission"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Create _emit_stream_json(event_type: str, data: dict[str, Any]) -> None function",
+              "Build event dict as {'type': event_type, **data}",
+              "Serialize to JSON string with json.dumps(event)",
+              "Write to sys.stdout with newline: sys.stdout.write(json_str + '\\n')",
+              "Flush stdout: sys.stdout.flush()",
+              "Handle JSON serialization errors gracefully with fallback"
+            ],
+            "middleware": [
+              "Create PreToolUse hook that calls emit_stream_json for tool_start events",
+              "Create PostToolUse hook that calls emit_stream_json for tool_complete events",
+              "Register hooks with ClaudeAgentOptions.hooks configuration",
+              "Use HookMatcher with appropriate timeout for event emission"
+            ],
+            "shared": [
+              "Define EventType literal type for type safety: Literal['tool_start', 'tool_complete', 'text_delta', 'result']",
+              "Create StreamEvent TypedDict for event structure validation",
+              "Export event emission utilities from formatting module"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "StreamJsonEmitter.emit_stream_json",
+          "related_concepts": [
+            "stream-json format",
+            "JSON-lines output",
+            "stdout streaming",
+            "event emission",
+            "content_block_delta",
+            "assistant message",
+            "result message",
+            "SDK include_partial_messages"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 15837,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 32,
+      "total_nodes": 39,
+      "extraction_time_ms": 25066,
+      "expansion_time_ms": 532747
+    }
+  }
+}

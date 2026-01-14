@@ -1,0 +1,1411 @@
+flowchart LR
+    subgraph REQ_000
+    REQ_000["REQ_000: The system must implement a..."]
+    REQ_000_1["REQ_000.1: Implement Python-based high..."]
+    REQ_000_2["REQ_000.2: Implement Go-based CLI tool..."]
+    REQ_000_3["REQ_000.3: Implement BAML (Branching A..."]
+    REQ_000_4["REQ_000.4: Implement multi-language in..."]
+    end
+    subgraph REQ_001
+    REQ_001["REQ_001: The system must provide 30 ..."]
+    REQ_001_1["REQ_001.1: Create and configure the 6 ..."]
+    REQ_001_2["REQ_001.2: Create and configure the 4 ..."]
+    REQ_001_3["REQ_001.3: Create and configure the 6 ..."]
+    REQ_001_4["REQ_001.4: Create and configure the 2 ..."]
+    REQ_001_5["REQ_001.5: Create and configure the 6 ..."]
+    end
+    subgraph REQ_002
+    REQ_002["REQ_002: The system must implement t..."]
+    REQ_002_1["REQ_002.1: Implement the Research phas..."]
+    REQ_002_2["REQ_002.2: Implement the Learn phase t..."]
+    REQ_002_3["REQ_002.3: Implement the Model phase t..."]
+    REQ_002_4["REQ_002.4: Implement the Act phase to ..."]
+    REQ_002_5["REQ_002.5: Implement the Verify phase ..."]
+    end
+    subgraph REQ_003
+    REQ_003["REQ_003: The system must implement c..."]
+    REQ_003_1["REQ_003.1: Implement RLM-Act checkpoin..."]
+    REQ_003_2["REQ_003.2: Implement RLM-Act checkpoin..."]
+    REQ_003_3["REQ_003.3: Implement workflow checkpoi..."]
+    REQ_003_4["REQ_003.4: Implement interrupted workf..."]
+    REQ_003_5["REQ_003.5: Implement JSON checkpoint f..."]
+    end
+    subgraph REQ_004
+    REQ_004["REQ_004: The system must implement a..."]
+    REQ_004_1["REQ_004.1: Implement Working Memory la..."]
+    REQ_004_2["REQ_004.2: Implement Episodic Memory l..."]
+    REQ_004_3["REQ_004.3: Implement Semantic Memory l..."]
+    REQ_004_4["REQ_004.4: Implement Procedural Memory..."]
+    REQ_004_5["REQ_004.5: Implement Context Window Ar..."]
+    end
+    subgraph REQ_005
+    REQ_005["REQ_005: The system must provide aut..."]
+    REQ_005_1["REQ_005.1: Autonomous execution loop i..."]
+    REQ_005_2["REQ_005.2: Requirement and task decomp..."]
+    REQ_005_3["REQ_005.3: Claude API integration for ..."]
+    REQ_005_4["REQ_005.4: Phase-specific execution logic"]
+    REQ_005_5["REQ_005.5: Step definitions and execut..."]
+    end
+    subgraph REQ_006
+    REQ_006["REQ_006: The system must integrate w..."]
+    REQ_006_1["REQ_006.1: Implement BEADS (Build Exec..."]
+    REQ_006_2["REQ_006.2: Implement agent framework s..."]
+    REQ_006_3["REQ_006.3: Implement specification and..."]
+    REQ_006_4["REQ_006.4: Configure IDE integration f..."]
+    end
+    REQ_000 --> REQ_000_1
+    REQ_000 --> REQ_000_2
+    REQ_000 --> REQ_000_3
+    REQ_000 --> REQ_000_4
+    REQ_001 --> REQ_001_1
+    REQ_001 --> REQ_001_2
+    REQ_001 --> REQ_001_3
+    REQ_001 --> REQ_001_4
+    REQ_001 --> REQ_001_5
+    REQ_002 --> REQ_002_1
+    REQ_002 --> REQ_002_2
+    REQ_002 --> REQ_002_3
+    REQ_002 --> REQ_002_4
+    REQ_002 --> REQ_002_5
+    REQ_003 --> REQ_003_1
+    REQ_003 --> REQ_003_2
+    REQ_003 --> REQ_003_3
+    REQ_003 --> REQ_003_4
+    REQ_003 --> REQ_003_5
+    REQ_004 --> REQ_004_1
+    REQ_004 --> REQ_004_2
+    REQ_004 --> REQ_004_3
+    REQ_004 --> REQ_004_4
+    REQ_004 --> REQ_004_5
+    REQ_005 --> REQ_005_1
+    REQ_005 --> REQ_005_2
+    REQ_005 --> REQ_005_3
+    REQ_005 --> REQ_005_4
+    REQ_005 --> REQ_005_5
+    REQ_006 --> REQ_006_1
+    REQ_006 --> REQ_006_2
+    REQ_006 --> REQ_006_3
+    REQ_006 --> REQ_006_4
+    subgraph Components
+    BE_ActPhaseclassinsilmari_rlm_actphasesact(("BE: ActPhase class in silmari_rlm_act/phases/act"))
+    BE_Agentfactoryforinstantiatingagentsfrommarkdowndefinitions(("BE: Agent factory for instantiating agents from markdown definitions"))
+    BE_Agentloaderservicetoparseagents(("BE: Agent loader service to parse agents/*"))
+    BE_Agentloadertoparseagents(("BE: Agent loader to parse agents/*"))
+    BE_AgentMemoryServiceinsilmari_rlm_actservicesagent_memory(("BE: AgentMemoryService in silmari_rlm_act/services/agent_memory"))
+    BE_AgentStateManagerclassinsilmari_rlm_actagentsstate_manager(("BE: AgentStateManager class in silmari_rlm_act/agents/state_manager"))
+    BE_Artifactschemadefinitionsinbaml_srctypes(("BE: Artifact schema definitions in baml_src/types"))
+    BE_Artifactversioninglogicusinggitcommithashesandtimestamps(("BE: Artifact versioning logic using git commit hashes and timestamps"))
+    BE_Asynchronousclientimplementationbaml_clientasync_client(("BE: Asynchronous client implementation (baml_client/async_client"))
+    BE_Autonomousloopcontrollerplanning_pipelineautonomous_loop(("BE: Autonomous loop controller (planning_pipeline/autonomous_loop"))
+    BE_AutonomousLoopReconstructor(("BE: AutonomousLoopReconstructor"))
+    BE_AutonomousLoopStateCapture(("BE: AutonomousLoopStateCapture"))
+    BE_BAMLclientwrapperfortypesafeAIfunctioninvocation(("BE: BAML client wrapper for type-safe AI function invocation"))
+    BE_BAMLfunctiondefinitionsbaml_srcfunctions(("BE: BAML function definitions (baml_src/functions"))
+    BE_BEADSstorageserviceinsilmari_rlm_actservicesbeads_storage(("BE: BEADS storage service in silmari_rlm_act/services/beads_storage"))
+    BE_BeadsArtifactReconciler(("BE: BeadsArtifactReconciler"))
+    BE_BeadsArtifactTracker(("BE: BeadsArtifactTracker"))
+    BE_BeadsControllerclassinplanning_pipelinebeads_controller(("BE: BeadsController class in planning_pipeline/beads_controller"))
+    BE_Binarypackaginganddistributionlogic(("BE: Binary packaging and distribution logic"))
+    BE_Buildscriptsforcrossplatformcompilation(("BE: Build scripts for cross-platform compilation"))
+    BE_CLIpackagegointernalcliforargumentparsingandvalidation(("BE: CLI package (go/internal/cli/) for argument parsing and validation"))
+    BE_Capacitymanagerwithconfigurablesizelimits(("BE: Capacity manager with configurable size limits"))
+    BE_Checkpointcompatibilitycheckervalidatingversiononload(("BE: Checkpoint compatibility checker validating version on load"))
+    BE_Checkpointformatspecificationwithversionfield(("BE: Checkpoint format specification with version field"))
+    BE_Checkpointmanagerforstatepersistenceandrecovery(("BE: Checkpoint manager for state persistence and recovery"))
+    BE_Checkpointmetadatatrackingcreationtimephasesizestatus(("BE: Checkpoint metadata tracking (creation time, phase, size, status)"))
+    BE_Checkpointversioncompatibilitychecker(("BE: Checkpoint version compatibility checker"))
+    BE_CheckpointArchiver(("BE: CheckpointArchiver"))
+    BE_CheckpointCleaner(("BE: CheckpointCleaner"))
+    BE_CheckpointCompressor(("BE: CheckpointCompressor"))
+    BE_CheckpointDeserializer(("BE: CheckpointDeserializer"))
+    BE_CheckpointIndexer(("BE: CheckpointIndexer"))
+    BE_CheckpointManager(("BE: CheckpointManager"))
+    BE_CheckpointPruner(("BE: CheckpointPruner"))
+    BE_CheckpointReader(("BE: CheckpointReader"))
+    BE_CheckpointSerializer(("BE: CheckpointSerializer"))
+    BE_CheckpointStorage(("BE: CheckpointStorage"))
+    BE_CheckpointValidator(("BE: CheckpointValidator"))
+    BE_CheckpointWriter(("BE: CheckpointWriter"))
+    BE_ClaudeAPIintegrationplanning_pipelineclaude_runner(("BE: Claude API integration (planning_pipeline/claude_runner"))
+    BE_Cleanupservicetopruneoldartifactsbasedonretentionpolicy(("BE: Cleanup service to prune old artifacts based on retention policy"))
+    BE_Clientconfigurationbaml_srcclients(("BE: Client configuration (baml_src/clients"))
+    BE_ClientfactoryselectingappropriateLLMendpointbasedonfunctionrequirements(("BE: Client factory selecting appropriate LLM endpoint based on function requirements"))
+    BE_Codegenerationpipelineproducingbaml_clientdirectory(("BE: Code generation pipeline producing baml_client/ directory"))
+    BE_Commandloadertoparsecommands(("BE: Command loader to parse commands/*"))
+    BE_CommandregistryanddispatcherforCLIcommands(("BE: Command registry and dispatcher for CLI commands"))
+    BE_Conceptmodelwithidnamedescriptioncategoryembeddingsmetadatarelationships(("BE: Concept model with id, name, description, category, embeddings, metadata, relationships"))
+    BE_Concurrencyprimitivesgointernalconcurrentforparalleloperations(("BE: Concurrency primitives (go/internal/concurrent/) for parallel operations"))
+    BE_Concurrentworkflowisolationlogictopreventsnapshotcollisions(("BE: Concurrent workflow isolation logic to prevent snapshot collisions"))
+    BE_ConfigGeneratorserviceinsilmari_rlm_actideconfig_generator(("BE: ConfigGenerator service in silmari_rlm_act/ide/config_generator"))
+    BE_Configurationloaderreading(("BE: Configuration loader reading "))
+    BE_Contextdeserializersforallmemorylayers(("BE: Context deserializers for all memory layers"))
+    BE_Contextenginemainentrypointgocmdcontextenginemain(("BE: Context engine main entry point (go/cmd/context-engine/main"))
+    BE_Contextserializersforworkingmemoryepisodicmemorysemanticmemory(("BE: Context serializers for working memory, episodic memory, semantic memory"))
+    BE_Contextwindowstorecontext_window_arraystore(("BE: Context window store (context_window_array/store"))
+    BE_ContextWindowArrayclassincontext_window_arraystore(("BE: ContextWindowArray class in context_window_array/store"))
+    BE_CreateBEADSframeworkintegrationservice(("BE: Create BEADS framework integration service"))
+    BE_Createcheckpointcleanupservicewithconfigurableretentionpolicies(("BE: Create checkpoint cleanup service with configurable retention policies"))
+    BE_Createcheckpointmanagerserviceforcreatingandloadingcheckpoints(("BE: Create checkpoint manager service for creating and loading checkpoints"))
+    BE_Createcheckpointvalidationservicetoverifyintegrityandversioncompatibility(("BE: Create checkpoint validation service to verify integrity and version compatibility"))
+    BE_Createcommanddefinitionparsertovalidatemarkdownstructure(("BE: Create command definition parser to validate markdown structure"))
+    BE_Createconfigurationdirectoryinitializationservice(("BE: Create configuration directory initialization service"))
+    BE_CreateconfigurationvalidationserviceforJSONYAMLfiles(("BE: Create configuration validation service for JSON/YAML files"))
+    BE_Createdependencyinstallationservicefor(("BE: Create dependency installation service for "))
+    BE_CreatedirectorystructurecreationscriptorCLIcommand(("BE: Create directory structure creation script or CLI command"))
+    BE_Createdocumentationindexgenerator(("BE: Create documentation index generator"))
+    BE_Createinitializationtemplatesfor__init__(("BE: Create initialization templates for __init__"))
+    BE_Createmarkdowntemplategeneratorforagentsandcommands(("BE: Create markdown template generator for agents and commands"))
+    BE_Createoutputdirectorymanagerfororganizinganalysisresults(("BE: Create output directory manager for organizing analysis results"))
+    BE_Createvirtualenvironmentinitializationservice(("BE: Create virtual environment initialization service"))
+    BE_DatamodelsgointernalmodelsmatchingPythonschema(("BE: Data models (go/internal/models/) matching Python schema"))
+    BE_DatabasemigrationmanagerusingAlembicorcustomversioning(("BE: Database migration manager using Alembic or custom versioning"))
+    BE_Decisionloggerinsilmari_rlm_actspecdecision_logger(("BE: Decision logger in silmari_rlm_act/spec/decision_logger"))
+    BE_DecompositionTreeReconstructor(("BE: DecompositionTreeReconstructor"))
+    BE_DecompositionTreeSerializer(("BE: DecompositionTreeSerializer"))
+    BE_DependencyGraphSerializer(("BE: DependencyGraphSerializer"))
+    BE_DependencyResolver(("BE: DependencyResolver"))
+    BE_Diffgeneratortocomparespecversionsandshowchanges(("BE: Diff generator to compare spec versions and show changes"))
+    BE_DocumentationgeneratortocreateIDEsetupguidesfromconfigtemplates(("BE: Documentation generator to create IDE setup guides from config templates"))
+    BE_Episodemodelwithidtimestampphaseactionresultparent_idmetadata(("BE: Episode model with id, timestamp, phase, action, result, parent_id, metadata"))
+    BE_EpisodicMemoryclassincontext_window_arrayimplementation_context(("BE: EpisodicMemory class in context_window_array/implementation_context"))
+    BE_ErrorcodemappingtabletranslatingGoexitcodestoPythonexceptions(("BE: Error code mapping table translating Go exit codes to Python exceptions"))
+    BE_Errorhandlingandretrylogicforfilesystemfailures(("BE: Error handling and retry logic for file system failures"))
+    BE_Executionloggermiddlewareintegratedintoplanning_pipelineautonomous_loop(("BE: Execution logger middleware integrated into planning_pipeline/autonomous_loop"))
+    BE_Executionutilitiesgointernalexecforsubprocessmanagement(("BE: Execution utilities (go/internal/exec/) for subprocess management"))
+    BE_Filesystemutilitiesgointernalfsgointernalpathgointernalpaths(("BE: File system utilities (go/internal/fs/, go/internal/path/, go/internal/paths/)"))
+    BE_Filebasedsemaphoreforworkflowcoordinationbetweencomponents(("BE: File-based semaphore for workflow coordination between components"))
+    BE_Filebasedstorageserviceinsilmari_rlm_actservicesspec_storage(("BE: File-based storage service in silmari_rlm_act/services/spec_storage"))
+    BE_Generatorconfigurationbaml_srcgenerators(("BE: Generator configuration (baml_src/generators"))
+    BE_Gitintegrationservicetocommitspecchangeswithdescriptivemessages(("BE: Git integration service to commit spec changes with descriptive messages"))
+    BE_GobinaryoutputparserconvertingstdoutstderrtoPythonobjects(("BE: Go binary output parser converting stdout/stderr to Python objects"))
+    BE_IPCcoordinatormanaginglifecycleofGosubprocesses(("BE: IPC coordinator managing lifecycle of Go subprocesses"))
+    BE_ImplementSQLiteschemamigrationservicefor(("BE: Implement SQLite schema migration service for "))
+    BE_Implementagentdefinitionparsertovalidatemarkdownstructure(("BE: Implement agent definition parser to validate markdown structure"))
+    BE_Implementbuildartifactarchivingserviceforlongtermstorage(("BE: Implement build artifact archiving service for long-term storage"))
+    BE_Implementbuildartifactmanagerservicefordistdirectory(("BE: Implement build artifact manager service for dist/ directory"))
+    BE_Implementcachecleanupservicewithconfigurablepolicies(("BE: Implement cache cleanup service with configurable policies"))
+    BE_Implementcheckpointindexingserviceforfastlookupandretrieval(("BE: Implement checkpoint indexing service for fast lookup and retrieval"))
+    BE_Implementcheckpointrecoveryserviceforresumingfromsavedstate(("BE: Implement checkpoint recovery service for resuming from saved state"))
+    BE_ImplementcheckpointserializationserviceforconvertingstatetoJSON(("BE: Implement checkpoint serialization service for converting state to JSON"))
+    BE_Implementconfigurationloaderservicewithenvironmentspecificoverrides(("BE: Implement configuration loader service with environment-specific overrides"))
+    BE_Implementdirectoryvalidationservicetoverifystructurecorrectness(("BE: Implement directory validation service to verify structure correctness"))
+    BE_ImplemententrypointregistrationforCLItools(("BE: Implement entry point registration for CLI tools"))
+    BE_Implementspecificationtrackingservicefor(("BE: Implement specification tracking service for "))
+    BE_Implementtestsuitescaffoldingservice(("BE: Implement test suite scaffolding service"))
+    BE_Implementationcontextintegrationviacontext_window_arrayimplementation_context(("BE: Implementation context integration via context_window_array/implementation_context"))
+    BE_InmemorycacheusingOrderedDictorlru_cacheforO1access(("BE: In-memory cache using OrderedDict or lru_cache for O(1) access"))
+    BE_InlinedBAMLdefinitionsbaml_clientinlinedbaml(("BE: Inlined BAML definitions (baml_client/inlinedbaml"))
+    BE_Integrationwith(("BE: Integration with "))
+    BE_IntegrationwithBAMLforstructuredplangeneration(("BE: Integration with BAML for structured plan generation"))
+    BE_Integrationwithagentsandcommandsforproceduretemplates(("BE: Integration with agents/ and commands/ for procedure templates"))
+    BE_Integrationwithbaml_clientforcodegeneration(("BE: Integration with baml_client for code generation"))
+    BE_Integrationwithbaml_clientforstructuredAIanalysis(("BE: Integration with baml_client for structured AI analysis"))
+    BE_Integrationwithbaml_clientforstructuredLLMcalls(("BE: Integration with baml_client/ for structured LLM calls"))
+    BE_Integrationwithcontext_window_arrayformemorymanagement(("BE: Integration with context_window_array for memory management"))
+    BE_Integrationwithcontext_window_arrayforstatemanagement(("BE: Integration with context_window_array for state management"))
+    BE_Integrationwithcontext_window_arraybatching(("BE: Integration with context_window_array/batching"))
+    BE_Integrationwithcontext_window_arraysearch_index(("BE: Integration with context_window_array/search_index"))
+    BE_Integrationwithplanning_pipelinesteps(("BE: Integration with planning_pipeline/steps"))
+    BE_Integrationwithqualitytoolsruffmypyetc(("BE: Integration with quality tools (ruff, mypy, etc"))
+    BE_Integrationwithtestrunnerspytestgotestetc(("BE: Integration with test runners (pytest, go test, etc"))
+    BE_JSONhandlinggointernaljsongointernaljsonutilwithstreamingsupport(("BE: JSON handling (go/internal/json/, go/internal/jsonutil/) with streaming support"))
+    BE_LearnPhaseclassinsilmari_rlm_actphaseslearn(("BE: LearnPhase class in silmari_rlm_act/phases/learn"))
+    BE_Looprunnerentrypointgocmdlooprunnermain(("BE: Loop runner entry point (go/cmd/loop-runner/main"))
+    BE_ModelPhaseclassinsilmari_rlm_actphasesmodel(("BE: ModelPhase class in silmari_rlm_act/phases/model"))
+    BE_Pathresolutionutilityensuringconsistentbehavioracrossplatformsandlanguages(("BE: Path resolution utility ensuring consistent behavior across platforms and languages"))
+    BE_Phaseexecutioncoordinatorwithdependencyresolution(("BE: Phase execution coordinator with dependency resolution"))
+    BE_Phaseimplementationsinsilmari_rlm_actphasesdirectoryforeachRLMActstage(("BE: Phase implementations in silmari_rlm_act/phases/ directory for each RLM-Act stage"))
+    BE_Phasespecificartifactregistrationhooksinsilmari_rlm_actphasesforeachphase(("BE: Phase-specific artifact registration hooks in silmari_rlm_act/phases/ for each phase"))
+    BE_PhasespecificstateextractorsforeachRLMActphase(("BE: Phase-specific state extractors for each RLM-Act phase"))
+    BE_PhasespecificstatereconstructorsforeachRLMActphase(("BE: Phase-specific state reconstructors for each RLM-Act phase"))
+    BE_Pipelineorchestrationenginepipeline(("BE: Pipeline orchestration engine (pipeline"))
+    BE_PipelineReconstructor(("BE: PipelineReconstructor"))
+    BE_Planningenginegointernalplanningforrequirementdecomposition(("BE: Planning engine (go/internal/planning/) for requirement decomposition"))
+    BE_ProceduralMemoryclassincontext_window_arraystore(("BE: ProceduralMemory class in context_window_array/store"))
+    BE_Proceduremodelwithidnamegoalstepspreconditionspostconditionsparametersmetadata(("BE: Procedure model with id, name, goal, steps, preconditions, postconditions, parameters, metadata"))
+    BE_PythonsubprocesswrapperforinvokingGobinariescontextenginelooprunner(("BE: Python subprocess wrapper for invoking Go binaries (context-engine, loop-runner)"))
+    BE_Recoveryreportgeneratorwithdetailedrecoverystatistics(("BE: Recovery report generator with detailed recovery statistics"))
+    BE_Recoveryverificationlogictoensurestateconsistency(("BE: Recovery verification logic to ensure state consistency"))
+    BE_Recoveryverificationtoensureworkflowstateconsistency(("BE: Recovery verification to ensure workflow state consistency"))
+    BE_ResearchPhaseclassinsilmari_rlm_actphasesresearch(("BE: ResearchPhase class in silmari_rlm_act/phases/research"))
+    BE_ResponseparserconvertingLLMoutputstotypedPythonobjects(("BE: Response parser converting LLM outputs to typed Python objects"))
+    BE_Resultvalidationandtransformationbetweenphases(("BE: Result validation and transformation between phases"))
+    BE_Retrylogicwithexponentialbackofffortransientfailures(("BE: Retry logic with exponential backoff for transient failures"))
+    BE_SQLiteorPostgreSQLstorageforstructuredepisodedata(("BE: SQLite or PostgreSQL storage for structured episode data"))
+    BE_SQLiteschemadefinitionin(("BE: SQLite schema definition in "))
+    BE_SchemavalidationlibraryusedbybothPythonandGocomponents(("BE: Schema validation library used by both Python and Go components"))
+    BE_Searchindexintegrationviacontext_window_arraysearch_index(("BE: Search index integration via context_window_array/search_index"))
+    BE_Searchindexerforspecsandstorieswithkeywordtagandfulltextsearchcapabilities(("BE: Search indexer for specs and stories with keyword, tag, and full-text search capabilities"))
+    BE_SemanticMemoryclassincontext_window_arraystore(("BE: SemanticMemory class in context_window_array/store"))
+    BE_SettingssynchronizertoupdateIDEconfigswhenprojectsettingschange(("BE: Settings synchronizer to update IDE configs when project settings change"))
+    BE_SharedJSONschemadefinitionsinbothPythonandGo(("BE: Shared JSON schema definitions in both Python and Go"))
+    BE_Specversioningservicetocreatenewversionsonupdatesandmaintainversionhistory(("BE: Spec versioning service to create new versions on updates and maintain version history"))
+    BE_SpecStoryManagerclassinsilmari_rlm_actspecmanager(("BE: SpecStoryManager class in silmari_rlm_act/spec/manager"))
+    BE_Staterecoveryservicetorebuildagentcontextfrommemory(("BE: State recovery service to rebuild agent context from memory"))
+    BE_StepExecutionReconciler(("BE: StepExecutionReconciler"))
+    BE_StepHistoryTracker(("BE: StepHistoryTracker"))
+    BE_StorageQuotaEnforcer(("BE: StorageQuotaEnforcer"))
+    BE_Streamingresponsehandlerforincrementalprocessing(("BE: Streaming response handler for incremental processing"))
+    BE_Synchronousclientimplementationbaml_clientsync_client(("BE: Synchronous client implementation (baml_client/sync_client"))
+    BE_TTLmanagerwithbackgroundthreadforexpirationcleanup(("BE: TTL manager with background thread for expiration cleanup"))
+    BE_Taskdecompositionengineplanning_pipelinedecomposition(("BE: Task decomposition engine (planning_pipeline/decomposition"))
+    BE_Traceabilityservicetobuildandqueryrelationshipsbetweenspecsstoriesandimplementationfiles(("BE: Traceability service to build and query relationships between specs, stories, and implementation files"))
+    BE_Typebuilderbaml_clienttype_builder(("BE: Type builder (baml_client/type_builder"))
+    BE_TypeconverterbetweenBAMLtypesPythondataclassesandGostructs(("BE: Type converter between BAML types, Python dataclasses, and Go structs"))
+    BE_Typeschemabaml_srctypes(("BE: Type schema (baml_src/types"))
+    BE_UnifiedloggingadapterforwardingGologstoPythonloggingsystem(("BE: Unified logging adapter forwarding Go logs to Python logging system"))
+    BE_Validationengineensuringresponsesmatchdeclaredschemas(("BE: Validation engine ensuring responses match declared schemas"))
+    BE_ValidationservicetoverifyIDEconfigsreferencevalidfilesandcommands(("BE: Validation service to verify IDE configs reference valid files and commands"))
+    BE_VectordatabaseintegrationChromaDBPineconeorFAISS(("BE: Vector database integration (ChromaDB, Pinecone, or FAISS)"))
+    BE_VerifyPhaseclassinsilmari_rlm_actphasesverify(("BE: VerifyPhase class in silmari_rlm_act/phases/verify"))
+    BE_Workflowcheckpointmanagerforinterruptedrecovery(("BE: Workflow checkpoint manager for interrupted recovery"))
+    BE_WorkflowCheckpointManager(("BE: WorkflowCheckpointManager"))
+    BE_WorkflowDeserializer(("BE: WorkflowDeserializer"))
+    BE_WorkflowExecutionResumer(("BE: WorkflowExecutionResumer"))
+    BE_WorkflowSerializer(("BE: WorkflowSerializer"))
+    BE_WorkflowSnapshotWriter(("BE: WorkflowSnapshotWriter"))
+    BE_Workingmemoryintegrationviacontext_window_arrayworking_context(("BE: Working memory integration via context_window_array/working_context"))
+    BE_WorkingMemoryclassincontext_window_arrayworking_context(("BE: WorkingMemory class in context_window_array/working_context"))
+    BE_add_relationshipsource_idtarget_idrelationship_typemethod(("BE: add_relationship(source_id, target_id, relationship_type) method"))
+    BE_analyze_requirementsservicetoparseanddecomposetasks(("BE: analyze_requirements() service to parse and decompose tasks"))
+    BE_append_episodeepisodemethodforaddingnewevents(("BE: append_episode(episode) method for adding new events"))
+    BE_archive_oldretention_daysmethodforcleanup(("BE: archive_old(retention_days) method for cleanup"))
+    BE_batch_contextlarge_contextbatch_sizemethodforchunking(("BE: batch_context(large_context, batch_size) method for chunking"))
+    BE_build_implementation_contextservicetocompileexamplesandtemplates(("BE: build_implementation_context() service to compile examples and templates"))
+    BE_check_code_qualityserviceforlintingandtypechecking(("BE: check_code_quality() service for linting and type checking"))
+    BE_check_regressionsservicetorunregressiontests(("BE: check_regressions() service to run regression tests"))
+    BE_clearmethodtoresetstate(("BE: clear() method to reset state"))
+    BE_compose_proceduresprocedure_idscomposition_logicmethodforworkflowbuilding(("BE: compose_procedures(procedure_ids, composition_logic) method for workflow building"))
+    BE_compress_contextcontexttarget_tokensmethodforsummarization(("BE: compress_context(context, target_tokens) method for summarization"))
+    BE_count_tokenstextmethodusingtiktokenorsimilar(("BE: count_tokens(text) method using tiktoken or similar"))
+    BE_create_fileservicewithWritetoolintegration(("BE: create_file() service with Write tool integration"))
+    BE_create_git_commitserviceforversioncontroloptional(("BE: create_git_commit() service for version control (optional)"))
+    BE_create_implementation_planservicetogeneratestepbystepstrategy(("BE: create_implementation_plan() service to generate step-by-step strategy"))
+    BE_define_api_contractsservicetospecifyendpointsandschemas(("BE: define_api_contracts() service to specify endpoints and schemas"))
+    BE_define_data_modelsservicetospecifyschemasandtypes(("BE: define_data_models() service to specify schemas and types"))
+    BE_detect_patternswindow_sizemethodforrecurringsequencedetection(("BE: detect_patterns(window_size) method for recurring sequence detection"))
+    BE_executemethodorchestratingimplementationexecution(("BE: execute() method orchestrating implementation execution"))
+    BE_executemethodorchestratinglearningactivities(("BE: execute() method orchestrating learning activities"))
+    BE_executemethodorchestratingmodelingactivities(("BE: execute() method orchestrating modeling activities"))
+    BE_executemethodorchestratingresearchactivities(("BE: execute() method orchestrating research activities"))
+    BE_executemethodorchestratingverificationactivities(("BE: execute() method orchestrating verification activities"))
+    BE_execute_procedureidparametersmethodwithexecutiontracking(("BE: execute_procedure(id, parameters) method with execution tracking"))
+    BE_execute_stepservicetorunindividualplansteps(("BE: execute_step() service to run individual plan steps"))
+    BE_export_timelinestartendformatmethodforvisualization(("BE: export_timeline(start, end, format) method for visualization"))
+    BE_extract_patternsservicetoidentifycodepatternsandconventions(("BE: extract_patterns() service to identify code patterns and conventions"))
+    BE_extract_patternsservicetoidentifycodingpatterns(("BE: extract_patterns() service to identify coding patterns"))
+    BE_find_by_goalgoal_descriptionmethodusingsemanticmatching(("BE: find_by_goal(goal_description) method using semantic matching"))
+    BE_find_similarepisodethresholdmethodusingembeddingsimilarity(("BE: find_similar(episode, threshold) method using embedding similarity"))
+    BE_generate_codeservicetocreatecodefollowingpatterns(("BE: generate_code() service to create code following patterns"))
+    BE_generate_implementation_summaryservicetocompileresults(("BE: generate_implementation_summary() service to compile results"))
+    BE_generate_learning_summaryservicetocompileinsights(("BE: generate_learning_summary() service to compile insights"))
+    BE_generate_research_reportservicetocompilefindings(("BE: generate_research_report() service to compile findings"))
+    BE_generate_validation_rulesserviceforbusinesslogic(("BE: generate_validation_rules() service for business logic"))
+    BE_generate_verification_reportservicetocompileresults(("BE: generate_verification_report() service to compile results"))
+    BE_getkeymethodwithoptionaldefaultvalue(("BE: get(key) method with optional default value"))
+    BE_get_contexttaskmax_tokensmethodforassemblingcompletecontext(("BE: get_context(task, max_tokens) method for assembling complete context"))
+    BE_get_metricsprocedure_idmethodforeffectivenessstatistics(("BE: get_metrics(procedure_id) method for effectiveness statistics"))
+    BE_get_recentnmethodforlastNepisodes(("BE: get_recent(n) method for last N episodes"))
+    BE_get_relatedconcept_idrelationship_typemethodforgraphtraversal(("BE: get_related(concept_id, relationship_type) method for graph traversal"))
+    BE_handle_execution_errorserviceforerrorrecovery(("BE: handle_execution_error() service for error recovery"))
+    BE_handle_verification_failureserviceforretryrollbacklogic(("BE: handle_verification_failure() service for retry/rollback logic"))
+    BE_identify_dependenciesservicetomapcomponentrelationships(("BE: identify_dependencies() service to map component relationships"))
+    BE_identify_file_changesservicetolistfilestocreatemodify(("BE: identify_file_changes() service to list files to create/modify"))
+    BE_identify_reusable_componentsservicetofindutilitiesandhelpers(("BE: identify_reusable_components() service to find utilities and helpers"))
+    BE_learn_from_episodeepisodemethodforknowledgeextraction(("BE: learn_from_episode(episode) method for knowledge extraction"))
+    BE_map_interactionsservicetomodelcomponentdependencies(("BE: map_interactions() service to model component dependencies"))
+    BE_metricsmethodreturningusagestatistics(("BE: metrics() method returning usage statistics"))
+    BE_modify_fileservicewithEdittoolintegration(("BE: modify_file() service with Edit tool integration"))
+    BE_populate_episodic_memoryserviceforcodeexamplestorage(("BE: populate_episodic_memory() service for code example storage"))
+    BE_populate_procedural_memoryserviceforimplementationsteps(("BE: populate_procedural_memory() service for implementation steps"))
+    BE_populate_semantic_memoryserviceforpatternknowledge(("BE: populate_semantic_memory() service for pattern knowledge"))
+    BE_preview_contexttaskmethodfordebuggingandtransparency(("BE: preview_context(task) method for debugging and transparency"))
+    BE_prioritize_contextitemsmax_tokensmethodforintelligentselection(("BE: prioritize_context(items, max_tokens) method for intelligent selection"))
+    BE_query_all_layersquerymethodforcrosslayersearch(("BE: query_all_layers(query) method for cross-layer search"))
+    BE_query_by_phasephasemethodforphasespecificretrieval(("BE: query_by_phase(phase) method for phase-specific retrieval"))
+    BE_query_by_timestartendmethodfortemporalrangequeries(("BE: query_by_time(start, end) method for temporal range queries"))
+    BE_read_identified_filesservicetoloadrelevantcode(("BE: read_identified_files() service to load relevant code"))
+    BE_recommend_procedurescontexttop_kmethodforcontextbasedsuggestions(("BE: recommend_procedures(context, top_k) method for context-based suggestions"))
+    BE_record_outcomeexecution_idsuccessdurationerrorsmethod(("BE: record_outcome(execution_id, success, duration, errors) method"))
+    BE_refine_procedureidfeedbackmethodforimprovement(("BE: refine_procedure(id, feedback) method for improvement"))
+    BE_refresh_contexttask_idmethodforupdatinglongrunningtaskcontext(("BE: refresh_context(task_id) method for updating long-running task context"))
+    BE_restoresnapshotmethodforcheckpointrecovery(("BE: restore(snapshot) method for checkpoint recovery"))
+    BE_retrieve_conceptidmethodfordirectaccess(("BE: retrieve_concept(id) method for direct access"))
+    BE_retrieve_procedureidmethodfordirectaccess(("BE: retrieve_procedure(id) method for direct access"))
+    BE_run_testsserviceusingBashtoolforpytesttestrunners(("BE: run_tests() service using Bash tool for pytest/test runners"))
+    BE_search_codebaseserviceusingGlobGrepforfilediscovery(("BE: search_codebase() service using Glob/Grep for file discovery"))
+    BE_search_hybridqueryfilterstop_kmethodcombiningkeywordandsemantic(("BE: search_hybrid(query, filters, top_k) method combining keyword and semantic"))
+    BE_search_similarquerytop_kthresholdmethodforsemanticsearch(("BE: search_similar(query, top_k, threshold) method for semantic search"))
+    BE_setkeyvaluettlmethodwithoptionalTTLoverride(("BE: set(key, value, ttl) method with optional TTL override"))
+    BE_snapshotmethodforcheckpointcreation(("BE: snapshot() method for checkpoint creation"))
+    BE_specify_componentsservicetodefinecomponentresponsibilities(("BE: specify_components() service to define component responsibilities"))
+    BE_store_conceptconceptmethodforaddingknowledge(("BE: store_concept(concept) method for adding knowledge"))
+    BE_store_procedureproceduremethodforaddingworkflows(("BE: store_procedure(procedure) method for adding workflows"))
+    BE_test_integrationserviceforintegrationtesting(("BE: test_integration() service for integration testing"))
+    BE_updatekeytransform_fnmethodforatomicupdates(("BE: update(key, transform_fn) method for atomic updates"))
+    BE_update_conceptidupdatesmethodwithversiontracking(("BE: update_concept(id, updates) method with version tracking"))
+    BE_update_working_memoryservicetotrackexecutionstate(("BE: update_working_memory() service to track execution state"))
+    BE_validate_api_contractsserviceforAPItesting(("BE: validate_api_contracts() service for API testing"))
+    BE_validate_plan_feasibilityservicetocheckplancompleteness(("BE: validate_plan_feasibility() service to check plan completeness"))
+    BE_validate_requirementsservicetocheckacceptancecriteria(("BE: validate_requirements() service to check acceptance criteria"))
+    BE_validate_step_completionservicetoverifyeachstep(("BE: validate_step_completion() service to verify each step"))
+    BE_verify_patternsservicetovalidatecodefollowsconventions(("BE: verify_patterns() service to validate code follows conventions"))
+    FE_CLIinterfacewithcommandparsingandhelpdocumentation(("FE: CLI interface with command parsing and help documentation"))
+    FE_CLIinterfacewithsubcommandstructurecontextenginelooprunner(("FE: CLI interface with subcommand structure (context-engine, loop-runner)"))
+    FE_CLIprogressindicatorshowingresearchactivitiessearchinganalyzingindexing(("FE: CLI progress indicator showing research activities (searching, analyzing, indexing)"))
+    FE_Checkpointbrowsertoviewanddeleteindividualcheckpoints(("FE: Checkpoint browser to view and delete individual checkpoints"))
+    FE_Codediffdisplayformodifiedfiles(("FE: Code diff display for modified files"))
+    FE_Codequalitymetricsdisplaylinterrorstypecoverage(("FE: Code quality metrics display (lint errors, type coverage)"))
+    FE_Coloredterminaloutputforstatuswarningsanderrors(("FE: Colored terminal output for status, warnings, and errors"))
+    FE_Completionsummarywithfileschanged(("FE: Completion summary with files changed"))
+    FE_Componentinteractiondiagram(("FE: Component interaction diagram"))
+    FE_Datamodelvisualizationwithfieldsandrelationships(("FE: Data model visualization with fields and relationships"))
+    FE_Errormessageswithactionablerecoverysuggestions(("FE: Error messages with actionable recovery suggestions"))
+    FE_Errormessageswithrecoveryoptions(("FE: Error messages with recovery options"))
+    FE_Filechangepreviewcreatemodifydelete(("FE: File change preview (create/modify/delete)"))
+    FE_Filechangepreviewbeforewritingcreatemodify(("FE: File change preview before writing (create/modify)"))
+    FE_Flagparsingforconfigurationoptionsandruntimeparameters(("FE: Flag parsing for configuration options and runtime parameters"))
+    FE_Helptextgenerationforallcommandsandflags(("FE: Help text generation for all commands and flags"))
+    FE_Implementationplandisplaywithstepbystepbreakdown(("FE: Implementation plan display with step-by-step breakdown"))
+    FE_Interactiveoptionsforretryorrollbackonfailure(("FE: Interactive options for retry or rollback on failure"))
+    FE_Interactiveplanreviewandapprovalinterface(("FE: Interactive plan review and approval interface"))
+    FE_Interactivepromptsforuserclarificationwhenrequirementsareambiguous(("FE: Interactive prompts for user clarification when requirements are ambiguous"))
+    FE_Interactivepromptsforuserdecisionsduringautonomousloops(("FE: Interactive prompts for user decisions during autonomous loops"))
+    FE_Interactiveviewofreusablecomponentsfound(("FE: Interactive view of reusable components found"))
+    FE_Learningsummarydisplaywithdiscoveredpatternsandexamples(("FE: Learning summary display with discovered patterns and examples"))
+    FE_Manualcleanuptriggerbuttonwithconfirmationdialog(("FE: Manual cleanup trigger button with confirmation dialog"))
+    FE_NABAMLisbackendfocusedforAIorchestration(("FE: N/A - BAML is backend-focused for AI orchestration"))
+    FE_NAInteroperabilitylayerisbackendinfrastructure(("FE: N/A - Interoperability layer is backend infrastructure"))
+    FE_NofrontendcomponentsrequiredIDEconfigurationfilesonly(("FE: No frontend components required - IDE configuration files only"))
+    FE_NofrontendcomponentsrequiredbackendCLIonlyintegration(("FE: No frontend components required - backend/CLI only integration"))
+    FE_Nofrontendcomponentsrequiredforcheckpointpersistence(("FE: No frontend components required for checkpoint persistence"))
+    FE_Nofrontendcomponentsrequiredforcheckpointrecovery(("FE: No frontend components required for checkpoint recovery"))
+    FE_Nofrontendcomponentsrequiredforworkflowsnapshotmanagement(("FE: No frontend components required for workflow snapshot management"))
+    FE_Notapplicablebackendmemorysystem(("FE: Not applicable - backend memory system"))
+    FE_Patternlibraryvisualization(("FE: Pattern library visualization"))
+    FE_Progressbarsforlongrunningoperations(("FE: Progress bars for long-running operations"))
+    FE_Progressdisplayshowingfilesbeingreadandanalyzed(("FE: Progress display showing files being read and analyzed"))
+    FE_Progressindicatorsforlongrunningphaseexecutions(("FE: Progress indicators for long-running phase executions"))
+    FE_Realtimeprogressindicatorshowingcurrentstepexecution(("FE: Real-time progress indicator showing current step execution"))
+    FE_Recoverynotificationcomponenttoinformuserofworkflowresumption(("FE: Recovery notification component to inform user of workflow resumption"))
+    FE_Recoverysummarydashboardshowingrecoveredworkflowstate(("FE: Recovery summary dashboard showing recovered workflow state"))
+    FE_Researchreportdisplaywithfindingsfilelocationsandrecommendations(("FE: Research report display with findings, file locations, and recommendations"))
+    FE_Statusdisplayshowingcurrentphasecheckpointstateandcontextmemoryusage(("FE: Status display showing current phase, checkpoint state, and context memory usage"))
+    FE_Stepstatusvisualizationhighlightingcompletedvs(("FE: Step status visualization highlighting completed vs"))
+    FE_Stepbystepexecutionlogwithsuccessfailurestatus(("FE: Step-by-step execution log with success/failure status"))
+    FE_StoragemanagementUIpanelshowingcheckpointdiskusagebypipelineworkflow(("FE: Storage management UI panel showing checkpoint disk usage by pipeline/workflow"))
+    FE_Storagequotaconfigurationinterface(("FE: Storage quota configuration interface"))
+    FE_Testexecutionprogressdisplaywithpassfailcounts(("FE: Test execution progress display with pass/fail counts"))
+    FE_Testfailuredetailswitherrormessagesandstacktraces(("FE: Test failure details with error messages and stack traces"))
+    FE_Verificationchecklistshowingrequirementsatisfaction(("FE: Verification checklist showing requirement satisfaction"))
+    FE_Verificationsummarywithoverallpassfailstatus(("FE: Verification summary with overall pass/fail status"))
+    FE_Versioninformationdisplay(("FE: Version information display"))
+    FE_Visualizationofdependencygraphifapplicable(("FE: Visualization of dependency graph if applicable"))
+    MW_APIkeyinjectionfromenvironmentvariablesorconfiguration(("MW: API key injection from environment variables or configuration"))
+    MW_Accesscontrolforconceptcategories(("MW: Access control for concept categories"))
+    MW_AddGomodulepathresolution(("MW: Add Go module path resolution"))
+    MW_Addcacheinvalidationmiddlewarebasedondependencychanges(("MW: Add cache invalidation middleware based on dependency changes"))
+    MW_Addcheckpointcompressionmiddlewareforlargestatefiles(("MW: Add checkpoint compression middleware for large state files"))
+    MW_Addcheckpointcreationmiddlewaretoautomaticallysavestateatphaseboundaries(("MW: Add checkpoint creation middleware to automatically save state at phase boundaries"))
+    MW_Addconfigurationcachingmiddlewareforperformance(("MW: Add configuration caching middleware for performance"))
+    MW_AddconfigurationvalidationmiddlewaretoverifyJSONYAMLschemacompliance(("MW: Add configuration validation middleware to verify JSON/YAML schema compliance"))
+    MW_Adddocumentationlintingmiddleware(("MW: Add documentation linting middleware"))
+    MW_Addmarkdownvalidationmiddlewaretoensureconsistentformatting(("MW: Add markdown validation middleware to ensure consistent formatting"))
+    MW_Addpathvalidationmiddlewaretoensuredirectoriesexistbeforeoperations(("MW: Add path validation middleware to ensure directories exist before operations"))
+    MW_Addvirtualenvironmentactivationmiddlewareforcommandexecution(("MW: Add virtual environment activation middleware for command execution"))
+    MW_Artifactvalidationmiddlewaretoensureschemacompliancebeforestorage(("MW: Artifact validation middleware to ensure schema compliance before storage"))
+    MW_Checkpointcreationaftereachmajorstep(("MW: Checkpoint creation after each major step"))
+    MW_Checkpointcreationafterfilereadingandanalysis(("MW: Checkpoint creation after file reading and analysis"))
+    MW_Checkpointcreationbeforeandafterresearchactivities(("MW: Checkpoint creation before and after research activities"))
+    MW_Checkpointcreationwithcompleteimplementationmodel(("MW: Checkpoint creation with complete implementation model"))
+    MW_Checkpointcreationwithverificationresults(("MW: Checkpoint creation with verification results"))
+    MW_Checkpointfilelockingduringrecoverytopreventconcurrentaccess(("MW: Checkpoint file locking during recovery to prevent concurrent access"))
+    MW_Checkpointindexingtriggersafterfilewrites(("MW: Checkpoint indexing triggers after file writes"))
+    MW_Checkpointvalidationmiddlewaretoensurestateconsistencybeforepersistence(("MW: Checkpoint validation middleware to ensure state consistency before persistence"))
+    MW_Checkpointversioncompatibilitychecking(("MW: Checkpoint version compatibility checking"))
+    MW_Codevalidationsyntaximportsbeforefilewrite(("MW: Code validation (syntax, imports) before file write"))
+    MW_Compressionforlargemetadatafields(("MW: Compression for large metadata fields"))
+    MW_Concurrentcheckpointaccesspreventionusingfilelocks(("MW: Concurrent checkpoint access prevention using file locks"))
+    MW_Configurationinjectionensuringallcomponentsseeconsistentsettings(("MW: Configuration injection ensuring all components see consistent settings"))
+    MW_Configurationloadingfrom(("MW: Configuration loading from "))
+    MW_Configurationloadingfromenvironmentvariablesandconfigfiles(("MW: Configuration loading from environment variables and config files"))
+    MW_Conflictdetectione(("MW: Conflict detection (e"))
+    MW_Contextsizelimitsmanagement(("MW: Context size limits management"))
+    MW_Contextsizemanagementandbatching(("MW: Context size management and batching"))
+    MW_ContextvalidationforLLMcompatibility(("MW: Context validation for LLM compatibility"))
+    MW_Contextwindowsizeenforcementandoverflowhandling(("MW: Context window size enforcement and overflow handling"))
+    MW_Databaseconnectionpoolingtohandleconcurrentagentoperations(("MW: Database connection pooling to handle concurrent agent operations"))
+    MW_Deduplicationlogictopreventredundantconcepts(("MW: Deduplication logic to prevent redundant concepts"))
+    MW_Dependencyresolutionandordering(("MW: Dependency resolution and ordering"))
+    MW_Diskspacemonitoringbeforecheckpointcreation(("MW: Disk space monitoring before checkpoint creation"))
+    MW_Diskspacemonitoringservicewithalertsforlowspaceconditions(("MW: Disk space monitoring service with alerts for low space conditions"))
+    MW_Embeddinggenerationpipelinewithcaching(("MW: Embedding generation pipeline with caching"))
+    MW_EnvironmentvariableexpansioninIDEsettingsforflexibilityacrossmachines(("MW: Environment variable expansion in IDE settings for flexibility across machines"))
+    MW_Erroraggregationandreporting(("MW: Error aggregation and reporting"))
+    MW_Errorboundarywrappingforgracefuldegradation(("MW: Error boundary wrapping for graceful degradation"))
+    MW_Errorhandlingforcorruptedormissingartifactfiles(("MW: Error handling for corrupted or missing artifact files"))
+    MW_Errorhandlingforfileaccessfailures(("MW: Error handling for file access failures"))
+    MW_Errorhandlingforfileparsingfailures(("MW: Error handling for file parsing failures"))
+    MW_Errorhandlingforinvalidplanstructures(("MW: Error handling for invalid plan structures"))
+    MW_Errorhandlingwithretrylogic(("MW: Error handling with retry logic"))
+    MW_ErrortransformationfromLLMerrorstoapplicationexceptions(("MW: Error transformation from LLM errors to application exceptions"))
+    MW_Errortransformationmiddlewarewrappingcrosslanguageexceptions(("MW: Error transformation middleware wrapping cross-language exceptions"))
+    MW_Errorwrappingwithcontextpreservation(("MW: Error wrapping with context preservation"))
+    MW_Executionsandboxforsafeproceduretesting(("MW: Execution sandbox for safe procedure testing"))
+    MW_Filelockingmechanismtopreventconcurrenteditstosamespec(("MW: File locking mechanism to prevent concurrent edits to same spec"))
+    MW_Fileoperationvalidationandrollbackonfailure(("MW: File operation validation and rollback on failure"))
+    MW_Filesystemeventmonitoringforcheckpointdirectorychanges(("MW: File system event monitoring for checkpoint directory changes"))
+    MW_Filesystempermissionsverificationforcheckpointdirectory(("MW: File system permissions verification for checkpoint directory"))
+    MW_Implementbuildartifactvalidationmiddleware(("MW: Implement build artifact validation middleware"))
+    MW_ImplementcheckpointvalidationmiddlewaretoverifyJSONschemacompliance(("MW: Implement checkpoint validation middleware to verify JSON schema compliance"))
+    MW_Implementconfigurationencryptionmiddlewareforsensitivesettings(("MW: Implement configuration encryption middleware for sensitive settings"))
+    MW_ImplementimportresolutionmiddlewareforPythonpackages(("MW: Implement import resolution middleware for Python packages"))
+    MW_Implementtestdiscoverymiddlewareforpytestintegration(("MW: Implement test discovery middleware for pytest integration"))
+    MW_Indexcreationfortimestampphaseandparent_id(("MW: Index creation for timestamp, phase, and parent_id"))
+    MW_InputsanitizationforagentmemoryentriestopreventSQLinjection(("MW: Input sanitization for agent memory entries to prevent SQL injection"))
+    MW_InputvalidationensuringparametersmatchBAMLfunctionsignatures(("MW: Input validation ensuring parameters match BAML function signatures"))
+    MW_InputvalidationforCLIargumentsandconfigurationfiles(("MW: Input validation for CLI arguments and configuration files"))
+    MW_Inputvalidationforphaseparametersandconfigurations(("MW: Input validation for phase parameters and configurations"))
+    MW_IntegrationwithCICDpipelinesifapplicable(("MW: Integration with CI/CD pipelines if applicable"))
+    MW_Interruptiondetectionandstatepreservation(("MW: Interruption detection and state preservation"))
+    MW_JSONschemavalidationfor(("MW: JSON schema validation for "))
+    MW_Loggingmiddlewarecapturingexecutiontraces(("MW: Logging middleware capturing execution traces"))
+    MW_LoggingmiddlewarecorrelatinglogsfromPythonGoandBAMLcomponents(("MW: Logging middleware correlating logs from Python, Go, and BAML components"))
+    MW_LoggingofAIfunctioninvocationswithsanitizedparameters(("MW: Logging of AI function invocations with sanitized parameters"))
+    MW_Loggingwithstructuredoutputandloglevels(("MW: Logging with structured output and log levels"))
+    MW_Markdownsanitizationtoensuresafecontentstorage(("MW: Markdown sanitization to ensure safe content storage"))
+    MW_Memorylayervalidationepisodicsemantic(("MW: Memory layer validation (episodic, semantic)"))
+    MW_Outputvalidationcheckingresponsesagainsttypeschemas(("MW: Output validation checking responses against type schemas"))
+    MW_Parametervalidationandtypechecking(("MW: Parameter validation and type checking"))
+    MW_Pathnormalizationmiddlewareresolvingrelativepathsbeforecrosslanguagecalls(("MW: Path normalization middleware resolving relative paths before cross-language calls"))
+    MW_Pathresolutiontoconvertrelativepathsinconfigstoabsolutepaths(("MW: Path resolution to convert relative paths in configs to absolute paths"))
+    MW_Phasetransitionmiddlewaretoautomaticallyregisterartifactsonphasecompletion(("MW: Phase transition middleware to automatically register artifacts on phase completion"))
+    MW_Pipelineexecutionhookstotriggercheckpointcreationatphaseboundaries(("MW: Pipeline execution hooks to trigger checkpoint creation at phase boundaries"))
+    MW_Pipelineinitializationhooktocheckforexistingcheckpointsbeforestartingnewexecution(("MW: Pipeline initialization hook to check for existing checkpoints before starting new execution"))
+    MW_Planvalidationagainstlearnedpatterns(("MW: Plan validation against learned patterns"))
+    MW_Prioritycalculationbasedonrecencyrelevanceandimportance(("MW: Priority calculation based on recency, relevance, and importance"))
+    MW_RatelimitingforAIAPIcalls(("MW: Rate limiting for AI API calls"))
+    MW_Ratelimitingforexpensiveoperationsembeddingscompression(("MW: Rate limiting for expensive operations (embeddings, compression)"))
+    MW_RatelimitingtorespectLLMproviderquotas(("MW: Rate limiting to respect LLM provider quotas"))
+    MW_Recoveryauditloggingforcomplianceanddebugging(("MW: Recovery audit logging for compliance and debugging"))
+    MW_Recoverydecisionlogictodetermineifcheckpointrecoveryshouldbeattempted(("MW: Recovery decision logic to determine if checkpoint recovery should be attempted"))
+    MW_Recoverydecisionlogictodeterminerecoverystrategyautomaticvs(("MW: Recovery decision logic to determine recovery strategy (automatic vs"))
+    MW_Recoveryfailurehandlingwithrollbackcapabilities(("MW: Recovery failure handling with rollback capabilities"))
+    MW_Recoveryprogresstrackingandlogging(("MW: Recovery progress tracking and logging"))
+    MW_ResourcecleanupensuringGosubprocessesareterminatedonPythonexit(("MW: Resource cleanup ensuring Go subprocesses are terminated on Python exit"))
+    MW_Resourcecleanuponexitfilehandlesgoroutines(("MW: Resource cleanup on exit (file handles, goroutines)"))
+    MW_Retrylogicfordatabaselocktimeoutsduringhighconcurrency(("MW: Retry logic for database lock timeouts during high concurrency"))
+    MW_Rollbackcapabilityoncriticalfailures(("MW: Rollback capability on critical failures"))
+    MW_Rollbackmechanismforfailedprocedureexecutions(("MW: Rollback mechanism for failed procedure executions"))
+    MW_Scheduledtasktorunretentionpolicyenforcementdaily(("MW: Scheduled task to run retention policy enforcement daily"))
+    MW_Schemavalidationforspecmetadatarequiredfieldsidversionstatustitlecreated_at(("MW: Schema validation for spec metadata (required fields: id, version, status, title, created_at)"))
+    MW_SchemavalidationmiddlewareenforcingJSONcompatibility(("MW: Schema validation middleware enforcing JSON compatibility"))
+    MW_SignalhandlingforgracefulshutdownSIGINTSIGTERM(("MW: Signal handling for graceful shutdown (SIGINT, SIGTERM)"))
+    MW_Sizecalculationforcapacitymanagement(("MW: Size calculation for capacity management"))
+    MW_Snapshotisolationenforcementforconcurrentworkflows(("MW: Snapshot isolation enforcement for concurrent workflows"))
+    MW_Snapshotnotificationsystemforexternalmonitoringtools(("MW: Snapshot notification system for external monitoring tools"))
+    MW_Startuphooktotriggerinterruptedworkflowdetection(("MW: Startup hook to trigger interrupted workflow detection"))
+    MW_Statevalidationmiddlewaretoverifyreconstructedpipelineintegrity(("MW: State validation middleware to verify reconstructed pipeline integrity"))
+    MW_Stepdependencyvalidationbeforeexecution(("MW: Step dependency validation before execution"))
+    MW_Stepidempotencyenforcementtopreventduplicatesideeffects(("MW: Step idempotency enforcement to prevent duplicate side effects"))
+    MW_Storagequotaenforcementbeforecheckpointcreation(("MW: Storage quota enforcement before checkpoint creation"))
+    MW_Testexecutiontimeouthandling(("MW: Test execution timeout handling"))
+    MW_Threadsafeaccesscontrolsusingthreading(("MW: Thread-safe access controls using threading"))
+    MW_TimeoutenforcementforGobinaryinvocations(("MW: Timeout enforcement for Go binary invocations"))
+    MW_TimeoutenforcementforlongrunningAIcalls(("MW: Timeout enforcement for long-running AI calls"))
+    MW_Timeouthandlingforlongrunningsearches(("MW: Timeout handling for long-running searches"))
+    MW_Tokenbudgetallocationacrossmemorylayers(("MW: Token budget allocation across memory layers"))
+    MW_Transactionmanagementforatomicepisodewrites(("MW: Transaction management for atomic episode writes"))
+    MW_Transactionmanagementtoensureatomicwritesformultistepagentoperations(("MW: Transaction management to ensure atomic writes for multi-step agent operations"))
+    MW_Userapprovalworkflowforplanconfirmation(("MW: User approval workflow for plan confirmation"))
+    MW_Usernotificationonverificationcompletion(("MW: User notification on verification completion"))
+    MW_Validationofconceptstructureandrequiredfields(("MW: Validation of concept structure and required fields"))
+    MW_Validationofepisodestructureandrequiredfields(("MW: Validation of episode structure and required fields"))
+    MW_Validationofkeytypesstringkeysonly(("MW: Validation of key types (string keys only)"))
+    MW_Validationoflearnedcontextagainstrequirements(("MW: Validation of learned context against requirements"))
+    MW_Validationofprocedurestructurestepspreconditionspostconditions(("MW: Validation of procedure structure (steps, preconditions, postconditions)"))
+    MW_Validationofresearchcompletenessbeforephasetransition(("MW: Validation of research completeness before phase transition"))
+    MW_Validationoftestenvironmentsetup(("MW: Validation of test environment setup"))
+    MW_Validationofvalueserializability(("MW: Validation of value serializability"))
+    MW_Workflowexecutionhookstotriggersnapshotsafterstepcompletions(("MW: Workflow execution hooks to trigger snapshots after step completions"))
+    MW_Workflowprogresstrackingintegration(("MW: Workflow progress tracking integration"))
+    MW_Workflowstatevalidationbeforesnapshotcreation(("MW: Workflow state validation before snapshot creation"))
+    MW_Workingmemoryupdatesforexecutionstate(("MW: Working memory updates for execution state"))
+    MW_YAMLfrontmatterparsertoextractandvalidatemetadatafrommarkdownfiles(("MW: YAML frontmatter parser to extract and validate metadata from markdown files"))
+    SH_APIContractmodelforendpointdefinitions(("SH: APIContract model for endpoint definitions"))
+    SH_Agentdatamodelwithfieldsagent_idroledefinition_pathcapabilitiesconstraintscreated_at(("SH: Agent data model with fields: agent_id, role, definition_path, capabilities(), constraints(), created_at"))
+    SH_Agentdefinitionschemamatchingmarkdownformat(("SH: Agent definition schema matching markdown format"))
+    SH_ArchiveResultmodelarchived_countarchive_pathtotal_size_saved(("SH: ArchiveResult model (archived_count, archive_path, total_size_saved)"))
+    SH_AutonomousLoopStatemodeliterationplanning_stateexecution_state(("SH: AutonomousLoopState model (iteration, planning_state, execution_state)"))
+    SH_BAMLtypedefinitionssharedacrossfunctions(("SH: BAML type definitions shared across functions"))
+    SH_BeadsArtifactStatemodelartifact_idbuild_statusdependencies(("SH: BeadsArtifactState model (artifact_id, build_status, dependencies)"))
+    SH_BeadsConfigutilityclasstoreadwrite(("SH: BeadsConfig utility class to read/write "))
+    SH_BuildArtifactdatamodelwithfieldsartifact_idphasetimestampcommit_hashfile_pathmetadata(("SH: BuildArtifact data model with fields: artifact_id, phase, timestamp, commit_hash, file_path, metadata"))
+    SH_Checkpointformatspecificationdocument(("SH: Checkpoint format specification document"))
+    SH_Checkpointschemawithversioningsupport(("SH: Checkpoint schema with versioning support"))
+    SH_CheckpointConfigmodelretention_policymax_sizecompression_enabled(("SH: CheckpointConfig model (retention_policy, max_size, compression_enabled)"))
+    SH_CheckpointFileMetadatamodelpathsizechecksumcreation_timeaccess_time(("SH: CheckpointFileMetadata model (path, size, checksum, creation_time, access_time)"))
+    SH_CheckpointFiltermodelpipeline_idworkflow_idstart_dateend_datestatus(("SH: CheckpointFilter model (pipeline_id, workflow_id, start_date, end_date, status)"))
+    SH_CheckpointMetadatamodelidtimestampphasesizehash(("SH: CheckpointMetadata model (id, timestamp, phase, size, hash)"))
+    SH_CheckpointRecoveryResultmodelsuccessrecovered_stateerrorswarnings(("SH: CheckpointRecoveryResult model (success, recovered_state, errors, warnings)"))
+    SH_CheckpointSchemaJSONschemadefinitionforvalidation(("SH: CheckpointSchema JSON schema definition for validation"))
+    SH_CheckpointVersionInfomodelforbackwardcompatibility(("SH: CheckpointVersionInfo model for backward compatibility"))
+    SH_CleanupResultmodeldeleted_countspace_freederrors(("SH: CleanupResult model (deleted_count, space_freed, errors)"))
+    SH_Clientconfigurationschema(("SH: Client configuration schema"))
+    SH_Clockinterfacefortestabletimebasedexpiration(("SH: Clock interface for testable time-based expiration"))
+    SH_CodeGenerationConfigmodelforgenerationparameters(("SH: CodeGenerationConfig model for generation parameters"))
+    SH_CodePatternmodelforpatterndefinitions(("SH: CodePattern model for pattern definitions"))
+    SH_CodebaseIndexmodelforsearchablefileindex(("SH: CodebaseIndex model for searchable file index"))
+    SH_Commanddefinitionschemawithparametervalidation(("SH: Command definition schema with parameter validation"))
+    SH_CommondatastructuressharedbetweenCLItools(("SH: Common data structures shared between CLI tools"))
+    SH_Commonprompttemplatesandfragments(("SH: Common prompt templates and fragments"))
+    SH_ComponentSpecmodelforcomponentresponsibilities(("SH: ComponentSpec model for component responsibilities"))
+    SH_CompositionLogicenumSequentialParallelConditionalLoop(("SH: CompositionLogic enum (Sequential, Parallel, Conditional, Loop)"))
+    SH_Conceptdatamodelidnamedescriptioncategoryembeddingsmetadataversioncreated_atupdated_at(("SH: Concept data model (id, name, description, category, embeddings, metadata, version, created_at, updated_at)"))
+    SH_ConceptCategoryenumCodePatternDomainKnowledgeErrorSolutionPrinciple(("SH: ConceptCategory enum (CodePattern, DomainKnowledge, Error, Solution, Principle)"))
+    SH_ConditionEvaluatorforpreconditionpostconditionchecking(("SH: ConditionEvaluator for precondition/postcondition checking"))
+    SH_ConfigTemplateutilitytoloadandrenderIDEconfigtemplateswithprojectspecificvalues(("SH: ConfigTemplate utility to load and render IDE config templates with project-specific values"))
+    SH_ConfigValidatortocheckIDEconfigsagainstschemasandverifyfilereferences(("SH: ConfigValidator to check IDE configs against schemas and verify file references"))
+    SH_Configurationschemawithvalidationrules(("SH: Configuration schema with validation rules"))
+    SH_Constantsforcheckpointfilenamingconventionsandpaths(("SH: Constants for checkpoint file naming conventions and paths"))
+    SH_Constantsfordefaulttimeoutsretrycountsmodelnames(("SH: Constants for default timeouts, retry counts, model names"))
+    SH_Constantsfordefaultvaluestimeoutsbuffersizes(("SH: Constants for default values, timeouts, buffer sizes"))
+    SH_Constantsforfilenamingconventionscompressionlevelsanddefaultquotas(("SH: Constants for file naming conventions, compression levels, and default quotas"))
+    SH_Constantsforphasenamescheckpointlocationsconfigurationkeys(("SH: Constants for phase names, checkpoint locations, configuration keys"))
+    SH_Constantsforrecoverytimeoutsandretrypolicies(("SH: Constants for recovery timeouts and retry policies"))
+    SH_Constantsforsnapshotretentionpoliciesandfilenaming(("SH: Constants for snapshot retention policies and file naming"))
+    SH_Contextwindowdatastructuresformemorylayers(("SH: Context window data structures for memory layers"))
+    SH_ContextBatchdatamodelforbatchedoperations(("SH: ContextBatch data model for batched operations"))
+    SH_ContextCompressorutilityforsummarization(("SH: ContextCompressor utility for summarization"))
+    SH_ContextEntrymodelforcontext_window_arrayentries(("SH: ContextEntry model for context_window_array entries"))
+    SH_ContextItemdatamodelsource_layercontentprioritytokenstimestamp(("SH: ContextItem data model (source_layer, content, priority, tokens, timestamp)"))
+    SH_ContextQuerydatamodelforunifiedqueryingacrosslayers(("SH: ContextQuery data model for unified querying across layers"))
+    SH_ContextWindowdatamodelworkingepisodicsemanticproceduralmetadatatotal_tokens(("SH: ContextWindow data model (working, episodic, semantic, procedural, metadata, total_tokens)"))
+    SH_CreateArtifactRetentionPolicymodelwithattributeskeep_latest_countmax_age_daysarchive_old(("SH: Create ArtifactRetentionPolicy model with attributes: keep_latest_count, max_age_days, archive_old"))
+    SH_CreateCacheManagerutilityformanagingpytestmypyandruffcaches(("SH: Create CacheManager utility for managing pytest, mypy, and ruff caches"))
+    SH_CreateCheckpointSerializerutilityforJSONserializationdeserialization(("SH: Create CheckpointSerializer utility for JSON serialization/deserialization"))
+    SH_CreateCheckpointValidatorutilitywithmethodsforschemavalidationandintegritychecking(("SH: Create CheckpointValidator utility with methods for schema validation and integrity checking"))
+    SH_CreateConfigurationLoaderutilitywithmethodsforloadingJSONYAMLandenvironmentvariables(("SH: Create ConfigurationLoader utility with methods for loading JSON/YAML and environment variables"))
+    SH_CreateDatabaseMigrationutilityforSQLiteschemaversioning(("SH: Create DatabaseMigration utility for SQLite schema versioning"))
+    SH_CreateDocumentationIndexmodeltotrackalldocumentationfiles(("SH: Create DocumentationIndex model to track all documentation files"))
+    SH_CreateFileSystemUtilitywithmethodsfordirectorycreationandvalidation(("SH: Create FileSystemUtility with methods for directory creation and validation"))
+    SH_CreateMarkdownTemplateutilitywithmethodsforgeneratingagentandcommandfiles(("SH: Create MarkdownTemplate utility with methods for generating agent and command files"))
+    SH_CreateTemplateGeneratorutilityforgenerating__init__(("SH: Create TemplateGenerator utility for generating __init__"))
+    SH_CreateVirtualEnvironmentManagerutilitywithmethodsforcreationactivationanddependencyinstallation(("SH: Create VirtualEnvironmentManager utility with methods for creation, activation, and dependency installation"))
+    SH_Datamodelsmodels(("SH: Data models (models"))
+    SH_DataModelSpecmodelforschemadefinitions(("SH: DataModelSpec model for schema definitions"))
+    SH_Databaseschemamigrationutilities(("SH: Database schema migration utilities"))
+    SH_DatabaseConfigutilityforconnectionstringmanagementandpoolconfiguration(("SH: DatabaseConfig utility for connection string management and pool configuration"))
+    SH_Decisiondatamodelwithfieldsdecision_idcontextproblemalternativeschosen_solutionrationaleconsequencestimestamp(("SH: Decision data model with fields: decision_id, context, problem, alternatives(), chosen_solution, rationale, consequences(), timestamp"))
+    SH_DecompositionTreemodelwithhierarchicaltaskstructure(("SH: DecompositionTree model with hierarchical task structure"))
+    SH_DefineAgentDefinitionmodelwithattributesnameroleresponsibilitiestoolsoutput_format(("SH: Define AgentDefinition model with attributes: name, role, responsibilities, tools, output_format"))
+    SH_DefineAgentStateSchemamodelforSQLitedatabasestructuretablesstatesmemoriescontexts(("SH: Define AgentStateSchema model for SQLite database structure (tables: states, memories, contexts)"))
+    SH_DefineBeadsConfigmodelforbuildartifactdefinitions(("SH: Define BeadsConfig model for build artifact definitions"))
+    SH_DefineBuildArtifactmodelwithattributesartifact_typepathtimestampsizechecksum(("SH: Define BuildArtifact model with attributes: artifact_type, path, timestamp, size, checksum"))
+    SH_DefineCachePolicymodelwithattributesmax_age_daysmax_size_mbauto_cleanup_enabled(("SH: Define CachePolicy model with attributes: max_age_days, max_size_mb, auto_cleanup_enabled"))
+    SH_DefineCheckpointIndexmodelfortrackingallavailablecheckpointswithquicklookup(("SH: Define CheckpointIndex model for tracking all available checkpoints with quick lookup"))
+    SH_DefineCheckpointMetadatamodelwithattributescheckpoint_idtimestampphaseversionchecksum(("SH: Define CheckpointMetadata model with attributes: checkpoint_id, timestamp, phase, version, checksum"))
+    SH_DefineCheckpointRetentionPolicymodelwithattributesmax_countmax_age_dayskeep_phase_boundaries(("SH: Define CheckpointRetentionPolicy model with attributes: max_count, max_age_days, keep_phase_boundaries"))
+    SH_DefineCommandDefinitionmodelwithattributesnamedescriptionusageexamplesparameters(("SH: Define CommandDefinition model with attributes: name, description, usage, examples, parameters"))
+    SH_DefineDirectoryStructureConfigmodelwithpathsforall6coredirectories(("SH: Define DirectoryStructureConfig model with paths for all 6 core directories"))
+    SH_DefineDistributionPackagemodelwithattributespackage_nameversionformatwheelsdistpath(("SH: Define DistributionPackage model with attributes: package_name, version, format (wheel/sdist), path"))
+    SH_DefineEntryPointmodelwithattributesforexecutablepathtypePythonGoandconfiguration(("SH: Define EntryPoint model with attributes for executable path, type (Python/Go), and configuration"))
+    SH_DefineIDEConfigmodelforClaudeandCursoreditorsettings(("SH: Define IDEConfig model for Claude and Cursor editor settings"))
+    SH_DefineMarkdownValidatorutilitytoverifytemplatecompliance(("SH: Define MarkdownValidator utility to verify template compliance"))
+    SH_DefineOutputResultmodelwithattributesanalysis_typeoutput_pathtimestampmetadata(("SH: Define OutputResult model with attributes: analysis_type, output_path, timestamp, metadata"))
+    SH_DefinePackageMetadatamodelforPythonandGopackageinformation(("SH: Define PackageMetadata model for Python and Go package information"))
+    SH_DefineRLMActCheckpointmodelwithattributesmetadatapipeline_statephase_datacontext_snapshot(("SH: Define RLMActCheckpoint model with attributes: metadata, pipeline_state, phase_data, context_snapshot"))
+    SH_DefineSilmariConfigmodelwithattributespipeline_settingscontext_window_settingscheckpoint_settingslogging_config(("SH: Define SilmariConfig model with attributes: pipeline_settings, context_window_settings, checkpoint_settings, logging_config"))
+    SH_DefineSpecStoryEntrymodelwithattributesspec_idtitlestatushistorylast_updated(("SH: Define SpecStoryEntry model with attributes: spec_id, title, status, history, last_updated"))
+    SH_DefineTestStructuremodelwithpathsforunitintegrationandfixturedirectories(("SH: Define TestStructure model with paths for unit, integration, and fixture directories"))
+    SH_DefineWorkflowCheckpointmodelwithattributesmetadataworkflow_stateexecution_stackvariables(("SH: Define WorkflowCheckpoint model with attributes: metadata, workflow_state, execution_stack, variables"))
+    SH_DeploymentStatedatamodelwithfieldsstate_idenvironmentstatusartifacts(("SH: DeploymentState data model with fields: state_id, environment, status, artifacts()"))
+    SH_DiffUtiltocomputeandformatdifferencesbetweenspecversions(("SH: DiffUtil to compute and format differences between spec versions"))
+    SH_Embeddinggeneratorforsimilaritysearch(("SH: Embedding generator for similarity search"))
+    SH_Embeddingutilityfunctionsfortextpreprocessingandvectorization(("SH: Embedding utility functions for text preprocessing and vectorization"))
+    SH_EmbeddingConfigformodelselectionandparameters(("SH: EmbeddingConfig for model selection and parameters"))
+    SH_Episodedatamodelidtimestampphaseactionresultparent_idmetadataembeddings(("SH: Episode data model (id, timestamp, phase, action, result, parent_id, metadata, embeddings)"))
+    SH_EpisodeQuerydatamodelforcomplexqueryconstruction(("SH: EpisodeQuery data model for complex query construction"))
+    SH_EpisodicMemoryEntrymodelforcodeexamples(("SH: EpisodicMemoryEntry model for code examples"))
+    SH_Errorclassesforphasefailurescheckpointcorruptioncontextoverflow(("SH: Error classes for phase failures, checkpoint corruption, context overflow"))
+    SH_Errorcodeconstantsanddescriptions(("SH: Error code constants and descriptions"))
+    SH_ErrortypesforBAMLspecificfailuresparsingvalidationLLMerrors(("SH: Error types for BAML-specific failures (parsing, validation, LLM errors)"))
+    SH_Errortypesfordifferentfailuremodes(("SH: Error types for different failure modes"))
+    SH_ErrortypesforrecoveryfailuresCorruptCheckpointErrorIncompatibleVersionError(("SH: Error types for recovery failures (CorruptCheckpointError, IncompatibleVersionError)"))
+    SH_ErrortypesforrecoveryfailuresInconsistentStateErrorMissingDependencyErrorCorruptSnapshotError(("SH: Error types for recovery failures (InconsistentStateError, MissingDependencyError, CorruptSnapshotError)"))
+    SH_ErrorRecoveryStrategymodelforhandlingfailures(("SH: ErrorRecoveryStrategy model for handling failures"))
+    SH_Executiondatamodelwithfieldsexecution_idagent_idtaskinput_contextresultstatusduration_mstimestamp(("SH: Execution data model with fields: execution_id, agent_id, task, input_context, result, status, duration_ms, timestamp"))
+    SH_ExecutionCheckpointmodelforresumability(("SH: ExecutionCheckpoint model for resumability"))
+    SH_ExecutionDefinitiondatamodelwithfieldsdefinition_idphaseparametersdependencies(("SH: ExecutionDefinition data model with fields: definition_id, phase, parameters, dependencies"))
+    SH_ExecutionMetadatamodelstart_timeelapsed_timeresource_usage(("SH: ExecutionMetadata model (start_time, elapsed_time, resource_usage)"))
+    SH_ExecutionResultmodelwithstatusfiles_changederrors(("SH: ExecutionResult model with status, files_changed, errors"))
+    SH_FailureReportmodelforissuedetails(("SH: FailureReport model for issue details"))
+    SH_FileChangeSpecmodelcreatemodifydeleteoperations(("SH: FileChangeSpec model (create/modify/delete operations)"))
+    SH_FileOperationmodelcreatemodifywithcontent(("SH: FileOperation model (create/modify with content)"))
+    SH_IDEAgentdatamodelwithfieldsagent_idroledescriptionprompt_templatecapabilitiesconstraints(("SH: IDEAgent data model with fields: agent_id, role, description, prompt_template, capabilities(), constraints()"))
+    SH_IDECommanddatamodelwithfieldscommand_idnamedescriptionexecution_typescript_pathargumentskeybinding(("SH: IDECommand data model with fields: command_id, name, description, execution_type, script_path, arguments(), keybinding"))
+    SH_IDESettingsdatamodelwithfieldspython_pathlinter_rulesformatter_configignore_patternsextensions(("SH: IDESettings data model with fields: python_path, linter_rules, formatter_config, ignore_patterns(), extensions()"))
+    SH_IPCprotocolspecificationargumentpassingoutputformaterrorsignaling(("SH: IPC protocol specification (argument passing, output format, error signaling)"))
+    SH_ImplementationContextmodelforcontext_window_array(("SH: ImplementationContext model for context_window_array"))
+    SH_ImplementationPlanmodelwithorderedstepsdependenciesestimates(("SH: ImplementationPlan model with ordered steps, dependencies, estimates"))
+    SH_Interactiondatamodelwithfieldsinteraction_idfrom_agentto_agentmessageinteraction_typetimestamp(("SH: Interaction data model with fields: interaction_id, from_agent, to_agent, message, interaction_type, timestamp"))
+    SH_InteractionMapmodelforcomponentdependencies(("SH: InteractionMap model for component dependencies"))
+    SH_Interfacesdefiningcontractsbetweeninternalpackages(("SH: Interfaces defining contracts between internal packages"))
+    SH_InterruptedWorkflowInfomodelworkflow_idinterruption_timelast_snapshot_timerecovery_status(("SH: InterruptedWorkflowInfo model (workflow_id, interruption_time, last_snapshot_time, recovery_status)"))
+    SH_JSONdeserializationutilitieswitherrorhandlingformissingfields(("SH: JSON deserialization utilities with error handling for missing fields"))
+    SH_JSONschemadefinitionssharedbetweenbaml_srctypes(("SH: JSON schema definitions (shared between baml_src/types"))
+    SH_JSONschemadefinitionsmatchingPythonmodels(("SH: JSON schema definitions matching Python models"))
+    SH_JSONschemavalidatorsmatchingBAMLtypes(("SH: JSON schema validators matching BAML types"))
+    SH_JSONserializationutilitieswithcustomencodersforcomplextypes(("SH: JSON serialization utilities with custom encoders for complex types"))
+    SH_JSONserializationutilitieswithcustomencodersforefficientstorage(("SH: JSON serialization utilities with custom encoders for efficient storage"))
+    SH_LearningResultmodelwithpatternscomponentsexamplesinsights(("SH: LearningResult model with patterns, components, examples, insights"))
+    SH_Loggingformatspecificationtimestamplevelcomponentmessagecontext(("SH: Logging format specification (timestamp, level, component, message, context)"))
+    SH_MarkdownParserutilitytoparsefrontmatterandcontentfromspecfiles(("SH: MarkdownParser utility to parse frontmatter and content from spec files"))
+    SH_Memorydatamodelwithfieldsmemory_idagent_idkeyvaluecontextttltimestamp(("SH: Memory data model with fields: memory_id, agent_id, key, value, context, ttl, timestamp"))
+    SH_MemoryLayerConfigforlayerspecificsettingsweightslimitsrefreshrates(("SH: MemoryLayerConfig for layer-specific settings (weights, limits, refresh rates)"))
+    SH_Notificationtemplatesforuseralertsaboutrecoveryevents(("SH: Notification templates for user alerts about recovery events"))
+    SH_Pathconstantsforcheckpointdirectoriesconfigfiles(("SH: Path constants for checkpoint directories, config files"))
+    SH_Pathresolutionutilitiesfor(("SH: Path resolution utilities for "))
+    SH_PathResolverutilitytohandlepathconversionandvalidationforIDEconfigs(("SH: PathResolver utility to handle path conversion and validation for IDE configs"))
+    SH_Pathconstantsforshareddirectories(("SH: Pathconstants for shared directories ("))
+    SH_PatternMatchdatamodelfordetectedsequences(("SH: PatternMatch data model for detected sequences"))
+    SH_Performancebenchmarksforcrosslanguageoperations(("SH: Performance benchmarks for cross-language operations"))
+    SH_Phaseinterfacedefinitionwithexecutevalidateandrollbackmethods(("SH: Phase interface definition with execute(), validate(), and rollback() methods"))
+    SH_PhaseCheckpointmodelforstatepersistence(("SH: PhaseCheckpoint model for state persistence"))
+    SH_PhaseContextmodelforeachRLMActphasestate(("SH: PhaseContext model for each RLM-Act phase state"))
+    SH_PhaseEnumResearchLearnModelActVerifyDeploy(("SH: PhaseEnum (Research, Learn, Model, Act, Verify, Deploy)"))
+    SH_PipelineStatemodelwithallphasedataandexecutioncontext(("SH: PipelineState model with all phase data and execution context"))
+    SH_PriorityLevelenumCriticalHighMediumLow(("SH: PriorityLevel enum (Critical, High, Medium, Low)"))
+    SH_ProceduralMemoryEntrymodelforstepbystepprocedures(("SH: ProceduralMemoryEntry model for step-by-step procedures"))
+    SH_Proceduredatamodelidnamegoalstepspreconditionspostconditionsparametersversioncreated_at(("SH: Procedure data model (id, name, goal, steps, preconditions, postconditions, parameters, version, created_at)"))
+    SH_ProcedureExecutiondatamodelidprocedure_idparametersstart_timeend_timesuccesserrors(("SH: ProcedureExecution data model (id, procedure_id, parameters, start_time, end_time, success, errors)"))
+    SH_ProcedureMetricsdatamodelsuccess_rateavg_durationtotal_executionslast_success_time(("SH: ProcedureMetrics data model (success_rate, avg_duration, total_executions, last_success_time)"))
+    SH_ProcedureStepdatamodelorderactionparametersexpected_outcometimeout(("SH: ProcedureStep data model (order, action, parameters, expected_outcome, timeout)"))
+    SH_ProcedureTemplateforparameterizedworkflows(("SH: ProcedureTemplate for parameterized workflows"))
+    SH_QualityMetricsmodelforcodequalitymeasurements(("SH: QualityMetrics model for code quality measurements"))
+    SH_QueryBuilderutilityforcomplexmemoryquerieswithfilteringandpagination(("SH: QueryBuilder utility for complex memory queries with filtering and pagination"))
+    SH_RecoveryConfigmodelauto_recovery_enabledmax_recovery_attemptsfallback_strategy(("SH: RecoveryConfig model (auto_recovery_enabled, max_recovery_attempts, fallback_strategy)"))
+    SH_RecoveryReportmodelworkflow_idsteps_completedsteps_skippedsteps_remainingrecovery_time(("SH: RecoveryReport model (workflow_id, steps_completed, steps_skipped, steps_remaining, recovery_time)"))
+    SH_RecoveryResultmodelsuccessrecovered_workflowresume_steprecovery_report(("SH: RecoveryResult model (success, recovered_workflow, resume_step, recovery_report)"))
+    SH_RecoveryStrategyenumAUTOMATICMANUALPROMPT_USER(("SH: RecoveryStrategy enum (AUTOMATIC, MANUAL, PROMPT_USER)"))
+    SH_RegressionCheckmodelforregressiontestresults(("SH: RegressionCheck model for regression test results"))
+    SH_Relationshipdatamodelsource_idtarget_idtypestrengthmetadata(("SH: Relationship data model (source_id, target_id, type, strength, metadata)"))
+    SH_RelationshipTypeenumIsAHasARelatedToDependsOnContradicts(("SH: RelationshipType enum (IsA, HasA, RelatedTo, DependsOn, Contradicts)"))
+    SH_RequirementDecompositionmodelfortaskbreakdown(("SH: RequirementDecomposition model for task breakdown"))
+    SH_RequirementStatusmodelforacceptancecriteriatracking(("SH: RequirementStatus model for acceptance criteria tracking"))
+    SH_ResearchResultmodelwithfindingsfile_pathspatternsdependencies(("SH: ResearchResult model with findings, file_paths, patterns, dependencies"))
+    SH_RetentionPolicymodelretention_daysmax_checkpoint_countarchive_enabled(("SH: RetentionPolicy model (retention_days, max_checkpoint_count, archive_enabled)"))
+    SH_ReusableComponentmodelforcomponentmetadata(("SH: ReusableComponent model for component metadata"))
+    SH_SearchQuerydatamodelforhybridsearch(("SH: SearchQuery data model for hybrid search"))
+    SH_SemanticMemoryEntrymodelforpatternknowledge(("SH: SemanticMemoryEntry model for pattern knowledge"))
+    SH_Serializationutilitiesforcheckpointsupport(("SH: Serialization utilities for checkpoint support"))
+    SH_SnapshotMetadatamodelsnapshot_idworkflow_idtimestampsizestep_count(("SH: SnapshotMetadata model (snapshot_id, workflow_id, timestamp, size, step_count)"))
+    SH_SpecConfigutilitytoread(("SH: SpecConfig utility to read "))
+    SH_SpecVersiondatamodelwithfieldsversion_idspec_idversion_numberchangestimestamp(("SH: SpecVersion data model with fields: version_id, spec_id, version_number, changes(), timestamp"))
+    SH_Specificationdatamodelwithfieldsspec_idversiontitledescriptionstatusparent_requirementacceptance_criteriatagscreated_atupdated_atauthor(("SH: Specification data model with fields: spec_id, version, title, description, status, parent_requirement, acceptance_criteria(), tags(), created_at, updated_at, author"))
+    SH_StepExecutionmodelstep_idstatusstart_timeend_timeresult(("SH: StepExecution model (step_id, status, start_time, end_time, result)"))
+    SH_StepResultmodelforindividualstepoutcomes(("SH: StepResult model for individual step outcomes"))
+    SH_StepResumePointmodelstep_iddependencies_satisfiedpartial_completion_data(("SH: StepResumePoint model (step_id, dependencies_satisfied, partial_completion_data)"))
+    SH_StorageConfigmodelbase_pathcompression_enabledquota_per_pipelineretention_days(("SH: StorageConfig model (base_path, compression_enabled, quota_per_pipeline, retention_days)"))
+    SH_StorageStatsmodeltotal_sizefile_countoldest_checkpointnewest_checkpoint(("SH: StorageStats model (total_size, file_count, oldest_checkpoint, newest_checkpoint)"))
+    SH_Storydatamodelwithfieldsstory_idspec_idtitledescriptionacceptance_criteriastatusprioritycreated_at(("SH: Story data model with fields: story_id, spec_id, title, description, acceptance_criteria(), status, priority, created_at"))
+    SH_TaskGraphmodelfordependencyrelationships(("SH: TaskGraph model for dependency relationships"))
+    SH_TestResultmodelforindividualtestoutcomes(("SH: TestResult model for individual test outcomes"))
+    SH_TimeRangedatamodelfortemporalqueries(("SH: TimeRange data model for temporal queries"))
+    SH_TokenCounterutilitywithmodelspecifictokenization(("SH: TokenCounter utility with model-specific tokenization"))
+    SH_TraceabilityLinkdatamodelwithfieldslink_idfrom_typefrom_idto_typeto_idrelationship_type(("SH: TraceabilityLink data model with fields: link_id, from_type, from_id, to_type, to_id, relationship_type"))
+    SH_Typeannotationsforgeneratedclientmethods(("SH: Type annotations for generated client methods"))
+    SH_TypeconversionsbetweenGoandexternalJSONformats(("SH: Type conversions between Go and external JSON formats"))
+    SH_TypedefinitionsmatchingBAMLclienttypes(("SH: Type definitions matching BAML client types"))
+    SH_TypemappingdocumentationshowingequivalencesPythondictGomapBAMLobject(("SH: Type mapping documentation showing equivalences (Python dict ↔ Go map ↔ BAML object)"))
+    SH_Utilityfunctionsforcheckpointfilediscoveryandsortingbytimestamp(("SH: Utility functions for checkpoint file discovery and sorting by timestamp"))
+    SH_UtilityfunctionsforfileIOJSONserializationpathresolution(("SH: Utility functions for file I/O, JSON serialization, path resolution"))
+    SH_Utilityfunctionsforfilepathgenerationandvalidation(("SH: Utility functions for file path generation and validation"))
+    SH_Utilityfunctionsforfilesizecalculationsanddatecomparisons(("SH: Utility functions for file size calculations and date comparisons"))
+    SH_Utilityfunctionsforstringmanipulationvalidationformatting(("SH: Utility functions for string manipulation, validation, formatting"))
+    SH_UtilityfunctionsfortypeconversionbetweenBAMLandPython(("SH: Utility functions for type conversion between BAML and Python"))
+    SH_Utilityfunctionsforworkflowstatecomparisonanddiffgeneration(("SH: Utility functions for workflow state comparison and diff generation"))
+    SH_Utilityfunctionsforworkflowstatecomparisonandvalidation(("SH: Utility functions for workflow state comparison and validation"))
+    SH_Utilityfunctionsextract_patternparse_codeidentify_component_type(("SH: Utility functions: extract_pattern(), parse_code(), identify_component_type()"))
+    SH_Utilityfunctionsgenerate_from_templateapply_patternvalidate_syntaxrollback_changes(("SH: Utility functions: generate_from_template(), apply_pattern(), validate_syntax(), rollback_changes()"))
+    SH_Utilityfunctionsorder_stepsresolve_dependenciesvalidate_plan(("SH: Utility functions: order_steps(), resolve_dependencies(), validate_plan()"))
+    SH_Utilityfunctionsparse_requirementsearch_filesanalyze_code_structure(("SH: Utility functions: parse_requirement(), search_files(), analyze_code_structure()"))
+    SH_Utilityfunctionsrun_test_suiteparse_test_outputcheck_lint_errorsvalidate_types(("SH: Utility functions: run_test_suite(), parse_test_output(), check_lint_errors(), validate_types()"))
+    SH_ValidationResultmodelis_validschema_errorsintegrity_errors(("SH: ValidationResult model (is_valid, schema_errors, integrity_errors)"))
+    SH_ValidationRulemodelforbusinesslogic(("SH: ValidationRule model for business logic"))
+    SH_VerificationCheckpointmodelforstatepersistence(("SH: VerificationCheckpoint model for state persistence"))
+    SH_VerificationResultmodelwithtests_passedquality_checksrequirement_status(("SH: VerificationResult model with tests_passed, quality_checks, requirement_status"))
+    SH_Versioncompatibilitymatrixdocumentingcompatibleversionsacrosscomponents(("SH: Version compatibility matrix documenting compatible versions across components"))
+    SH_WorkflowSnapshotSchemaJSONschemaforvalidation(("SH: WorkflowSnapshotSchema JSON schema for validation"))
+    SH_WorkflowStatemodelwithtasktreestephistoryandloopstate(("SH: WorkflowState model with task tree, step history, and loop state"))
+    SH_WorkingMemoryConfigdatamodelttlcapacityeviction_policy(("SH: WorkingMemoryConfig data model (ttl, capacity, eviction_policy)"))
+    SH_WorkingMemoryEntrydatamodelkeyvaluetimestampaccess_count(("SH: WorkingMemoryEntry data model (key, value, timestamp, access_count)"))
+    SH_WorkingMemoryEntrymodelforexecutionstate(("SH: WorkingMemoryEntry model for execution state"))
+    SH_WorkingMemoryMetricsdatamodelhitsmissesevictionssize(("SH: WorkingMemoryMetrics data model (hits, misses, evictions, size)"))
+    SH_WorkspaceTemplatedatamodelwithfieldstemplate_idnamedescriptionfilescommandsinitial_state(("SH: WorkspaceTemplate data model with fields: template_id, name, description, files(), commands(), initial_state"))
+    end
+    REQ_000_1 -.-> FE_CLIinterfacewithcommandparsingandhelpdocumentation
+    REQ_000_1 -.-> FE_Progressindicatorsforlongrunningphaseexecutions
+    REQ_000_1 -.-> FE_Interactivepromptsforuserdecisionsduringautonomousloops
+    REQ_000_1 -.-> FE_Statusdisplayshowingcurrentphasecheckpointstateandcontextmemoryusage
+    REQ_000_1 -.-> FE_Errormessageswithactionablerecoverysuggestions
+    REQ_000_1 -.-> BE_Pipelineorchestrationenginepipeline
+    REQ_000_1 -.-> BE_Phaseimplementationsinsilmari_rlm_actphasesdirectoryforeachRLMActstage
+    REQ_000_1 -.-> BE_Checkpointmanagerforstatepersistenceandrecovery
+    REQ_000_1 -.-> BE_Contextwindowstorecontext_window_arraystore
+    REQ_000_1 -.-> BE_Agentfactoryforinstantiatingagentsfrommarkdowndefinitions
+    REQ_000_1 -.-> BE_CommandregistryanddispatcherforCLIcommands
+    REQ_000_1 -.-> BE_BAMLclientwrapperfortypesafeAIfunctioninvocation
+    REQ_000_1 -.-> BE_Autonomousloopcontrollerplanning_pipelineautonomous_loop
+    REQ_000_1 -.-> BE_Taskdecompositionengineplanning_pipelinedecomposition
+    REQ_000_1 -.-> BE_ClaudeAPIintegrationplanning_pipelineclaude_runner
+    REQ_000_1 -.-> BE_Workflowcheckpointmanagerforinterruptedrecovery
+    REQ_000_1 -.-> BE_Phaseexecutioncoordinatorwithdependencyresolution
+    REQ_000_1 -.-> BE_Resultvalidationandtransformationbetweenphases
+    REQ_000_1 -.-> MW_Inputvalidationforphaseparametersandconfigurations
+    REQ_000_1 -.-> MW_Checkpointversioncompatibilitychecking
+    REQ_000_1 -.-> MW_Contextwindowsizeenforcementandoverflowhandling
+    REQ_000_1 -.-> MW_RatelimitingforAIAPIcalls
+    REQ_000_1 -.-> MW_Errorboundarywrappingforgracefuldegradation
+    REQ_000_1 -.-> MW_Loggingmiddlewarecapturingexecutiontraces
+    REQ_000_1 -.-> MW_Configurationloadingfrom
+    REQ_000_1 -.-> SH_Datamodelsmodels
+    REQ_000_1 -.-> SH_Phaseinterfacedefinitionwithexecutevalidateandrollbackmethods
+    REQ_000_1 -.-> SH_Checkpointschemawithversioningsupport
+    REQ_000_1 -.-> SH_Contextwindowdatastructuresformemorylayers
+    REQ_000_1 -.-> SH_Agentdefinitionschemamatchingmarkdownformat
+    REQ_000_1 -.-> SH_Commanddefinitionschemawithparametervalidation
+    REQ_000_1 -.-> SH_TypedefinitionsmatchingBAMLclienttypes
+    REQ_000_1 -.-> SH_UtilityfunctionsforfileIOJSONserializationpathresolution
+    REQ_000_1 -.-> SH_Constantsforphasenamescheckpointlocationsconfigurationkeys
+    REQ_000_1 -.-> SH_Errorclassesforphasefailurescheckpointcorruptioncontextoverflow
+    REQ_000_2 -.-> FE_CLIinterfacewithsubcommandstructurecontextenginelooprunner
+    REQ_000_2 -.-> FE_Flagparsingforconfigurationoptionsandruntimeparameters
+    REQ_000_2 -.-> FE_Progressbarsforlongrunningoperations
+    REQ_000_2 -.-> FE_Coloredterminaloutputforstatuswarningsanderrors
+    REQ_000_2 -.-> FE_Helptextgenerationforallcommandsandflags
+    REQ_000_2 -.-> FE_Versioninformationdisplay
+    REQ_000_2 -.-> BE_Contextenginemainentrypointgocmdcontextenginemain
+    REQ_000_2 -.-> BE_Looprunnerentrypointgocmdlooprunnermain
+    REQ_000_2 -.-> BE_Planningenginegointernalplanningforrequirementdecomposition
+    REQ_000_2 -.-> BE_CLIpackagegointernalcliforargumentparsingandvalidation
+    REQ_000_2 -.-> BE_DatamodelsgointernalmodelsmatchingPythonschema
+    REQ_000_2 -.-> BE_Executionutilitiesgointernalexecforsubprocessmanagement
+    REQ_000_2 -.-> BE_Concurrencyprimitivesgointernalconcurrentforparalleloperations
+    REQ_000_2 -.-> BE_Filesystemutilitiesgointernalfsgointernalpathgointernalpaths
+    REQ_000_2 -.-> BE_JSONhandlinggointernaljsongointernaljsonutilwithstreamingsupport
+    REQ_000_2 -.-> BE_Buildscriptsforcrossplatformcompilation
+    REQ_000_2 -.-> BE_Binarypackaginganddistributionlogic
+    REQ_000_2 -.-> MW_InputvalidationforCLIargumentsandconfigurationfiles
+    REQ_000_2 -.-> MW_Errorwrappingwithcontextpreservation
+    REQ_000_2 -.-> MW_Loggingwithstructuredoutputandloglevels
+    REQ_000_2 -.-> MW_SignalhandlingforgracefulshutdownSIGINTSIGTERM
+    REQ_000_2 -.-> MW_Resourcecleanuponexitfilehandlesgoroutines
+    REQ_000_2 -.-> MW_Configurationloadingfromenvironmentvariablesandconfigfiles
+    REQ_000_2 -.-> SH_CommondatastructuressharedbetweenCLItools
+    REQ_000_2 -.-> SH_JSONschemadefinitionsmatchingPythonmodels
+    REQ_000_2 -.-> SH_Pathconstantsforcheckpointdirectoriesconfigfiles
+    REQ_000_2 -.-> SH_Errortypesfordifferentfailuremodes
+    REQ_000_2 -.-> SH_Utilityfunctionsforstringmanipulationvalidationformatting
+    REQ_000_2 -.-> SH_Constantsfordefaultvaluestimeoutsbuffersizes
+    REQ_000_2 -.-> SH_Interfacesdefiningcontractsbetweeninternalpackages
+    REQ_000_2 -.-> SH_TypeconversionsbetweenGoandexternalJSONformats
+    REQ_000_3 -.-> FE_NABAMLisbackendfocusedforAIorchestration
+    REQ_000_3 -.-> BE_BAMLfunctiondefinitionsbaml_srcfunctions
+    REQ_000_3 -.-> BE_Typeschemabaml_srctypes
+    REQ_000_3 -.-> BE_Clientconfigurationbaml_srcclients
+    REQ_000_3 -.-> BE_Generatorconfigurationbaml_srcgenerators
+    REQ_000_3 -.-> BE_Codegenerationpipelineproducingbaml_clientdirectory
+    REQ_000_3 -.-> BE_Synchronousclientimplementationbaml_clientsync_client
+    REQ_000_3 -.-> BE_Asynchronousclientimplementationbaml_clientasync_client
+    REQ_000_3 -.-> BE_Typebuilderbaml_clienttype_builder
+    REQ_000_3 -.-> BE_InlinedBAMLdefinitionsbaml_clientinlinedbaml
+    REQ_000_3 -.-> BE_ClientfactoryselectingappropriateLLMendpointbasedonfunctionrequirements
+    REQ_000_3 -.-> BE_ResponseparserconvertingLLMoutputstotypedPythonobjects
+    REQ_000_3 -.-> BE_Validationengineensuringresponsesmatchdeclaredschemas
+    REQ_000_3 -.-> BE_Retrylogicwithexponentialbackofffortransientfailures
+    REQ_000_3 -.-> BE_Streamingresponsehandlerforincrementalprocessing
+    REQ_000_3 -.-> MW_InputvalidationensuringparametersmatchBAMLfunctionsignatures
+    REQ_000_3 -.-> MW_Outputvalidationcheckingresponsesagainsttypeschemas
+    REQ_000_3 -.-> MW_APIkeyinjectionfromenvironmentvariablesorconfiguration
+    REQ_000_3 -.-> MW_RatelimitingtorespectLLMproviderquotas
+    REQ_000_3 -.-> MW_TimeoutenforcementforlongrunningAIcalls
+    REQ_000_3 -.-> MW_LoggingofAIfunctioninvocationswithsanitizedparameters
+    REQ_000_3 -.-> MW_ErrortransformationfromLLMerrorstoapplicationexceptions
+    REQ_000_3 -.-> SH_BAMLtypedefinitionssharedacrossfunctions
+    REQ_000_3 -.-> SH_Commonprompttemplatesandfragments
+    REQ_000_3 -.-> SH_Clientconfigurationschema
+    REQ_000_3 -.-> SH_ErrortypesforBAMLspecificfailuresparsingvalidationLLMerrors
+    REQ_000_3 -.-> SH_UtilityfunctionsfortypeconversionbetweenBAMLandPython
+    REQ_000_3 -.-> SH_Constantsfordefaulttimeoutsretrycountsmodelnames
+    REQ_000_3 -.-> SH_Typeannotationsforgeneratedclientmethods
+    REQ_000_3 -.-> SH_JSONschemavalidatorsmatchingBAMLtypes
+    REQ_000_4 -.-> FE_NAInteroperabilitylayerisbackendinfrastructure
+    REQ_000_4 -.-> BE_PythonsubprocesswrapperforinvokingGobinariescontextenginelooprunner
+    REQ_000_4 -.-> BE_GobinaryoutputparserconvertingstdoutstderrtoPythonobjects
+    REQ_000_4 -.-> BE_SharedJSONschemadefinitionsinbothPythonandGo
+    REQ_000_4 -.-> BE_SchemavalidationlibraryusedbybothPythonandGocomponents
+    REQ_000_4 -.-> BE_Checkpointformatspecificationwithversionfield
+    REQ_000_4 -.-> BE_Checkpointcompatibilitycheckervalidatingversiononload
+    REQ_000_4 -.-> BE_ErrorcodemappingtabletranslatingGoexitcodestoPythonexceptions
+    REQ_000_4 -.-> BE_Configurationloaderreading
+    REQ_000_4 -.-> BE_Pathresolutionutilityensuringconsistentbehavioracrossplatformsandlanguages
+    REQ_000_4 -.-> BE_TypeconverterbetweenBAMLtypesPythondataclassesandGostructs
+    REQ_000_4 -.-> BE_IPCcoordinatormanaginglifecycleofGosubprocesses
+    REQ_000_4 -.-> BE_Filebasedsemaphoreforworkflowcoordinationbetweencomponents
+    REQ_000_4 -.-> BE_UnifiedloggingadapterforwardingGologstoPythonloggingsystem
+    REQ_000_4 -.-> MW_SchemavalidationmiddlewareenforcingJSONcompatibility
+    REQ_000_4 -.-> MW_Errortransformationmiddlewarewrappingcrosslanguageexceptions
+    REQ_000_4 -.-> MW_LoggingmiddlewarecorrelatinglogsfromPythonGoandBAMLcomponents
+    REQ_000_4 -.-> MW_Configurationinjectionensuringallcomponentsseeconsistentsettings
+    REQ_000_4 -.-> MW_Pathnormalizationmiddlewareresolvingrelativepathsbeforecrosslanguagecalls
+    REQ_000_4 -.-> MW_TimeoutenforcementforGobinaryinvocations
+    REQ_000_4 -.-> MW_ResourcecleanupensuringGosubprocessesareterminatedonPythonexit
+    REQ_000_4 -.-> SH_JSONschemadefinitionssharedbetweenbaml_srctypes
+    REQ_000_4 -.-> SH_Checkpointformatspecificationdocument
+    REQ_000_4 -.-> SH_Errorcodeconstantsanddescriptions
+    REQ_000_4 -.-> SH_Configurationschemawithvalidationrules
+    REQ_000_4 -.-> SH_Pathconstantsforshareddirectories
+    REQ_000_4 -.-> SH_Loggingformatspecificationtimestamplevelcomponentmessagecontext
+    REQ_000_4 -.-> SH_Versioncompatibilitymatrixdocumentingcompatibleversionsacrosscomponents
+    REQ_000_4 -.-> SH_TypemappingdocumentationshowingequivalencesPythondictGomapBAMLobject
+    REQ_000_4 -.-> SH_IPCprotocolspecificationargumentpassingoutputformaterrorsignaling
+    REQ_000_4 -.-> SH_Performancebenchmarksforcrosslanguageoperations
+    REQ_001_1 -.-> BE_CreatedirectorystructurecreationscriptorCLIcommand
+    REQ_001_1 -.-> BE_Implementdirectoryvalidationservicetoverifystructurecorrectness
+    REQ_001_1 -.-> BE_Createinitializationtemplatesfor__init__
+    REQ_001_1 -.-> BE_ImplemententrypointregistrationforCLItools
+    REQ_001_1 -.-> MW_Addpathvalidationmiddlewaretoensuredirectoriesexistbeforeoperations
+    REQ_001_1 -.-> MW_ImplementimportresolutionmiddlewareforPythonpackages
+    REQ_001_1 -.-> MW_AddGomodulepathresolution
+    REQ_001_1 -.-> SH_DefineDirectoryStructureConfigmodelwithpathsforall6coredirectories
+    REQ_001_1 -.-> SH_CreateFileSystemUtilitywithmethodsfordirectorycreationandvalidation
+    REQ_001_1 -.-> SH_DefineEntryPointmodelwithattributesforexecutablepathtypePythonGoandconfiguration
+    REQ_001_1 -.-> SH_CreateTemplateGeneratorutilityforgenerating__init__
+    REQ_001_1 -.-> SH_DefinePackageMetadatamodelforPythonandGopackageinformation
+    REQ_001_2 -.-> BE_Createmarkdowntemplategeneratorforagentsandcommands
+    REQ_001_2 -.-> BE_Implementtestsuitescaffoldingservice
+    REQ_001_2 -.-> BE_Createdocumentationindexgenerator
+    REQ_001_2 -.-> BE_Implementagentdefinitionparsertovalidatemarkdownstructure
+    REQ_001_2 -.-> BE_Createcommanddefinitionparsertovalidatemarkdownstructure
+    REQ_001_2 -.-> MW_Addmarkdownvalidationmiddlewaretoensureconsistentformatting
+    REQ_001_2 -.-> MW_Implementtestdiscoverymiddlewareforpytestintegration
+    REQ_001_2 -.-> MW_Adddocumentationlintingmiddleware
+    REQ_001_2 -.-> SH_DefineAgentDefinitionmodelwithattributesnameroleresponsibilitiestoolsoutput_format
+    REQ_001_2 -.-> SH_DefineCommandDefinitionmodelwithattributesnamedescriptionusageexamplesparameters
+    REQ_001_2 -.-> SH_CreateMarkdownTemplateutilitywithmethodsforgeneratingagentandcommandfiles
+    REQ_001_2 -.-> SH_DefineTestStructuremodelwithpathsforunitintegrationandfixturedirectories
+    REQ_001_2 -.-> SH_CreateDocumentationIndexmodeltotrackalldocumentationfiles
+    REQ_001_2 -.-> SH_DefineMarkdownValidatorutilitytoverifytemplatecompliance
+    REQ_001_3 -.-> BE_Createconfigurationdirectoryinitializationservice
+    REQ_001_3 -.-> BE_ImplementSQLiteschemamigrationservicefor
+    REQ_001_3 -.-> BE_CreateconfigurationvalidationserviceforJSONYAMLfiles
+    REQ_001_3 -.-> BE_Implementconfigurationloaderservicewithenvironmentspecificoverrides
+    REQ_001_3 -.-> BE_CreateBEADSframeworkintegrationservice
+    REQ_001_3 -.-> BE_Implementspecificationtrackingservicefor
+    REQ_001_3 -.-> MW_AddconfigurationvalidationmiddlewaretoverifyJSONYAMLschemacompliance
+    REQ_001_3 -.-> MW_Implementconfigurationencryptionmiddlewareforsensitivesettings
+    REQ_001_3 -.-> MW_Addconfigurationcachingmiddlewareforperformance
+    REQ_001_3 -.-> SH_DefineAgentStateSchemamodelforSQLitedatabasestructuretablesstatesmemoriescontexts
+    REQ_001_3 -.-> SH_DefineSilmariConfigmodelwithattributespipeline_settingscontext_window_settingscheckpoint_settingslogging_config
+    REQ_001_3 -.-> SH_CreateConfigurationLoaderutilitywithmethodsforloadingJSONYAMLandenvironmentvariables
+    REQ_001_3 -.-> SH_DefineBeadsConfigmodelforbuildartifactdefinitions
+    REQ_001_3 -.-> SH_DefineSpecStoryEntrymodelwithattributesspec_idtitlestatushistorylast_updated
+    REQ_001_3 -.-> SH_CreateDatabaseMigrationutilityforSQLiteschemaversioning
+    REQ_001_3 -.-> SH_DefineIDEConfigmodelforClaudeandCursoreditorsettings
+    REQ_001_4 -.-> BE_Createcheckpointmanagerserviceforcreatingandloadingcheckpoints
+    REQ_001_4 -.-> BE_ImplementcheckpointserializationserviceforconvertingstatetoJSON
+    REQ_001_4 -.-> BE_Createcheckpointcleanupservicewithconfigurableretentionpolicies
+    REQ_001_4 -.-> BE_Implementcheckpointrecoveryserviceforresumingfromsavedstate
+    REQ_001_4 -.-> BE_Createcheckpointvalidationservicetoverifyintegrityandversioncompatibility
+    REQ_001_4 -.-> BE_Implementcheckpointindexingserviceforfastlookupandretrieval
+    REQ_001_4 -.-> MW_Addcheckpointcreationmiddlewaretoautomaticallysavestateatphaseboundaries
+    REQ_001_4 -.-> MW_ImplementcheckpointvalidationmiddlewaretoverifyJSONschemacompliance
+    REQ_001_4 -.-> MW_Addcheckpointcompressionmiddlewareforlargestatefiles
+    REQ_001_4 -.-> SH_DefineCheckpointMetadatamodelwithattributescheckpoint_idtimestampphaseversionchecksum
+    REQ_001_4 -.-> SH_DefineRLMActCheckpointmodelwithattributesmetadatapipeline_statephase_datacontext_snapshot
+    REQ_001_4 -.-> SH_DefineWorkflowCheckpointmodelwithattributesmetadataworkflow_stateexecution_stackvariables
+    REQ_001_4 -.-> SH_CreateCheckpointSerializerutilityforJSONserializationdeserialization
+    REQ_001_4 -.-> SH_DefineCheckpointRetentionPolicymodelwithattributesmax_countmax_age_dayskeep_phase_boundaries
+    REQ_001_4 -.-> SH_CreateCheckpointValidatorutilitywithmethodsforschemavalidationandintegritychecking
+    REQ_001_4 -.-> SH_DefineCheckpointIndexmodelfortrackingallavailablecheckpointswithquicklookup
+    REQ_001_5 -.-> BE_Createvirtualenvironmentinitializationservice
+    REQ_001_5 -.-> BE_Implementbuildartifactmanagerservicefordistdirectory
+    REQ_001_5 -.-> BE_Createoutputdirectorymanagerfororganizinganalysisresults
+    REQ_001_5 -.-> BE_Implementcachecleanupservicewithconfigurablepolicies
+    REQ_001_5 -.-> BE_Createdependencyinstallationservicefor
+    REQ_001_5 -.-> BE_Implementbuildartifactarchivingserviceforlongtermstorage
+    REQ_001_5 -.-> MW_Addvirtualenvironmentactivationmiddlewareforcommandexecution
+    REQ_001_5 -.-> MW_Implementbuildartifactvalidationmiddleware
+    REQ_001_5 -.-> MW_Addcacheinvalidationmiddlewarebasedondependencychanges
+    REQ_001_5 -.-> SH_DefineBuildArtifactmodelwithattributesartifact_typepathtimestampsizechecksum
+    REQ_001_5 -.-> SH_DefineOutputResultmodelwithattributesanalysis_typeoutput_pathtimestampmetadata
+    REQ_001_5 -.-> SH_CreateVirtualEnvironmentManagerutilitywithmethodsforcreationactivationanddependencyinstallation
+    REQ_001_5 -.-> SH_DefineCachePolicymodelwithattributesmax_age_daysmax_size_mbauto_cleanup_enabled
+    REQ_001_5 -.-> SH_CreateCacheManagerutilityformanagingpytestmypyandruffcaches
+    REQ_001_5 -.-> SH_DefineDistributionPackagemodelwithattributespackage_nameversionformatwheelsdistpath
+    REQ_001_5 -.-> SH_CreateArtifactRetentionPolicymodelwithattributeskeep_latest_countmax_age_daysarchive_old
+    REQ_002_1 -.-> FE_CLIprogressindicatorshowingresearchactivitiessearchinganalyzingindexing
+    REQ_002_1 -.-> FE_Interactivepromptsforuserclarificationwhenrequirementsareambiguous
+    REQ_002_1 -.-> FE_Researchreportdisplaywithfindingsfilelocationsandrecommendations
+    REQ_002_1 -.-> FE_Visualizationofdependencygraphifapplicable
+    REQ_002_1 -.-> BE_ResearchPhaseclassinsilmari_rlm_actphasesresearch
+    REQ_002_1 -.-> BE_executemethodorchestratingresearchactivities
+    REQ_002_1 -.-> BE_analyze_requirementsservicetoparseanddecomposetasks
+    REQ_002_1 -.-> BE_search_codebaseserviceusingGlobGrepforfilediscovery
+    REQ_002_1 -.-> BE_extract_patternsservicetoidentifycodepatternsandconventions
+    REQ_002_1 -.-> BE_identify_dependenciesservicetomapcomponentrelationships
+    REQ_002_1 -.-> BE_generate_research_reportservicetocompilefindings
+    REQ_002_1 -.-> BE_Integrationwithbaml_clientforstructuredAIanalysis
+    REQ_002_1 -.-> MW_Checkpointcreationbeforeandafterresearchactivities
+    REQ_002_1 -.-> MW_Errorhandlingforfileaccessfailures
+    REQ_002_1 -.-> MW_Timeouthandlingforlongrunningsearches
+    REQ_002_1 -.-> MW_Validationofresearchcompletenessbeforephasetransition
+    REQ_002_1 -.-> MW_Contextsizelimitsmanagement
+    REQ_002_1 -.-> SH_ResearchResultmodelwithfindingsfile_pathspatternsdependencies
+    REQ_002_1 -.-> SH_RequirementDecompositionmodelfortaskbreakdown
+    REQ_002_1 -.-> SH_CodebaseIndexmodelforsearchablefileindex
+    REQ_002_1 -.-> SH_PhaseCheckpointmodelforstatepersistence
+    REQ_002_1 -.-> SH_ContextEntrymodelforcontext_window_arrayentries
+    REQ_002_1 -.-> SH_Utilityfunctionsparse_requirementsearch_filesanalyze_code_structure
+    REQ_002_2 -.-> FE_Progressdisplayshowingfilesbeingreadandanalyzed
+    REQ_002_2 -.-> FE_Learningsummarydisplaywithdiscoveredpatternsandexamples
+    REQ_002_2 -.-> FE_Interactiveviewofreusablecomponentsfound
+    REQ_002_2 -.-> FE_Patternlibraryvisualization
+    REQ_002_2 -.-> BE_LearnPhaseclassinsilmari_rlm_actphaseslearn
+    REQ_002_2 -.-> BE_executemethodorchestratinglearningactivities
+    REQ_002_2 -.-> BE_read_identified_filesservicetoloadrelevantcode
+    REQ_002_2 -.-> BE_extract_patternsservicetoidentifycodingpatterns
+    REQ_002_2 -.-> BE_identify_reusable_componentsservicetofindutilitiesandhelpers
+    REQ_002_2 -.-> BE_build_implementation_contextservicetocompileexamplesandtemplates
+    REQ_002_2 -.-> BE_populate_episodic_memoryserviceforcodeexamplestorage
+    REQ_002_2 -.-> BE_populate_semantic_memoryserviceforpatternknowledge
+    REQ_002_2 -.-> BE_generate_learning_summaryservicetocompileinsights
+    REQ_002_2 -.-> BE_Integrationwithcontext_window_arrayformemorymanagement
+    REQ_002_2 -.-> MW_Checkpointcreationafterfilereadingandanalysis
+    REQ_002_2 -.-> MW_Memorylayervalidationepisodicsemantic
+    REQ_002_2 -.-> MW_Contextsizemanagementandbatching
+    REQ_002_2 -.-> MW_Errorhandlingforfileparsingfailures
+    REQ_002_2 -.-> MW_Validationoflearnedcontextagainstrequirements
+    REQ_002_2 -.-> SH_LearningResultmodelwithpatternscomponentsexamplesinsights
+    REQ_002_2 -.-> SH_CodePatternmodelforpatterndefinitions
+    REQ_002_2 -.-> SH_ReusableComponentmodelforcomponentmetadata
+    REQ_002_2 -.-> SH_ImplementationContextmodelforcontext_window_array
+    REQ_002_2 -.-> SH_EpisodicMemoryEntrymodelforcodeexamples
+    REQ_002_2 -.-> SH_SemanticMemoryEntrymodelforpatternknowledge
+    REQ_002_2 -.-> SH_Utilityfunctionsextract_patternparse_codeidentify_component_type
+    REQ_002_3 -.-> FE_Implementationplandisplaywithstepbystepbreakdown
+    REQ_002_3 -.-> FE_Datamodelvisualizationwithfieldsandrelationships
+    REQ_002_3 -.-> FE_Componentinteractiondiagram
+    REQ_002_3 -.-> FE_Interactiveplanreviewandapprovalinterface
+    REQ_002_3 -.-> FE_Filechangepreviewcreatemodifydelete
+    REQ_002_3 -.-> BE_ModelPhaseclassinsilmari_rlm_actphasesmodel
+    REQ_002_3 -.-> BE_executemethodorchestratingmodelingactivities
+    REQ_002_3 -.-> BE_create_implementation_planservicetogeneratestepbystepstrategy
+    REQ_002_3 -.-> BE_define_data_modelsservicetospecifyschemasandtypes
+    REQ_002_3 -.-> BE_specify_componentsservicetodefinecomponentresponsibilities
+    REQ_002_3 -.-> BE_map_interactionsservicetomodelcomponentdependencies
+    REQ_002_3 -.-> BE_identify_file_changesservicetolistfilestocreatemodify
+    REQ_002_3 -.-> BE_define_api_contractsservicetospecifyendpointsandschemas
+    REQ_002_3 -.-> BE_generate_validation_rulesserviceforbusinesslogic
+    REQ_002_3 -.-> BE_populate_procedural_memoryserviceforimplementationsteps
+    REQ_002_3 -.-> BE_validate_plan_feasibilityservicetocheckplancompleteness
+    REQ_002_3 -.-> BE_IntegrationwithBAMLforstructuredplangeneration
+    REQ_002_3 -.-> MW_Checkpointcreationwithcompleteimplementationmodel
+    REQ_002_3 -.-> MW_Planvalidationagainstlearnedpatterns
+    REQ_002_3 -.-> MW_Dependencyresolutionandordering
+    REQ_002_3 -.-> MW_Conflictdetectione
+    REQ_002_3 -.-> MW_Userapprovalworkflowforplanconfirmation
+    REQ_002_3 -.-> MW_Errorhandlingforinvalidplanstructures
+    REQ_002_3 -.-> SH_ImplementationPlanmodelwithorderedstepsdependenciesestimates
+    REQ_002_3 -.-> SH_DataModelSpecmodelforschemadefinitions
+    REQ_002_3 -.-> SH_ComponentSpecmodelforcomponentresponsibilities
+    REQ_002_3 -.-> SH_APIContractmodelforendpointdefinitions
+    REQ_002_3 -.-> SH_ValidationRulemodelforbusinesslogic
+    REQ_002_3 -.-> SH_FileChangeSpecmodelcreatemodifydeleteoperations
+    REQ_002_3 -.-> SH_ProceduralMemoryEntrymodelforstepbystepprocedures
+    REQ_002_3 -.-> SH_InteractionMapmodelforcomponentdependencies
+    REQ_002_3 -.-> SH_Utilityfunctionsorder_stepsresolve_dependenciesvalidate_plan
+    REQ_002_4 -.-> FE_Realtimeprogressindicatorshowingcurrentstepexecution
+    REQ_002_4 -.-> FE_Filechangepreviewbeforewritingcreatemodify
+    REQ_002_4 -.-> FE_Stepbystepexecutionlogwithsuccessfailurestatus
+    REQ_002_4 -.-> FE_Codediffdisplayformodifiedfiles
+    REQ_002_4 -.-> FE_Errormessageswithrecoveryoptions
+    REQ_002_4 -.-> FE_Completionsummarywithfileschanged
+    REQ_002_4 -.-> BE_ActPhaseclassinsilmari_rlm_actphasesact
+    REQ_002_4 -.-> BE_executemethodorchestratingimplementationexecution
+    REQ_002_4 -.-> BE_execute_stepservicetorunindividualplansteps
+    REQ_002_4 -.-> BE_generate_codeservicetocreatecodefollowingpatterns
+    REQ_002_4 -.-> BE_create_fileservicewithWritetoolintegration
+    REQ_002_4 -.-> BE_modify_fileservicewithEdittoolintegration
+    REQ_002_4 -.-> BE_validate_step_completionservicetoverifyeachstep
+    REQ_002_4 -.-> BE_update_working_memoryservicetotrackexecutionstate
+    REQ_002_4 -.-> BE_handle_execution_errorserviceforerrorrecovery
+    REQ_002_4 -.-> BE_create_git_commitserviceforversioncontroloptional
+    REQ_002_4 -.-> BE_generate_implementation_summaryservicetocompileresults
+    REQ_002_4 -.-> BE_Integrationwithbaml_clientforcodegeneration
+    REQ_002_4 -.-> BE_Integrationwithcontext_window_arrayforstatemanagement
+    REQ_002_4 -.-> MW_Checkpointcreationaftereachmajorstep
+    REQ_002_4 -.-> MW_Workingmemoryupdatesforexecutionstate
+    REQ_002_4 -.-> MW_Fileoperationvalidationandrollbackonfailure
+    REQ_002_4 -.-> MW_Errorhandlingwithretrylogic
+    REQ_002_4 -.-> MW_Stepdependencyvalidationbeforeexecution
+    REQ_002_4 -.-> MW_Codevalidationsyntaximportsbeforefilewrite
+    REQ_002_4 -.-> MW_Interruptiondetectionandstatepreservation
+    REQ_002_4 -.-> SH_ExecutionResultmodelwithstatusfiles_changederrors
+    REQ_002_4 -.-> SH_StepResultmodelforindividualstepoutcomes
+    REQ_002_4 -.-> SH_FileOperationmodelcreatemodifywithcontent
+    REQ_002_4 -.-> SH_WorkingMemoryEntrymodelforexecutionstate
+    REQ_002_4 -.-> SH_CodeGenerationConfigmodelforgenerationparameters
+    REQ_002_4 -.-> SH_ExecutionCheckpointmodelforresumability
+    REQ_002_4 -.-> SH_ErrorRecoveryStrategymodelforhandlingfailures
+    REQ_002_4 -.-> SH_Utilityfunctionsgenerate_from_templateapply_patternvalidate_syntaxrollback_changes
+    REQ_002_5 -.-> FE_Testexecutionprogressdisplaywithpassfailcounts
+    REQ_002_5 -.-> FE_Verificationchecklistshowingrequirementsatisfaction
+    REQ_002_5 -.-> FE_Codequalitymetricsdisplaylinterrorstypecoverage
+    REQ_002_5 -.-> FE_Testfailuredetailswitherrormessagesandstacktraces
+    REQ_002_5 -.-> FE_Verificationsummarywithoverallpassfailstatus
+    REQ_002_5 -.-> FE_Interactiveoptionsforretryorrollbackonfailure
+    REQ_002_5 -.-> BE_VerifyPhaseclassinsilmari_rlm_actphasesverify
+    REQ_002_5 -.-> BE_executemethodorchestratingverificationactivities
+    REQ_002_5 -.-> BE_run_testsserviceusingBashtoolforpytesttestrunners
+    REQ_002_5 -.-> BE_validate_requirementsservicetocheckacceptancecriteria
+    REQ_002_5 -.-> BE_check_code_qualityserviceforlintingandtypechecking
+    REQ_002_5 -.-> BE_verify_patternsservicetovalidatecodefollowsconventions
+    REQ_002_5 -.-> BE_test_integrationserviceforintegrationtesting
+    REQ_002_5 -.-> BE_validate_api_contractsserviceforAPItesting
+    REQ_002_5 -.-> BE_check_regressionsservicetorunregressiontests
+    REQ_002_5 -.-> BE_generate_verification_reportservicetocompileresults
+    REQ_002_5 -.-> BE_handle_verification_failureserviceforretryrollbacklogic
+    REQ_002_5 -.-> BE_Integrationwithtestrunnerspytestgotestetc
+    REQ_002_5 -.-> BE_Integrationwithqualitytoolsruffmypyetc
+    REQ_002_5 -.-> MW_Checkpointcreationwithverificationresults
+    REQ_002_5 -.-> MW_Testexecutiontimeouthandling
+    REQ_002_5 -.-> MW_Erroraggregationandreporting
+    REQ_002_5 -.-> MW_Validationoftestenvironmentsetup
+    REQ_002_5 -.-> MW_Rollbackcapabilityoncriticalfailures
+    REQ_002_5 -.-> MW_Usernotificationonverificationcompletion
+    REQ_002_5 -.-> MW_IntegrationwithCICDpipelinesifapplicable
+    REQ_002_5 -.-> SH_VerificationResultmodelwithtests_passedquality_checksrequirement_status
+    REQ_002_5 -.-> SH_TestResultmodelforindividualtestoutcomes
+    REQ_002_5 -.-> SH_QualityMetricsmodelforcodequalitymeasurements
+    REQ_002_5 -.-> SH_RequirementStatusmodelforacceptancecriteriatracking
+    REQ_002_5 -.-> SH_RegressionCheckmodelforregressiontestresults
+    REQ_002_5 -.-> SH_VerificationCheckpointmodelforstatepersistence
+    REQ_002_5 -.-> SH_FailureReportmodelforissuedetails
+    REQ_002_5 -.-> SH_Utilityfunctionsrun_test_suiteparse_test_outputcheck_lint_errorsvalidate_types
+    REQ_003_1 -.-> FE_Nofrontendcomponentsrequiredforcheckpointpersistence
+    REQ_003_1 -.-> BE_CheckpointManager
+    REQ_003_1 -.-> BE_CheckpointSerializer
+    REQ_003_1 -.-> BE_CheckpointWriter
+    REQ_003_1 -.-> BE_CheckpointPruner
+    REQ_003_1 -.-> BE_PhasespecificstateextractorsforeachRLMActphase
+    REQ_003_1 -.-> BE_Contextserializersforworkingmemoryepisodicmemorysemanticmemory
+    REQ_003_1 -.-> BE_Errorhandlingandretrylogicforfilesystemfailures
+    REQ_003_1 -.-> BE_Checkpointmetadatatrackingcreationtimephasesizestatus
+    REQ_003_1 -.-> MW_Pipelineexecutionhookstotriggercheckpointcreationatphaseboundaries
+    REQ_003_1 -.-> MW_Checkpointvalidationmiddlewaretoensurestateconsistencybeforepersistence
+    REQ_003_1 -.-> MW_Filesystempermissionsverificationforcheckpointdirectory
+    REQ_003_1 -.-> MW_Diskspacemonitoringbeforecheckpointcreation
+    REQ_003_1 -.-> MW_Concurrentcheckpointaccesspreventionusingfilelocks
+    REQ_003_1 -.-> SH_PipelineStatemodelwithallphasedataandexecutioncontext
+    REQ_003_1 -.-> SH_CheckpointMetadatamodelidtimestampphasesizehash
+    REQ_003_1 -.-> SH_CheckpointSchemaJSONschemadefinitionforvalidation
+    REQ_003_1 -.-> SH_PhaseContextmodelforeachRLMActphasestate
+    REQ_003_1 -.-> SH_ExecutionMetadatamodelstart_timeelapsed_timeresource_usage
+    REQ_003_1 -.-> SH_CheckpointConfigmodelretention_policymax_sizecompression_enabled
+    REQ_003_1 -.-> SH_Constantsforcheckpointfilenamingconventionsandpaths
+    REQ_003_1 -.-> SH_Utilityfunctionsforfilepathgenerationandvalidation
+    REQ_003_1 -.-> SH_JSONserializationutilitieswithcustomencodersforcomplextypes
+    REQ_003_2 -.-> FE_Nofrontendcomponentsrequiredforcheckpointrecovery
+    REQ_003_2 -.-> BE_CheckpointManager
+    REQ_003_2 -.-> BE_CheckpointDeserializer
+    REQ_003_2 -.-> BE_CheckpointReader
+    REQ_003_2 -.-> BE_PipelineReconstructor
+    REQ_003_2 -.-> BE_PhasespecificstatereconstructorsforeachRLMActphase
+    REQ_003_2 -.-> BE_Contextdeserializersforallmemorylayers
+    REQ_003_2 -.-> BE_Checkpointversioncompatibilitychecker
+    REQ_003_2 -.-> BE_Recoveryverificationlogictoensurestateconsistency
+    REQ_003_2 -.-> MW_Pipelineinitializationhooktocheckforexistingcheckpointsbeforestartingnewexecution
+    REQ_003_2 -.-> MW_Recoverydecisionlogictodetermineifcheckpointrecoveryshouldbeattempted
+    REQ_003_2 -.-> MW_Statevalidationmiddlewaretoverifyreconstructedpipelineintegrity
+    REQ_003_2 -.-> MW_Recoveryauditloggingforcomplianceanddebugging
+    REQ_003_2 -.-> MW_Checkpointfilelockingduringrecoverytopreventconcurrentaccess
+    REQ_003_2 -.-> SH_CheckpointRecoveryResultmodelsuccessrecovered_stateerrorswarnings
+    REQ_003_2 -.-> SH_ValidationResultmodelis_validschema_errorsintegrity_errors
+    REQ_003_2 -.-> SH_RecoveryConfigmodelauto_recovery_enabledmax_recovery_attemptsfallback_strategy
+    REQ_003_2 -.-> SH_CheckpointVersionInfomodelforbackwardcompatibility
+    REQ_003_2 -.-> SH_ErrortypesforrecoveryfailuresCorruptCheckpointErrorIncompatibleVersionError
+    REQ_003_2 -.-> SH_Utilityfunctionsforcheckpointfilediscoveryandsortingbytimestamp
+    REQ_003_2 -.-> SH_JSONdeserializationutilitieswitherrorhandlingformissingfields
+    REQ_003_2 -.-> SH_Constantsforrecoverytimeoutsandretrypolicies
+    REQ_003_3 -.-> FE_Nofrontendcomponentsrequiredforworkflowsnapshotmanagement
+    REQ_003_3 -.-> BE_WorkflowCheckpointManager
+    REQ_003_3 -.-> BE_WorkflowSerializer
+    REQ_003_3 -.-> BE_DecompositionTreeSerializer
+    REQ_003_3 -.-> BE_StepHistoryTracker
+    REQ_003_3 -.-> BE_AutonomousLoopStateCapture
+    REQ_003_3 -.-> BE_BeadsArtifactTracker
+    REQ_003_3 -.-> BE_WorkflowSnapshotWriter
+    REQ_003_3 -.-> BE_DependencyGraphSerializer
+    REQ_003_3 -.-> BE_Concurrentworkflowisolationlogictopreventsnapshotcollisions
+    REQ_003_3 -.-> MW_Workflowexecutionhookstotriggersnapshotsafterstepcompletions
+    REQ_003_3 -.-> MW_Workflowstatevalidationbeforesnapshotcreation
+    REQ_003_3 -.-> MW_Snapshotisolationenforcementforconcurrentworkflows
+    REQ_003_3 -.-> MW_Workflowprogresstrackingintegration
+    REQ_003_3 -.-> MW_Snapshotnotificationsystemforexternalmonitoringtools
+    REQ_003_3 -.-> SH_WorkflowStatemodelwithtasktreestephistoryandloopstate
+    REQ_003_3 -.-> SH_SnapshotMetadatamodelsnapshot_idworkflow_idtimestampsizestep_count
+    REQ_003_3 -.-> SH_DecompositionTreemodelwithhierarchicaltaskstructure
+    REQ_003_3 -.-> SH_StepExecutionmodelstep_idstatusstart_timeend_timeresult
+    REQ_003_3 -.-> SH_AutonomousLoopStatemodeliterationplanning_stateexecution_state
+    REQ_003_3 -.-> SH_BeadsArtifactStatemodelartifact_idbuild_statusdependencies
+    REQ_003_3 -.-> SH_TaskGraphmodelfordependencyrelationships
+    REQ_003_3 -.-> SH_WorkflowSnapshotSchemaJSONschemaforvalidation
+    REQ_003_3 -.-> SH_Constantsforsnapshotretentionpoliciesandfilenaming
+    REQ_003_3 -.-> SH_Utilityfunctionsforworkflowstatecomparisonanddiffgeneration
+    REQ_003_4 -.-> FE_Recoverynotificationcomponenttoinformuserofworkflowresumption
+    REQ_003_4 -.-> FE_Recoverysummarydashboardshowingrecoveredworkflowstate
+    REQ_003_4 -.-> FE_Stepstatusvisualizationhighlightingcompletedvs
+    REQ_003_4 -.-> BE_WorkflowCheckpointManager
+    REQ_003_4 -.-> BE_WorkflowDeserializer
+    REQ_003_4 -.-> BE_DecompositionTreeReconstructor
+    REQ_003_4 -.-> BE_StepExecutionReconciler
+    REQ_003_4 -.-> BE_AutonomousLoopReconstructor
+    REQ_003_4 -.-> BE_DependencyResolver
+    REQ_003_4 -.-> BE_WorkflowExecutionResumer
+    REQ_003_4 -.-> BE_BeadsArtifactReconciler
+    REQ_003_4 -.-> BE_Recoveryverificationtoensureworkflowstateconsistency
+    REQ_003_4 -.-> BE_Recoveryreportgeneratorwithdetailedrecoverystatistics
+    REQ_003_4 -.-> MW_Startuphooktotriggerinterruptedworkflowdetection
+    REQ_003_4 -.-> MW_Recoverydecisionlogictodeterminerecoverystrategyautomaticvs
+    REQ_003_4 -.-> MW_Stepidempotencyenforcementtopreventduplicatesideeffects
+    REQ_003_4 -.-> MW_Recoveryprogresstrackingandlogging
+    REQ_003_4 -.-> MW_Recoveryfailurehandlingwithrollbackcapabilities
+    REQ_003_4 -.-> SH_RecoveryResultmodelsuccessrecovered_workflowresume_steprecovery_report
+    REQ_003_4 -.-> SH_RecoveryReportmodelworkflow_idsteps_completedsteps_skippedsteps_remainingrecovery_time
+    REQ_003_4 -.-> SH_InterruptedWorkflowInfomodelworkflow_idinterruption_timelast_snapshot_timerecovery_status
+    REQ_003_4 -.-> SH_StepResumePointmodelstep_iddependencies_satisfiedpartial_completion_data
+    REQ_003_4 -.-> SH_RecoveryStrategyenumAUTOMATICMANUALPROMPT_USER
+    REQ_003_4 -.-> SH_ErrortypesforrecoveryfailuresInconsistentStateErrorMissingDependencyErrorCorruptSnapshotError
+    REQ_003_4 -.-> SH_Utilityfunctionsforworkflowstatecomparisonandvalidation
+    REQ_003_4 -.-> SH_Constantsforrecoverytimeoutsandretrypolicies
+    REQ_003_4 -.-> SH_Notificationtemplatesforuseralertsaboutrecoveryevents
+    REQ_003_5 -.-> FE_StoragemanagementUIpanelshowingcheckpointdiskusagebypipelineworkflow
+    REQ_003_5 -.-> FE_Manualcleanuptriggerbuttonwithconfirmationdialog
+    REQ_003_5 -.-> FE_Storagequotaconfigurationinterface
+    REQ_003_5 -.-> FE_Checkpointbrowsertoviewanddeleteindividualcheckpoints
+    REQ_003_5 -.-> BE_CheckpointStorage
+    REQ_003_5 -.-> BE_CheckpointIndexer
+    REQ_003_5 -.-> BE_CheckpointArchiver
+    REQ_003_5 -.-> BE_CheckpointCompressor
+    REQ_003_5 -.-> BE_CheckpointValidator
+    REQ_003_5 -.-> BE_CheckpointCleaner
+    REQ_003_5 -.-> BE_StorageQuotaEnforcer
+    REQ_003_5 -.-> MW_Scheduledtasktorunretentionpolicyenforcementdaily
+    REQ_003_5 -.-> MW_Diskspacemonitoringservicewithalertsforlowspaceconditions
+    REQ_003_5 -.-> MW_Storagequotaenforcementbeforecheckpointcreation
+    REQ_003_5 -.-> MW_Filesystemeventmonitoringforcheckpointdirectorychanges
+    REQ_003_5 -.-> MW_Checkpointindexingtriggersafterfilewrites
+    REQ_003_5 -.-> SH_StorageStatsmodeltotal_sizefile_countoldest_checkpointnewest_checkpoint
+    REQ_003_5 -.-> SH_RetentionPolicymodelretention_daysmax_checkpoint_countarchive_enabled
+    REQ_003_5 -.-> SH_CheckpointFiltermodelpipeline_idworkflow_idstart_dateend_datestatus
+    REQ_003_5 -.-> SH_ArchiveResultmodelarchived_countarchive_pathtotal_size_saved
+    REQ_003_5 -.-> SH_CleanupResultmodeldeleted_countspace_freederrors
+    REQ_003_5 -.-> SH_StorageConfigmodelbase_pathcompression_enabledquota_per_pipelineretention_days
+    REQ_003_5 -.-> SH_CheckpointFileMetadatamodelpathsizechecksumcreation_timeaccess_time
+    REQ_003_5 -.-> SH_Constantsforfilenamingconventionscompressionlevelsanddefaultquotas
+    REQ_003_5 -.-> SH_Utilityfunctionsforfilesizecalculationsanddatecomparisons
+    REQ_003_5 -.-> SH_JSONserializationutilitieswithcustomencodersforefficientstorage
+    REQ_004_1 -.-> FE_Notapplicablebackendmemorysystem
+    REQ_004_1 -.-> BE_WorkingMemoryclassincontext_window_arrayworking_context
+    REQ_004_1 -.-> BE_InmemorycacheusingOrderedDictorlru_cacheforO1access
+    REQ_004_1 -.-> BE_TTLmanagerwithbackgroundthreadforexpirationcleanup
+    REQ_004_1 -.-> BE_Capacitymanagerwithconfigurablesizelimits
+    REQ_004_1 -.-> BE_getkeymethodwithoptionaldefaultvalue
+    REQ_004_1 -.-> BE_setkeyvaluettlmethodwithoptionalTTLoverride
+    REQ_004_1 -.-> BE_updatekeytransform_fnmethodforatomicupdates
+    REQ_004_1 -.-> BE_clearmethodtoresetstate
+    REQ_004_1 -.-> BE_snapshotmethodforcheckpointcreation
+    REQ_004_1 -.-> BE_restoresnapshotmethodforcheckpointrecovery
+    REQ_004_1 -.-> BE_metricsmethodreturningusagestatistics
+    REQ_004_1 -.-> MW_Threadsafeaccesscontrolsusingthreading
+    REQ_004_1 -.-> MW_Validationofkeytypesstringkeysonly
+    REQ_004_1 -.-> MW_Validationofvalueserializability
+    REQ_004_1 -.-> MW_Sizecalculationforcapacitymanagement
+    REQ_004_1 -.-> SH_WorkingMemoryConfigdatamodelttlcapacityeviction_policy
+    REQ_004_1 -.-> SH_WorkingMemoryEntrydatamodelkeyvaluetimestampaccess_count
+    REQ_004_1 -.-> SH_WorkingMemoryMetricsdatamodelhitsmissesevictionssize
+    REQ_004_1 -.-> SH_Serializationutilitiesforcheckpointsupport
+    REQ_004_1 -.-> SH_Clockinterfacefortestabletimebasedexpiration
+    REQ_004_2 -.-> FE_Notapplicablebackendmemorysystem
+    REQ_004_2 -.-> BE_EpisodicMemoryclassincontext_window_arrayimplementation_context
+    REQ_004_2 -.-> BE_SQLiteorPostgreSQLstorageforstructuredepisodedata
+    REQ_004_2 -.-> BE_Episodemodelwithidtimestampphaseactionresultparent_idmetadata
+    REQ_004_2 -.-> BE_append_episodeepisodemethodforaddingnewevents
+    REQ_004_2 -.-> BE_query_by_timestartendmethodfortemporalrangequeries
+    REQ_004_2 -.-> BE_query_by_phasephasemethodforphasespecificretrieval
+    REQ_004_2 -.-> BE_get_recentnmethodforlastNepisodes
+    REQ_004_2 -.-> BE_find_similarepisodethresholdmethodusingembeddingsimilarity
+    REQ_004_2 -.-> BE_detect_patternswindow_sizemethodforrecurringsequencedetection
+    REQ_004_2 -.-> BE_archive_oldretention_daysmethodforcleanup
+    REQ_004_2 -.-> BE_export_timelinestartendformatmethodforvisualization
+    REQ_004_2 -.-> BE_Integrationwith
+    REQ_004_2 -.-> MW_Transactionmanagementforatomicepisodewrites
+    REQ_004_2 -.-> MW_Indexcreationfortimestampphaseandparent_id
+    REQ_004_2 -.-> MW_Validationofepisodestructureandrequiredfields
+    REQ_004_2 -.-> MW_Compressionforlargemetadatafields
+    REQ_004_2 -.-> SH_Episodedatamodelidtimestampphaseactionresultparent_idmetadataembeddings
+    REQ_004_2 -.-> SH_PhaseEnumResearchLearnModelActVerifyDeploy
+    REQ_004_2 -.-> SH_EpisodeQuerydatamodelforcomplexqueryconstruction
+    REQ_004_2 -.-> SH_TimeRangedatamodelfortemporalqueries
+    REQ_004_2 -.-> SH_PatternMatchdatamodelfordetectedsequences
+    REQ_004_2 -.-> SH_Databaseschemamigrationutilities
+    REQ_004_2 -.-> SH_Embeddinggeneratorforsimilaritysearch
+    REQ_004_3 -.-> FE_Notapplicablebackendmemorysystem
+    REQ_004_3 -.-> BE_SemanticMemoryclassincontext_window_arraystore
+    REQ_004_3 -.-> BE_VectordatabaseintegrationChromaDBPineconeorFAISS
+    REQ_004_3 -.-> BE_Conceptmodelwithidnamedescriptioncategoryembeddingsmetadatarelationships
+    REQ_004_3 -.-> BE_store_conceptconceptmethodforaddingknowledge
+    REQ_004_3 -.-> BE_retrieve_conceptidmethodfordirectaccess
+    REQ_004_3 -.-> BE_search_similarquerytop_kthresholdmethodforsemanticsearch
+    REQ_004_3 -.-> BE_search_hybridqueryfilterstop_kmethodcombiningkeywordandsemantic
+    REQ_004_3 -.-> BE_add_relationshipsource_idtarget_idrelationship_typemethod
+    REQ_004_3 -.-> BE_get_relatedconcept_idrelationship_typemethodforgraphtraversal
+    REQ_004_3 -.-> BE_update_conceptidupdatesmethodwithversiontracking
+    REQ_004_3 -.-> BE_learn_from_episodeepisodemethodforknowledgeextraction
+    REQ_004_3 -.-> BE_Integrationwithcontext_window_arraysearch_index
+    REQ_004_3 -.-> MW_Embeddinggenerationpipelinewithcaching
+    REQ_004_3 -.-> MW_Validationofconceptstructureandrequiredfields
+    REQ_004_3 -.-> MW_Deduplicationlogictopreventredundantconcepts
+    REQ_004_3 -.-> MW_Accesscontrolforconceptcategories
+    REQ_004_3 -.-> SH_Conceptdatamodelidnamedescriptioncategoryembeddingsmetadataversioncreated_atupdated_at
+    REQ_004_3 -.-> SH_ConceptCategoryenumCodePatternDomainKnowledgeErrorSolutionPrinciple
+    REQ_004_3 -.-> SH_Relationshipdatamodelsource_idtarget_idtypestrengthmetadata
+    REQ_004_3 -.-> SH_RelationshipTypeenumIsAHasARelatedToDependsOnContradicts
+    REQ_004_3 -.-> SH_SearchQuerydatamodelforhybridsearch
+    REQ_004_3 -.-> SH_EmbeddingConfigformodelselectionandparameters
+    REQ_004_3 -.-> SH_Embeddingutilityfunctionsfortextpreprocessingandvectorization
+    REQ_004_4 -.-> FE_Notapplicablebackendmemorysystem
+    REQ_004_4 -.-> BE_ProceduralMemoryclassincontext_window_arraystore
+    REQ_004_4 -.-> BE_Proceduremodelwithidnamegoalstepspreconditionspostconditionsparametersmetadata
+    REQ_004_4 -.-> BE_store_procedureproceduremethodforaddingworkflows
+    REQ_004_4 -.-> BE_retrieve_procedureidmethodfordirectaccess
+    REQ_004_4 -.-> BE_find_by_goalgoal_descriptionmethodusingsemanticmatching
+    REQ_004_4 -.-> BE_recommend_procedurescontexttop_kmethodforcontextbasedsuggestions
+    REQ_004_4 -.-> BE_execute_procedureidparametersmethodwithexecutiontracking
+    REQ_004_4 -.-> BE_record_outcomeexecution_idsuccessdurationerrorsmethod
+    REQ_004_4 -.-> BE_get_metricsprocedure_idmethodforeffectivenessstatistics
+    REQ_004_4 -.-> BE_refine_procedureidfeedbackmethodforimprovement
+    REQ_004_4 -.-> BE_compose_proceduresprocedure_idscomposition_logicmethodforworkflowbuilding
+    REQ_004_4 -.-> BE_Integrationwithplanning_pipelinesteps
+    REQ_004_4 -.-> BE_Integrationwithagentsandcommandsforproceduretemplates
+    REQ_004_4 -.-> MW_Validationofprocedurestructurestepspreconditionspostconditions
+    REQ_004_4 -.-> MW_Parametervalidationandtypechecking
+    REQ_004_4 -.-> MW_Executionsandboxforsafeproceduretesting
+    REQ_004_4 -.-> MW_Rollbackmechanismforfailedprocedureexecutions
+    REQ_004_4 -.-> SH_Proceduredatamodelidnamegoalstepspreconditionspostconditionsparametersversioncreated_at
+    REQ_004_4 -.-> SH_ProcedureStepdatamodelorderactionparametersexpected_outcometimeout
+    REQ_004_4 -.-> SH_ProcedureExecutiondatamodelidprocedure_idparametersstart_timeend_timesuccesserrors
+    REQ_004_4 -.-> SH_ProcedureMetricsdatamodelsuccess_rateavg_durationtotal_executionslast_success_time
+    REQ_004_4 -.-> SH_ProcedureTemplateforparameterizedworkflows
+    REQ_004_4 -.-> SH_ConditionEvaluatorforpreconditionpostconditionchecking
+    REQ_004_4 -.-> SH_CompositionLogicenumSequentialParallelConditionalLoop
+    REQ_004_5 -.-> FE_Notapplicablebackendmemorysystem
+    REQ_004_5 -.-> BE_ContextWindowArrayclassincontext_window_arraystore
+    REQ_004_5 -.-> BE_get_contexttaskmax_tokensmethodforassemblingcompletecontext
+    REQ_004_5 -.-> BE_query_all_layersquerymethodforcrosslayersearch
+    REQ_004_5 -.-> BE_prioritize_contextitemsmax_tokensmethodforintelligentselection
+    REQ_004_5 -.-> BE_batch_contextlarge_contextbatch_sizemethodforchunking
+    REQ_004_5 -.-> BE_count_tokenstextmethodusingtiktokenorsimilar
+    REQ_004_5 -.-> BE_compress_contextcontexttarget_tokensmethodforsummarization
+    REQ_004_5 -.-> BE_refresh_contexttask_idmethodforupdatinglongrunningtaskcontext
+    REQ_004_5 -.-> BE_preview_contexttaskmethodfordebuggingandtransparency
+    REQ_004_5 -.-> BE_Integrationwithcontext_window_arraybatching
+    REQ_004_5 -.-> BE_Integrationwithbaml_clientforstructuredLLMcalls
+    REQ_004_5 -.-> BE_Workingmemoryintegrationviacontext_window_arrayworking_context
+    REQ_004_5 -.-> BE_Implementationcontextintegrationviacontext_window_arrayimplementation_context
+    REQ_004_5 -.-> BE_Searchindexintegrationviacontext_window_arraysearch_index
+    REQ_004_5 -.-> MW_Prioritycalculationbasedonrecencyrelevanceandimportance
+    REQ_004_5 -.-> MW_Tokenbudgetallocationacrossmemorylayers
+    REQ_004_5 -.-> MW_ContextvalidationforLLMcompatibility
+    REQ_004_5 -.-> MW_Ratelimitingforexpensiveoperationsembeddingscompression
+    REQ_004_5 -.-> SH_ContextWindowdatamodelworkingepisodicsemanticproceduralmetadatatotal_tokens
+    REQ_004_5 -.-> SH_ContextItemdatamodelsource_layercontentprioritytokenstimestamp
+    REQ_004_5 -.-> SH_PriorityLevelenumCriticalHighMediumLow
+    REQ_004_5 -.-> SH_ContextBatchdatamodelforbatchedoperations
+    REQ_004_5 -.-> SH_TokenCounterutilitywithmodelspecifictokenization
+    REQ_004_5 -.-> SH_ContextCompressorutilityforsummarization
+    REQ_004_5 -.-> SH_MemoryLayerConfigforlayerspecificsettingsweightslimitsrefreshrates
+    REQ_004_5 -.-> SH_ContextQuerydatamodelforunifiedqueryingacrosslayers
+    REQ_006_1 -.-> FE_NofrontendcomponentsrequiredbackendCLIonlyintegration
+    REQ_006_1 -.-> BE_BeadsControllerclassinplanning_pipelinebeads_controller
+    REQ_006_1 -.-> BE_Artifactschemadefinitionsinbaml_srctypes
+    REQ_006_1 -.-> BE_BEADSstorageserviceinsilmari_rlm_actservicesbeads_storage
+    REQ_006_1 -.-> BE_Phasespecificartifactregistrationhooksinsilmari_rlm_actphasesforeachphase
+    REQ_006_1 -.-> BE_Artifactversioninglogicusinggitcommithashesandtimestamps
+    REQ_006_1 -.-> BE_Cleanupservicetopruneoldartifactsbasedonretentionpolicy
+    REQ_006_1 -.-> MW_Artifactvalidationmiddlewaretoensureschemacompliancebeforestorage
+    REQ_006_1 -.-> MW_Phasetransitionmiddlewaretoautomaticallyregisterartifactsonphasecompletion
+    REQ_006_1 -.-> MW_Errorhandlingforcorruptedormissingartifactfiles
+    REQ_006_1 -.-> SH_BuildArtifactdatamodelwithfieldsartifact_idphasetimestampcommit_hashfile_pathmetadata
+    REQ_006_1 -.-> SH_ExecutionDefinitiondatamodelwithfieldsdefinition_idphaseparametersdependencies
+    REQ_006_1 -.-> SH_DeploymentStatedatamodelwithfieldsstate_idenvironmentstatusartifacts
+    REQ_006_1 -.-> SH_BeadsConfigutilityclasstoreadwrite
+    REQ_006_1 -.-> SH_Pathresolutionutilitiesfor
+    REQ_006_2 -.-> FE_NofrontendcomponentsrequiredbackendCLIonlyintegration
+    REQ_006_2 -.-> BE_AgentStateManagerclassinsilmari_rlm_actagentsstate_manager
+    REQ_006_2 -.-> BE_SQLiteschemadefinitionin
+    REQ_006_2 -.-> BE_AgentMemoryServiceinsilmari_rlm_actservicesagent_memory
+    REQ_006_2 -.-> BE_Agentloaderservicetoparseagents
+    REQ_006_2 -.-> BE_Executionloggermiddlewareintegratedintoplanning_pipelineautonomous_loop
+    REQ_006_2 -.-> BE_Staterecoveryservicetorebuildagentcontextfrommemory
+    REQ_006_2 -.-> BE_DatabasemigrationmanagerusingAlembicorcustomversioning
+    REQ_006_2 -.-> MW_Databaseconnectionpoolingtohandleconcurrentagentoperations
+    REQ_006_2 -.-> MW_Transactionmanagementtoensureatomicwritesformultistepagentoperations
+    REQ_006_2 -.-> MW_InputsanitizationforagentmemoryentriestopreventSQLinjection
+    REQ_006_2 -.-> MW_Retrylogicfordatabaselocktimeoutsduringhighconcurrency
+    REQ_006_2 -.-> SH_Agentdatamodelwithfieldsagent_idroledefinition_pathcapabilitiesconstraintscreated_at
+    REQ_006_2 -.-> SH_Executiondatamodelwithfieldsexecution_idagent_idtaskinput_contextresultstatusduration_mstimestamp
+    REQ_006_2 -.-> SH_Memorydatamodelwithfieldsmemory_idagent_idkeyvaluecontextttltimestamp
+    REQ_006_2 -.-> SH_Interactiondatamodelwithfieldsinteraction_idfrom_agentto_agentmessageinteraction_typetimestamp
+    REQ_006_2 -.-> SH_DatabaseConfigutilityforconnectionstringmanagementandpoolconfiguration
+    REQ_006_2 -.-> SH_QueryBuilderutilityforcomplexmemoryquerieswithfilteringandpagination
+    REQ_006_3 -.-> FE_NofrontendcomponentsrequiredbackendCLIonlyintegration
+    REQ_006_3 -.-> BE_SpecStoryManagerclassinsilmari_rlm_actspecmanager
+    REQ_006_3 -.-> BE_Filebasedstorageserviceinsilmari_rlm_actservicesspec_storage
+    REQ_006_3 -.-> BE_Specversioningservicetocreatenewversionsonupdatesandmaintainversionhistory
+    REQ_006_3 -.-> BE_Traceabilityservicetobuildandqueryrelationshipsbetweenspecsstoriesandimplementationfiles
+    REQ_006_3 -.-> BE_Decisionloggerinsilmari_rlm_actspecdecision_logger
+    REQ_006_3 -.-> BE_Searchindexerforspecsandstorieswithkeywordtagandfulltextsearchcapabilities
+    REQ_006_3 -.-> BE_Diffgeneratortocomparespecversionsandshowchanges
+    REQ_006_3 -.-> BE_Gitintegrationservicetocommitspecchangeswithdescriptivemessages
+    REQ_006_3 -.-> MW_YAMLfrontmatterparsertoextractandvalidatemetadatafrommarkdownfiles
+    REQ_006_3 -.-> MW_Schemavalidationforspecmetadatarequiredfieldsidversionstatustitlecreated_at
+    REQ_006_3 -.-> MW_Filelockingmechanismtopreventconcurrenteditstosamespec
+    REQ_006_3 -.-> MW_Markdownsanitizationtoensuresafecontentstorage
+    REQ_006_3 -.-> SH_Specificationdatamodelwithfieldsspec_idversiontitledescriptionstatusparent_requirementacceptance_criteriatagscreated_atupdated_atauthor
+    REQ_006_3 -.-> SH_Storydatamodelwithfieldsstory_idspec_idtitledescriptionacceptance_criteriastatusprioritycreated_at
+    REQ_006_3 -.-> SH_Decisiondatamodelwithfieldsdecision_idcontextproblemalternativeschosen_solutionrationaleconsequencestimestamp
+    REQ_006_3 -.-> SH_SpecVersiondatamodelwithfieldsversion_idspec_idversion_numberchangestimestamp
+    REQ_006_3 -.-> SH_TraceabilityLinkdatamodelwithfieldslink_idfrom_typefrom_idto_typeto_idrelationship_type
+    REQ_006_3 -.-> SH_SpecConfigutilitytoread
+    REQ_006_3 -.-> SH_MarkdownParserutilitytoparsefrontmatterandcontentfromspecfiles
+    REQ_006_3 -.-> SH_DiffUtiltocomputeandformatdifferencesbetweenspecversions
+    REQ_006_4 -.-> FE_NofrontendcomponentsrequiredIDEconfigurationfilesonly
+    REQ_006_4 -.-> BE_ConfigGeneratorserviceinsilmari_rlm_actideconfig_generator
+    REQ_006_4 -.-> BE_Commandloadertoparsecommands
+    REQ_006_4 -.-> BE_Agentloadertoparseagents
+    REQ_006_4 -.-> BE_SettingssynchronizertoupdateIDEconfigswhenprojectsettingschange
+    REQ_006_4 -.-> BE_ValidationservicetoverifyIDEconfigsreferencevalidfilesandcommands
+    REQ_006_4 -.-> BE_DocumentationgeneratortocreateIDEsetupguidesfromconfigtemplates
+    REQ_006_4 -.-> MW_JSONschemavalidationfor
+    REQ_006_4 -.-> MW_Pathresolutiontoconvertrelativepathsinconfigstoabsolutepaths
+    REQ_006_4 -.-> MW_EnvironmentvariableexpansioninIDEsettingsforflexibilityacrossmachines
+    REQ_006_4 -.-> SH_IDECommanddatamodelwithfieldscommand_idnamedescriptionexecution_typescript_pathargumentskeybinding
+    REQ_006_4 -.-> SH_IDEAgentdatamodelwithfieldsagent_idroledescriptionprompt_templatecapabilitiesconstraints
+    REQ_006_4 -.-> SH_IDESettingsdatamodelwithfieldspython_pathlinter_rulesformatter_configignore_patternsextensions
+    REQ_006_4 -.-> SH_WorkspaceTemplatedatamodelwithfieldstemplate_idnamedescriptionfilescommandsinitial_state
+    REQ_006_4 -.-> SH_ConfigTemplateutilitytoloadandrenderIDEconfigtemplateswithprojectspecificvalues
+    REQ_006_4 -.-> SH_PathResolverutilitytohandlepathconversionandvalidationforIDEconfigs
+    REQ_006_4 -.-> SH_ConfigValidatortocheckIDEconfigsagainstschemasandverifyfilereferences

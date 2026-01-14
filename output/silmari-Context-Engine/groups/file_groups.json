@@ -12,27 +12,9 @@
         "baml_client/tracing.py",
         "baml_client/config.py",
         "baml_client/globals.py",
-        "baml_client/__init__.py",
-        "baml_client/watchers.py",
-        "baml_client/stream_types.py",
-        "baml_client/async_client.py",
-        "baml_client/parser.py"
+        "baml_client/__init__.py"
       ],
-      "purpose": "Module containing 14 files"
-    },
-    {
-      "name": "context_window_array",
-      "files": [
-        "context_window_array/store.py",
-        "context_window_array/exceptions.py",
-        "context_window_array/implementation_context.py",
-        "context_window_array/models.py",
-        "context_window_array/working_context.py",
-        "context_window_array/batching.py",
-        "context_window_array/search_index.py",
-        "context_window_array/__init__.py"
-      ],
-      "purpose": "Module containing 8 files"
+      "purpose": "Module containing 10 files"
     },
     {
       "name": "go/cmd",
@@ -55,6 +37,7 @@
         "go/internal/cli/root_test.go",
         "go/internal/cli/mcp_setup.go",
         "go/internal/cli/loop_runner_test.go",
+        "go/internal/cli/review_plan.go",
         "go/internal/fs/path_test.go",
         "go/internal/fs/path.go",
         "go/internal/fs/time.go",
@@ -76,13 +59,25 @@
         "go/internal/planning/helpers_test.go",
         "go/internal/planning/steps_test.go",
         "go/internal/planning/decomposition_test.go",
+        "go/internal/planning/orchestrator.go",
+        "go/internal/planning/review.go",
+        "go/internal/planning/interactive_test.go",
         "go/internal/planning/helpers.go",
         "go/internal/planning/models.go",
         "go/internal/planning/models_test.go",
         "go/internal/planning/steps.go",
         "go/internal/planning/pipeline_test.go",
+        "go/internal/planning/implementation_test.go",
+        "go/internal/planning/checkpoint_test.go",
+        "go/internal/planning/checkpoint.go",
+        "go/internal/planning/prompts.go",
         "go/internal/planning/claude_runner_test.go",
+        "go/internal/planning/interactive.go",
+        "go/internal/planning/prompts_test.go",
         "go/internal/planning/pipeline.go",
+        "go/internal/planning/implementation.go",
+        "go/internal/planning/review_test.go",
+        "go/internal/planning/autonomy_test.go",
         "go/internal/planning/claude_runner.go",
         "go/internal/planning/decomposition.go",
         "go/internal/concurrent/ratelimit.go",
@@ -94,7 +89,7 @@
         "go/internal/concurrent/signal_test.go",
         "go/internal/concurrent/group.go"
       ],
-      "purpose": "Module containing 48 files"
+      "purpose": "Module containing 61 files"
     },
     {
       "name": "planning_pipeline",
@@ -124,6 +119,7 @@
         "loop-runner.py",
         "resume_pipeline.py",
         "planning_orchestrator.py",
+        "test-conversation.py",
         "resume_planning.py",
         "mcp-setup.py",
         "orchestrator.py"
@@ -139,14 +135,6 @@
         "silmari_rlm_act/__init__.py"
       ],
       "purpose": "Module containing 4 files"
-    },
-    {
-      "name": "tests",
-      "files": [
-        "tests/test_autonomous_loop.py",
-        "tests/test_loop_orchestrator_integration.py"
-      ],
-      "purpose": "Test files"
     }
   ]
 }

@@ -36,10 +36,12 @@ class ImplementationPhase:
         cwa: Context Window Array integration
         LOOP_SLEEP: Seconds between loop iterations
         CLAUDE_TIMEOUT: Max seconds per Claude invocation
+        TEST_TIMEOUT: Max seconds for test suite execution
     """
 
     LOOP_SLEEP = 10
     CLAUDE_TIMEOUT = 3600  # 1 hour per iteration
+    TEST_TIMEOUT = 900  # 15 minutes for full test suite
 
     def __init__(
         self,
@@ -176,12 +178,12 @@ emit a /clear command to clear context for the next issue.
                 cwd=str(self.project_path),
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=self.TEST_TIMEOUT,
             )
             return result.returncode == 0, result.stdout + result.stderr
 
         except subprocess.TimeoutExpired:
-            return False, "Tests timed out"
+            return False, f"Tests timed out after {self.TEST_TIMEOUT} seconds"
         except FileNotFoundError:
             # Try make test as fallback
             try:
@@ -190,7 +192,7 @@ emit a /clear command to clear context for the next issue.
                     cwd=str(self.project_path),
                     capture_output=True,
                     text=True,
-                    timeout=300,
+                    timeout=self.TEST_TIMEOUT,
                 )
                 return result.returncode == 0, result.stdout + result.stderr
             except Exception:
@@ -280,19 +282,34 @@ emit a /clear command to clear context for the next issue.
                 print("All beads issues closed - implementation complete!")
 
                 # Final test verification
+                print("Running final test verification...")
                 tests_pass, test_output = self._run_tests()
                 if not tests_pass:
+                    print(f"Tests failed - continuing loop. Error: {test_output[:200]}")
                     errors.append(f"Final tests failed: {test_output[:500]}")
                     # Continue loop if tests fail
                     continue
 
-                # Tests passed - clear any previous test failures and break
+                # Tests passed - clear any previous test failures and exit successfully
+                print("Tests passed! Implementation complete.")
                 errors.clear()
                 artifacts.extend(phase_paths)
                 break
 
         else:
             errors.append(f"Reached max iterations ({max_iterations})")
+
+        # Loop exited - print summary
+        if not errors:
+            print(f"\n{'=' * 60}")
+            print("SUCCESS: Implementation loop completed successfully!")
+            print(f"Total iterations: {iteration}")
+            print(f"{'=' * 60}\n")
+        else:
+            print(f"\n{'=' * 60}")
+            print("FAILED: Implementation loop did not complete successfully")
+            print(f"Errors: {errors}")
+            print(f"{'=' * 60}\n")
 
         completed_at = datetime.now()
         duration = (completed_at - started_at).total_seconds()

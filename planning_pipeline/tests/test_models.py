@@ -341,6 +341,52 @@ class TestRequirementNodeProperties:
                 type="parent",
             )
 
+    def test_tab_only_description_raises_error(self):
+        """REQ_001.5: Tab-only string raises ValueError."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="description"):
+            RequirementNode(
+                id="REQ_001",
+                description="\t\t",
+                type="parent",
+            )
+
+    def test_newline_only_description_raises_error(self):
+        """REQ_001.5: Newline-only string raises ValueError."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="description"):
+            RequirementNode(
+                id="REQ_001",
+                description="\n\n",
+                type="parent",
+            )
+
+    def test_single_char_description_is_valid(self):
+        """REQ_001.5: Minimum valid description is a single non-whitespace character."""
+        from planning_pipeline.models import RequirementNode
+
+        # Should not raise
+        node = RequirementNode(
+            id="REQ_001",
+            description="x",
+            type="parent",
+        )
+        assert node.description == "x"
+
+    def test_description_with_leading_trailing_whitespace_valid(self):
+        """REQ_001.5: Description with leading/trailing whitespace but non-empty content passes."""
+        from planning_pipeline.models import RequirementNode
+
+        # Should not raise
+        node = RequirementNode(
+            id="REQ_001",
+            description="  valid content  ",
+            type="parent",
+        )
+        assert node.description == "  valid content  "
+
     def test_type_validation_case_sensitive(self):
         """REQ_002.3: Type validation is case-sensitive."""
         from planning_pipeline.models import RequirementNode
@@ -418,6 +464,31 @@ class TestRequirementNodeProperties:
             type="parent",
         )
         assert node.description == desc  # Not trimmed
+
+    def test_validation_order_type_before_description(self):
+        """REQ_001.3.8: Type validation occurs before description validation."""
+        from planning_pipeline.models import RequirementNode
+
+        # Both type and description are invalid, but type error should be raised first
+        with pytest.raises(ValueError, match="Invalid type"):
+            RequirementNode(
+                id="REQ_001",
+                description="",  # Also invalid
+                type="invalid_type",  # Invalid type
+            )
+
+    def test_validation_order_description_before_category(self):
+        """REQ_001.5.9: Description validation occurs before category validation."""
+        from planning_pipeline.models import RequirementNode
+
+        # Both description and category are invalid, but description error should be raised first
+        with pytest.raises(ValueError, match="description"):
+            RequirementNode(
+                id="REQ_001",
+                description="",  # Invalid description
+                type="parent",  # Valid type
+                category="invalid_category",  # Also invalid
+            )
 
 
 # =============================================================================

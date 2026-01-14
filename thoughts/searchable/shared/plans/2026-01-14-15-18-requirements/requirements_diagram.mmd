@@ -1,0 +1,1533 @@
+flowchart LR
+    subgraph REQ_000
+    REQ_000["REQ_000: The system must organize pr..."]
+    REQ_000_1["REQ_000.1: Create 8 source code direct..."]
+    REQ_000_2["REQ_000.2: Create 6 configuration dire..."]
+    REQ_000_3["REQ_000.3: Create 7 development and te..."]
+    REQ_000_4["REQ_000.4: Create 3 build and output d..."]
+    REQ_000_5["REQ_000.5: Create 2 workflow checkpoin..."]
+    end
+    subgraph REQ_001
+    REQ_001["REQ_001: The system must implement a..."]
+    REQ_001_1["REQ_001.1: Implement core Python packa..."]
+    REQ_001_2["REQ_001.2: Develop Go language modules..."]
+    REQ_001_3["REQ_001.3: Generate BAML client code i..."]
+    REQ_001_4["REQ_001.4: Define BAML source specific..."]
+    REQ_001_5["REQ_001.5: Integrate all components (P..."]
+    end
+    subgraph REQ_002
+    REQ_002["REQ_002: The system must provide com..."]
+    REQ_002_1["REQ_002.1: Configure agent behavior in..."]
+    REQ_002_2["REQ_002.2: Implement Beads issue track..."]
+    REQ_002_3["REQ_002.3: Integrate Claude Code confi..."]
+    REQ_002_4["REQ_002.4: Support Cursor editor setti..."]
+    REQ_002_5["REQ_002.5: Manage core system configur..."]
+    end
+    subgraph REQ_003
+    REQ_003["REQ_003: The system must implement a..."]
+    REQ_003_1["REQ_003.1: Implement storage mechanism..."]
+    REQ_003_2["REQ_003.2: Implement storage mechanism..."]
+    REQ_003_3["REQ_003.3: Implement resume capability..."]
+    REQ_003_4["REQ_003.4: Implement fault tolerance r..."]
+    REQ_003_5["REQ_003.5: Implement multi-session sup..."]
+    end
+    subgraph REQ_004
+    REQ_004["REQ_004: The system must provide com..."]
+    REQ_004_1["REQ_004.1: Implement comprehensive tes..."]
+    REQ_004_2["REQ_004.2: Configure pytest caching in..."]
+    REQ_004_3["REQ_004.3: Enable mypy static type che..."]
+    REQ_004_4["REQ_004.4: Configure ruff linting with..."]
+    REQ_004_5["REQ_004.5: Support hypothesis property..."]
+    end
+    subgraph REQ_005
+    REQ_005["REQ_005: The system must implement a..."]
+    REQ_005_1["REQ_005.1: Implement core context wind..."]
+    REQ_005_2["REQ_005.2: Develop hierarchical four-l..."]
+    REQ_005_3["REQ_005.3: Optimize context window ope..."]
+    REQ_005_4["REQ_005.4: Manage persistent storage a..."]
+    end
+    subgraph REQ_006
+    REQ_006["REQ_006: The system must maintain se..."]
+    REQ_006_1["REQ_006.1: Isolate source code directo..."]
+    REQ_006_2["REQ_006.2: Separate test directories f..."]
+    REQ_006_3["REQ_006.3: Maintain distinct documenta..."]
+    REQ_006_4["REQ_006.4: Follow clear organizational..."]
+    REQ_006_5["REQ_006.5: Implement explicit tool bou..."]
+    end
+    REQ_000 --> REQ_000_1
+    REQ_000 --> REQ_000_2
+    REQ_000 --> REQ_000_3
+    REQ_000 --> REQ_000_4
+    REQ_000 --> REQ_000_5
+    REQ_001 --> REQ_001_1
+    REQ_001 --> REQ_001_2
+    REQ_001 --> REQ_001_3
+    REQ_001 --> REQ_001_4
+    REQ_001 --> REQ_001_5
+    REQ_002 --> REQ_002_1
+    REQ_002 --> REQ_002_2
+    REQ_002 --> REQ_002_3
+    REQ_002 --> REQ_002_4
+    REQ_002 --> REQ_002_5
+    REQ_003 --> REQ_003_1
+    REQ_003 --> REQ_003_2
+    REQ_003 --> REQ_003_3
+    REQ_003 --> REQ_003_4
+    REQ_003 --> REQ_003_5
+    REQ_004 --> REQ_004_1
+    REQ_004 --> REQ_004_2
+    REQ_004 --> REQ_004_3
+    REQ_004 --> REQ_004_4
+    REQ_004 --> REQ_004_5
+    REQ_005 --> REQ_005_1
+    REQ_005 --> REQ_005_2
+    REQ_005 --> REQ_005_3
+    REQ_005 --> REQ_005_4
+    REQ_006 --> REQ_006_1
+    REQ_006 --> REQ_006_2
+    REQ_006 --> REQ_006_3
+    REQ_006 --> REQ_006_4
+    REQ_006 --> REQ_006_5
+    subgraph Components
+    BE_(("BE: "))
+    BE_AISettingsConfiguratortosetupAIpairprogrammingpreferences(("BE: AISettingsConfigurator to setup AI pair programming preferences"))
+    BE_APIendpointDELETEapicontextcheckpointidDeletecheckpoint(("BE: API endpoint: DELETE /api/context/checkpoint/(id) - Delete checkpoint"))
+    BE_APIendpointGETapicontextcheckpointdiffComparetwocheckpoints(("BE: API endpoint: GET /api/context/checkpoint/diff - Compare two checkpoints"))
+    BE_APIendpointGETapicontextcheckpointlistListallavailablecheckpoints(("BE: API endpoint: GET /api/context/checkpoint/list - List all available checkpoints"))
+    BE_APIendpointGETapicontextcheckpointidRetrievecheckpointdetails(("BE: API endpoint: GET /api/context/checkpoint/(id) - Retrieve checkpoint details"))
+    BE_APIendpointGETapicontextoptimizemetricsRetrieveoptimizationqualitymetrics(("BE: API endpoint: GET /api/context/optimize/metrics - Retrieve optimization quality metrics"))
+    BE_APIendpointGETapicontextoptimizepreviewPreviewoptimizationresultsbeforeapplying(("BE: API endpoint: GET /api/context/optimize/preview - Preview optimization results before applying"))
+    BE_APIendpointGETapicontextwindowstatusRetrievecurrentwindowstateandusagestatistics(("BE: API endpoint: GET /api/context/window/status - Retrieve current window state and usage statistics"))
+    BE_APIendpointGETapimemorylayerssearchCrosslayersearchwithrelevanceranking(("BE: API endpoint: GET /api/memory/layers/search - Cross-layer search with relevance ranking"))
+    BE_APIendpointGETapimemorylayersstatsRetrievestatisticsforalllayers(("BE: API endpoint: GET /api/memory/layers/stats - Retrieve statistics for all layers"))
+    BE_APIendpointGETapimemorylayerslayer_idRetrievelayercontentsandmetadata(("BE: API endpoint: GET /api/memory/layers/(layer_id) - Retrieve layer contents and metadata"))
+    BE_APIendpointPOSTapicontextcheckpointcreateCreatenewcheckpointwithmetadata(("BE: API endpoint: POST /api/context/checkpoint/create - Create new checkpoint with metadata"))
+    BE_APIendpointPOSTapicontextcheckpointexportExportcheckpointtofile(("BE: API endpoint: POST /api/context/checkpoint/export - Export checkpoint to file"))
+    BE_APIendpointPOSTapicontextcheckpointrestoreRestorecontextfromcheckpoint(("BE: API endpoint: POST /api/context/checkpoint/restore - Restore context from checkpoint"))
+    BE_APIendpointPOSTapicontextcheckpointverifyVerifycheckpointintegrity(("BE: API endpoint: POST /api/context/checkpoint/verify - Verify checkpoint integrity"))
+    BE_APIendpointPOSTapicontextcompressApplycompressionalgorithms(("BE: API endpoint: POST /api/context/compress - Apply compression algorithms"))
+    BE_APIendpointPOSTapicontextdeduplicateRundeduplicationanalysis(("BE: API endpoint: POST /api/context/deduplicate - Run deduplication analysis"))
+    BE_APIendpointPOSTapicontextoptimizeTriggercontextoptimizationwithparameters(("BE: API endpoint: POST /api/context/optimize - Trigger context optimization with parameters"))
+    BE_APIendpointPOSTapicontextoptimizerollbackRollbacktopreoptimizationstate(("BE: API endpoint: POST /api/context/optimize/rollback - Rollback to pre-optimization state"))
+    BE_APIendpointPOSTapicontextpruneRemovelowrelevancecontentbasedonscoring(("BE: API endpoint: POST /api/context/prune - Remove low-relevance content based on scoring"))
+    BE_APIendpointPOSTapicontextsummarizeGeneratesummariesofverbosecontent(("BE: API endpoint: POST /api/context/summarize - Generate summaries of verbose content"))
+    BE_APIendpointPOSTapicontextwindowappendAppendcontenttocontextwindow(("BE: API endpoint: POST /api/context/window/append - Append content to context window"))
+    BE_APIendpointPOSTapicontextwindowinitializeInitializenewcontextwindowwithsizeparameters(("BE: API endpoint: POST /api/context/window/initialize - Initialize new context window with size parameters"))
+    BE_APIendpointPOSTapicontextwindowslideTriggerslidingwindowoperation(("BE: API endpoint: POST /api/context/window/slide - Trigger sliding window operation"))
+    BE_APIendpointPOSTapimemorylayersdemoteManuallydemoteitemtolowerlayer(("BE: API endpoint: POST /api/memory/layers/demote - Manually demote item to lower layer"))
+    BE_APIendpointPOSTapimemorylayersinitializeInitializefourlayerarchitecture(("BE: API endpoint: POST /api/memory/layers/initialize - Initialize four-layer architecture"))
+    BE_APIendpointPOSTapimemorylayerspromoteManuallypromoteitemtohigherlayer(("BE: API endpoint: POST /api/memory/layers/promote - Manually promote item to higher layer"))
+    BE_APIendpointPOSTapimemorylayersstoreStoreitemwithautomaticlayerassignment(("BE: API endpoint: POST /api/memory/layers/store - Store item with automatic layer assignment"))
+    BE_APIendpointPUTapicontextwindowresizeDynamicallyresizewindowboundaries(("BE: API endpoint: PUT /api/context/window/resize - Dynamically resize window boundaries"))
+    BE_AddCICDstepthatbuildsdocumentationandvalidateslinksstructureandcompleteness(("BE: Add CI/CD step that builds documentation and validates links, structure, and completeness"))
+    BE_AddCICDvalidationstepthatchecksfortestfilenamingpatternsoutsidetestsdirectory(("BE: Add CI/CD validation step that checks for test file naming patterns outside tests/ directory"))
+    BE_Addbuildconfigurationthatexcludesconfigdirectoriesfromsourcecompilation(("BE: Add build configuration that excludes config directories from source compilation"))
+    BE_Addprecommithookthatpreventscreationofdirectoriesviolatingnamingconventions(("BE: Add pre-commit hook that prevents creation of directories violating naming conventions"))
+    BE_Addtoolregistrationsystemwhereeachtooldeclaresitsconfigurationdirectoryandschema(("BE: Add tool registration system where each tool declares its configuration directory and schema"))
+    BE_Agentlifecyclemanageragent_manager(("BE: Agent lifecycle manager (agent_manager"))
+    BE_AgentCapabilityResolvertovalidateandresolveagentcapabilities(("BE: AgentCapabilityResolver to validate and resolve agent capabilities"))
+    BE_AgentConfigLoaderservicetoreadandparseconfigurationfilesfrom(("BE: AgentConfigLoader service to read and parse configuration files from "))
+    BE_AgentConfigValidatortovalidateconfigurationagainstJSONschemas(("BE: AgentConfigValidator to validate configuration against JSON schemas"))
+    BE_AgentFactorytoinstantiateagentsbasedonloadedconfigurations(("BE: AgentFactory to instantiate agents based on loaded configurations"))
+    BE_AgentRegistryservicetoregisterandmanageavailableagentconfigurations(("BE: AgentRegistry service to register and manage available agent configurations"))
+    BE_Artifactarchivalserviceforoldbuilds(("BE: Artifact archival service for old builds"))
+    BE_AsyncexecutorfornonblockingAIworkflowexecutionasync_executor(("BE: Async executor for non-blocking AI workflow execution (async_executor"))
+    BE_Atomiccheckpointwriteservicewithlockmechanism(("BE: Atomic checkpoint write service with lock mechanism"))
+    BE_BAMLclientinitializationmodule__init__(("BE: BAML client initialization module (__init__"))
+    BE_BAMLfunctiondefinitionsforcoreAIworkflowsplanning(("BE: BAML function definitions for core AI workflows (planning"))
+    BE_Backgroundpersistenceworkerforasynccheckpointcreation(("BE: Background persistence worker for async checkpoint creation"))
+    BE_BeadsBackupServicetoperiodicallybackupissuedata(("BE: BeadsBackupService to periodically backup issue data"))
+    BE_BeadsQueryBuildertoconstructcomplexissuequeries(("BE: BeadsQueryBuilder to construct complex issue queries"))
+    BE_BeadsRepositoryservicetomanageCRUDoperationsonissuefiles(("BE: BeadsRepository service to manage CRUD operations on issue files"))
+    BE_Benchmarksuiteforperformancevalidationbenchmark_test(("BE: Benchmark suite for performance validation (benchmark_test"))
+    BE_Binaryprotocolserializationdeserializationprotocol(("BE: Binary protocol serialization/deserialization (protocol"))
+    BE_Buildartifactcleanupservicefordistandoutput(("BE: Build artifact cleanup service for dist/ and output/"))
+    BE_BuildscriptcoordinatingPythonGoandBAMLbuildsbuild(("BE: Build script coordinating Python, Go, and BAML builds (build"))
+    BE_Buildscriptforcrossplatformcompilationbuild(("BE: Build script for cross-platform compilation (build"))
+    BE_CGoexportfunctionsforPythonconsumptionexports(("BE: CGo export functions for Python consumption (exports"))
+    BE_Cachedirectorymonitoringandcleanupservice(("BE: Cache directory monitoring and cleanup service"))
+    BE_CachelayerforreducingredundantLLMcallscache(("BE: Cache layer for reducing redundant LLM calls (cache"))
+    BE_Checkpointcleanupservicemanagingretentionpolicies(("BE: Checkpoint cleanup service managing retention policies"))
+    BE_Checkpointcleanupservicewithconfigurableretentionpolicy(("BE: Checkpoint cleanup service with configurable retention policy"))
+    BE_Checkpointcreationservicewithatomicwriteguarantees(("BE: Checkpoint creation service with atomic write guarantees"))
+    BE_Checkpointdirectoryinitializationservice(("BE: Checkpoint directory initialization service"))
+    BE_Checkpointlistingandsearchservicebyworkflow_idortimestamp(("BE: Checkpoint listing and search service by workflow_id or timestamp"))
+    BE_Checkpointmetadatagenerationservice(("BE: Checkpoint metadata generation service"))
+    BE_Checkpointrestorationandvalidationservice(("BE: Checkpoint restoration and validation service"))
+    BE_CheckpointConfigServicetoconfigurecheckpointbehaviorandpolicies(("BE: CheckpointConfigService to configure checkpoint behavior and policies"))
+    BE_CheckpointManager(("BE: CheckpointManager"))
+    BE_ClaudeConfigLoadertoreadandparseClaudeCodeconfigurationfiles(("BE: ClaudeConfigLoader to read and parse Claude Code configuration files"))
+    BE_ClaudeConfigValidatortovalidateconfigurationfilesagainstschemas(("BE: ClaudeConfigValidator to validate configuration files against schemas"))
+    BE_ClaudeModelSelectortochooseappropriatemodelbasedontasktype(("BE: ClaudeModelSelector to choose appropriate model based on task type"))
+    BE_CodeStyleEnforcertoapplycodegenerationpreferences(("BE: CodeStyleEnforcer to apply code generation preferences"))
+    BE_Commandregistryandexecutorcommand_executor(("BE: Command registry and executor (command_executor"))
+    BE_CommandAliasResolvertoexpandcommandaliases(("BE: CommandAliasResolver to expand command aliases"))
+    BE_CommandRegistrytoregisterandmanagecustomslashcommands(("BE: CommandRegistry to register and manage custom slash commands"))
+    BE_Compressionserviceforreducingstoragefootprint(("BE: Compression service for reducing storage footprint"))
+    BE_Compressionserviceusingmultiplealgorithmsextractiveabstractive(("BE: Compression service using multiple algorithms (extractive, abstractive)"))
+    BE_Concurrentcheckpointmanagementwithfilelocking(("BE: Concurrent checkpoint management with file locking"))
+    BE_Concurrentprocessingengineusinggoroutinesconcurrent(("BE: Concurrent processing engine using goroutines (concurrent"))
+    BE_ConfigBackupServicetobackupconfigurationfilesbeforechanges(("BE: ConfigBackupService to backup configuration files before changes"))
+    BE_ConfigMigrationServicetohandleconfigurationversionupgrades(("BE: ConfigMigrationService to handle configuration version upgrades"))
+    BE_ConfigReloadertosupporthotreloadofconfigurationchanges(("BE: ConfigReloader to support hot-reload of configuration changes"))
+    BE_Configurationaggregatorloadingfromallconfigsourcesconfig_loader(("BE: Configuration aggregator loading from all config sources (config_loader"))
+    BE_Configurationfiletemplategenerationservice(("BE: Configuration file template generation service"))
+    BE_ConfigurationloaderforAPIcredentialsconfig(("BE: Configuration loader for API credentials (config"))
+    BE_Configurationloadersupporting(("BE: Configuration loader supporting "))
+    BE_Configurationvalidationservicetoverifydirectorysetup(("BE: Configuration validation service to verify directory setup"))
+    BE_ConfigurationMigratortohandleversionupgradesofconfigfiles(("BE: ConfigurationMigrator to handle version upgrades of config files"))
+    BE_ConfigurationWatchertodetectandreloadconfigurationchanges(("BE: ConfigurationWatcher to detect and reload configuration changes"))
+    BE_Configurecoveragetoolstoseparatetestcoveragefromimplementationcoverage(("BE: Configure coverage tools to separate test coverage from implementation coverage"))
+    BE_ConfiguredocumentationbuildtoolsSphinxMkDocstousedocsasrootdirectory(("BE: Configure documentation build tools (Sphinx, MkDocs) to use docs/ as root directory"))
+    BE_Configurepytest(("BE: Configure pytest"))
+    BE_Contextmanagerintegratingwithcontext_window_arraycontext(("BE: Context manager integrating with context_window_array/ (context"))
+    BE_Contextsegmentationserviceforidentifyinglogicalboundaries(("BE: Context segmentation service for identifying logical boundaries"))
+    BE_ContextRuleEnginetoevaluatewhichfilesshouldbeincludedinClaudescontext(("BE: ContextRuleEngine to evaluate which files should be included in Claude's context"))
+    BE_ContextSizeOptimizertomanagecontextwindowefficiently(("BE: ContextSizeOptimizer to manage context window efficiently"))
+    BE_Coreenginemodulecore(("BE: Core engine module (core"))
+    BE_CreateToolConfigurationManagerservicethatloadsconfigurationonlyfromdesignatedtooldirectories(("BE: Create ToolConfigurationManager service that loads configuration only from designated tool directories"))
+    BE_Createdirectorystructurelinterthatvalidatesnamingconventionsagainstdefinedpatterns(("BE: Create directory structure linter that validates naming conventions against defined patterns"))
+    BE_Createdirectorystructurelintingscriptthatvalidatessourceconfigseparation(("BE: Create directory structure linting script that validates source/config separation"))
+    BE_Createdirectorytemplatesystemfornewcomponentsthatenforcesconventions(("BE: Create directory template system for new components that enforces conventions"))
+    BE_Createdocumentationindexgeneratorthatcatalogsalldocumentationbycategory(("BE: Create documentation index generator that catalogs all documentation by category"))
+    BE_Createdocumentationvalidationscriptthatensuresnoexecutablecodeindocumentationdirectories(("BE: Create documentation validation script that ensures no executable code in documentation directories"))
+    BE_Createtestdiscoveryscriptthatvalidatesnotestfilesexistoutsidetestsdirectory(("BE: Create test discovery script that validates no test files exist outside tests/ directory"))
+    BE_Createtoolisolationvalidatorthatchecksforconfigurationfilesinwrongdirectories(("BE: Create tool isolation validator that checks for configuration files in wrong directories"))
+    BE_Crosslayerindexingserviceforfastretrieval(("BE: Cross-layer indexing service for fast retrieval"))
+    BE_CursorConfigLoadertoreadandmergeCursorsettingsfiles(("BE: CursorConfigLoader to read and merge Cursor settings files"))
+    BE_CursorDefaultsProvidertosupplydefaultsettingsfornewprojects(("BE: CursorDefaultsProvider to supply default settings for new projects"))
+    BE_CursorSettingsValidatortovalidatesettingsagainstCursorsschema(("BE: CursorSettingsValidator to validate settings against Cursor's schema"))
+    BE_Deduplicationenginewithfuzzymatchingandsemanticsimilarity(("BE: Deduplication engine with fuzzy matching and semantic similarity"))
+    BE_DefaultConfigGeneratortocreateinitialconfigurationfiles(("BE: DefaultConfigGenerator to create initial configuration files"))
+    BE_DefaultConfigProvidertogeneratedefaultagentconfigurations(("BE: DefaultConfigProvider to generate default agent configurations"))
+    BE_Dependencyinjectioncontainerforcomponentwiringcontainer(("BE: Dependency injection container for component wiring (container"))
+    BE_Deploymentautomationscriptsdeploy(("BE: Deployment automation scripts (deploy"))
+    BE_Developmenttoolinstallationservicepipinstallpytestmypyruffhypothesis(("BE: Development tool installation service (pip install pytest, mypy, ruff, hypothesis)"))
+    BE_DiagnosticConfiguratortosetuplintingandtypechecking(("BE: DiagnosticConfigurator to setup linting and type checking"))
+    BE_Directoryexistencevalidationservice(("BE: Directory existence validation service"))
+    BE_Directoryspecificinitializationlogicforeachconfigtype(("BE: Directory-specific initialization logic for each config type"))
+    BE_Distributiondirectorycreationservice(("BE: Distribution directory creation service"))
+    BE_EnforcedirectorystructurevalidationinCICDpipeline(("BE: Enforce directory structure validation in CI/CD pipeline"))
+    BE_EnvironmentConfigResolvertohandleenvironmentspecificoverrides(("BE: EnvironmentConfigResolver to handle environment-specific overrides"))
+    BE_Errorhandlinganderrorcodedefinitionserrors(("BE: Error handling and error code definitions (errors"))
+    BE_Errorhandlingandexceptionhierarchyexceptions(("BE: Error handling and exception hierarchy (exceptions"))
+    BE_Errorhandlingfordirectorycreationfailures(("BE: Error handling for directory creation failures"))
+    BE_ErrormapperforLLMspecificerrorserrors(("BE: Error mapper for LLM-specific errors (errors"))
+    BE_Eventbusmessagebrokerforcomponentcommunicationevents(("BE: Event bus/message broker for component communication (events"))
+    BE_EvictionpolicyimplementationLRULFUcustomperlayer(("BE: Eviction policy implementation (LRU, LFU, custom) per layer"))
+    BE_ExecutionParameterValidatortoensureexecutionparametersarewithinacceptableranges(("BE: ExecutionParameterValidator to ensure execution parameters are within acceptable ranges"))
+    BE_ExtensionManagertotrackandvalidaterequiredextensions(("BE: ExtensionManager to track and validate required extensions"))
+    BE_FaultToleranceManager(("BE: FaultToleranceManager"))
+    BE_FeatureFlagManagertomanagefeaturetogglesandgradualrollouts(("BE: FeatureFlagManager to manage feature toggles and gradual rollouts"))
+    BE_FilesystemAPItocreatedirectoriesprogrammatically(("BE: File system API to create directories programmatically"))
+    BE_FormatConfiguratortomanagecodeformattingpreferences(("BE: FormatConfigurator to manage code formatting preferences"))
+    BE_Generatedirectorystructuredocumentationautomaticallyfromdirectorytreeanalysis(("BE: Generate directory structure documentation automatically from directory tree analysis"))
+    BE_GeneratedclientclassesforeachBAMLfunctiongeneratedbyBAMLcompiler(("BE: Generated client classes for each BAML function (generated by BAML compiler)"))
+    BE_Gitconfigurationserviceforuserandrepositorysettings(("BE: Git configuration service for user and repository settings"))
+    BE_Githookinstallationserviceforprecommitprepushhooks(("BE: Git hook installation service for pre-commit, pre-push hooks"))
+    BE_Gitignorerulegeneratorfordevelopmentartifacts(("BE: Git ignore rule generator for development artifacts"))
+    BE_Gitintegrationservicetomanage(("BE: Git integration service to manage "))
+    BE_Gitrepositoryinitializationservicegitinit(("BE: Git repository initialization service (git init)"))
+    BE_GitIntegrationSetuptoconfigureversioncontrolsettings(("BE: GitIntegrationSetup to configure version control settings"))
+    BE_Gomoduleinitializationgo(("BE: Go module initialization (go"))
+    BE_Gomoduleinitializationandconfigurationmain(("BE: Go module initialization and configuration (main"))
+    BE_Healthcheckendpointsformonitoringsystemstatushealth(("BE: Health check endpoints for monitoring system status (health"))
+    BE_HealthCheckConfiguratortosetupsystemhealthmonitoring(("BE: HealthCheckConfigurator to setup system health monitoring"))
+    BE_Hiddendirectorycreationservicedotfilehandling(("BE: Hidden directory creation service (dotfile handling)"))
+    BE_Implementautomateddocumentationgenerationpipelinethatoutputstodocsfromsourcedocstrings(("BE: Implement automated documentation generation pipeline that outputs to docs/ from source docstrings"))
+    BE_Implementbuildprocessthatexplicitlyexcludestestsfromdistributionpackagesinsetup(("BE: Implement build process that explicitly excludes tests/ from distribution packages in setup"))
+    BE_Implementconfigurationmergingstrategythatrespectstoolboundarieswhileallowingsystemleveloverrides(("BE: Implement configuration merging strategy that respects tool boundaries while allowing system-level overrides"))
+    BE_Implementconfigurationvalidationthatensuresnocrosstoolconfigurationpollution(("BE: Implement configuration validation that ensures no cross-tool configuration pollution"))
+    BE_Implementdirectorycategorizationscriptthatvalidates30directoriesacross6categories(("BE: Implement directory categorization script that validates 30 directories across 6 categories"))
+    BE_Implementprecommithooksthatpreventconfigfilesinsourcedirectories(("BE: Implement pre-commit hooks that prevent config files in source directories"))
+    BE_Importancescoringalgorithmusingcontentanalysisandusagepatterns(("BE: Importance scoring algorithm using content analysis and usage patterns"))
+    BE_Incrementalpersistenceenginetrackingdeltasbetweenstates(("BE: Incremental persistence engine tracking deltas between states"))
+    BE_Initializationroutinesettingupcheckpointdirectoriesinit(("BE: Initialization routine setting up checkpoint directories (init"))
+    BE_Integrationtestsuitecoveringendtoendscenariostestsintegration(("BE: Integration test suite covering end-to-end scenarios (tests/integration/)"))
+    BE_IntegrationManagertoconfigureexternaltoolintegrations(("BE: IntegrationManager to configure external tool integrations"))
+    BE_Integrityverificationusingchecksumsandvalidation(("BE: Integrity verification using checksums and validation"))
+    BE_IssueHistoryTrackertorecordallchangestoissues(("BE: IssueHistoryTracker to record all changes to issues"))
+    BE_IssueIndexertomaintainsearchindexesforfastquerying(("BE: IssueIndexer to maintain search indexes for fast querying"))
+    BE_IssueNotificationServicetotriggereventsonissuechanges(("BE: IssueNotificationService to trigger events on issue changes"))
+    BE_IssueParsertoreadandwriteissuefilesinYAMLJSONformat(("BE: IssueParser to read and write issue files in YAML/JSON format"))
+    BE_IssueRelationshipResolvertomanageissuedependenciesandrelationships(("BE: IssueRelationshipResolver to manage issue dependencies and relationships"))
+    BE_IssueSearchServicetoperformfulltextandfilteredsearches(("BE: IssueSearchService to perform full-text and filtered searches"))
+    BE_IssueSyncServicetohandleconcurrentaccessandfilelocking(("BE: IssueSyncService to handle concurrent access and file locking"))
+    BE_IssueWorkflowEnginetoenforcestatustransitionrules(("BE: IssueWorkflowEngine to enforce status transition rules"))
+    BE_KeybindingResolvertoprocessandvalidatecustomkeybindings(("BE: KeybindingResolver to process and validate custom keybindings"))
+    BE_LLMprovideradaptersopenai_adapter(("BE: LLM provider adapters (openai_adapter"))
+    BE_Layermanagerservicecoordinatingoperationsacrossallfourlayers(("BE: Layer manager service coordinating operations across all four layers"))
+    BE_Loggingconfigurationandutilitieslogging(("BE: Logging configuration and utilities (logging"))
+    BE_LogginginterfacecompatiblewithPythonlogginglogging(("BE: Logging interface compatible with Python logging (logging"))
+    BE_Loggingservicetotrackdirectorycreationevents(("BE: Logging service to track directory creation events"))
+    BE_LoggingConfiguratortosetuploggingbasedonconfiguration(("BE: LoggingConfigurator to setup logging based on configuration"))
+    BE_Mainentrypointorchestratingallcomponentsmain(("BE: Main entry point orchestrating all components (main"))
+    BE_Memoryconsolidationservicerunningperiodicoptimization(("BE: Memory consolidation service running periodic optimization"))
+    BE_Memorylayerimplementationsworking_memory(("BE: Memory layer implementations (working_memory"))
+    BE_Memoryefficientdatastructuresdatastructures(("BE: Memory-efficient data structures (datastructures"))
+    BE_MemoryArchitectureConfiguratortosetupfourlayermemorysystembasedonmemory(("BE: MemoryArchitectureConfigurator to setup four-layer memory system based on memory"))
+    BE_Metricscollectorandreportermetrics(("BE: Metrics collector and reporter (metrics"))
+    BE_MilestoneManagertocreateandmanageprojectmilestones(("BE: MilestoneManager to create and manage project milestones"))
+    BE_ModelconfigurationsfordifferentLLMprovidersmodels(("BE: Model configurations for different LLM providers (models"))
+    BE_Outputdirectorystructureinitializationservice(("BE: Output directory structure initialization service"))
+    BE_OutputschemadefinitionsusingBAMLtypesystemschemas(("BE: Output schema definitions using BAML type system (schemas"))
+    BE_Overflowpreventionservicewithautomaticcompressiontriggers(("BE: Overflow prevention service with automatic compression triggers"))
+    BE_Performancecriticalalgorithmsimplementationalgorithms(("BE: Performance-critical algorithms implementation (algorithms"))
+    BE_PerformanceTunertoapplyperformancerelatedconfigurations(("BE: PerformanceTuner to apply performance-related configurations"))
+    BE_Planninginterfaceconnectingtoplanning_pipelineplanning(("BE: Planning interface connecting to planning_pipeline/ (planning"))
+    BE_PluginLoadertodiscoverandloadpluginsfromconfigureddirectories(("BE: PluginLoader to discover and load plugins from configured directories"))
+    BE_Promotiondemotionenginebasedonaccessfrequencyandimportancescores(("BE: Promotion/demotion engine based on access frequency and importance scores"))
+    BE_Prompttemplateswithvariableinterpolationprompts(("BE: Prompt templates with variable interpolation (prompts"))
+    BE_PromptTemplateEnginetoloadandrenderprompttemplateswithvariablesubstitution(("BE: PromptTemplateEngine to load and render prompt templates with variable substitution"))
+    BE_PropertytestsvalidatingRLMACTalgorithminvariants(("BE: Property tests validating RLM-ACT algorithm invariants"))
+    BE_Pruningservicewithconfigurablethresholdsandsafetychecks(("BE: Pruning service with configurable thresholds and safety checks"))
+    BE_Pythonpackageinitialization__init__(("BE: Python package initialization (__init__"))
+    BE_Pythonvirtualenvironmentcreationservicevenvmodule(("BE: Python virtual environment creation service (venv module)"))
+    BE_Qualityassessmentservicemeasuringinformationretention(("BE: Quality assessment service measuring information retention"))
+    BE_RatelimitertorespectAPIquotasrate_limiter(("BE: Rate limiter to respect API quotas (rate_limiter"))
+    BE_Recoveryservicewithautomaticfallbacktopreviouscheckpoints(("BE: Recovery service with automatic fallback to previous checkpoints"))
+    BE_Relevancescoringengineanalyzingcontentimportancetocurrentcontext(("BE: Relevance scoring engine analyzing content importance to current context"))
+    BE_RequestbuilderforconstructingLLMAPIcallsrequest_builder(("BE: Request builder for constructing LLM API calls (request_builder"))
+    BE_ResourceLimitEnforcertoapplyandmonitorresourceconstraints(("BE: ResourceLimitEnforcer to apply and monitor resource constraints"))
+    BE_Responseparserforextractingstructureddataresponse_parser(("BE: Response parser for extracting structured data (response_parser"))
+    BE_Retryanderrorhandlingstrategieserror_handling(("BE: Retry and error handling strategies (error_handling"))
+    BE_Retryhandlerwithexponentialbackoffretry(("BE: Retry handler with exponential backoff (retry"))
+    BE_Rollbackservicemaintainingoptimizationhistoryandsnapshots(("BE: Rollback service maintaining optimization history and snapshots"))
+    BE_Rufflintingappliedtoagents(("BE: Ruff linting applied to agents/"))
+    BE_Rufflintingappliedtocommands(("BE: Ruff linting applied to commands/"))
+    BE_Rufflintingappliedtocontext_window_array(("BE: Ruff linting applied to context_window_array/"))
+    BE_Rufflintingappliedtoplanning_pipeline(("BE: Ruff linting applied to planning_pipeline/"))
+    BE_Rufflintingappliedtosilmari_rlm_actwithappropriateruleexclusions(("BE: Ruff linting applied to silmari_rlm_act/ with appropriate rule exclusions"))
+    BE_Rufflintingappliedtotestswithtestspecificruleadjustments(("BE: Ruff linting applied to tests/ with test-specific rule adjustments"))
+    BE_SafetyGuardServicetoenforcesafetyrulesonoperations(("BE: SafetyGuardService to enforce safety rules on operations"))
+    BE_SecurityConfigAppliertoenforcesecuritysettings(("BE: SecurityConfigApplier to enforce security settings"))
+    BE_SessionManager(("BE: SessionManager"))
+    BE_SettingsMigratortoconvertVSCodesettingstoCursorformat(("BE: SettingsMigrator to convert VSCode settings to Cursor format"))
+    BE_SilmariConfigLoadertoloadandmergeallconfigurationfilesfrom(("BE: SilmariConfigLoader to load and merge all configuration files from "))
+    BE_Stateintegrityvalidationservicehashverification(("BE: State integrity validation service (hash verification)"))
+    BE_Statemanagerforcheckpointpersistencestate_manager(("BE: State manager for checkpoint persistence (state_manager"))
+    BE_StateserializationserviceJSONpicklebinaryformats(("BE: State serialization service (JSON, pickle, binary formats)"))
+    BE_StateserializationservicesupportingmultipleformatsJSONMessagePackProtocolBuffers(("BE: State serialization service supporting multiple formats (JSON, MessagePack, Protocol Buffers)"))
+    BE_Statefultestclassesforworkflowstatemachinetesting(("BE: Stateful test classes for workflow state machine testing"))
+    BE_StreaminghandlerforstreamingLLMresponsesstreaming(("BE: Streaming handler for streaming LLM responses (streaming"))
+    BE_SummarizationserviceusingLLMbasedsummarization(("BE: Summarization service using LLM-based summarization"))
+    BE_SystemlevelfileoperationsandIOfileops(("BE: System-level file operations and I/O (fileops"))
+    BE_SystemConfigValidatortovalidatecoresystemsettings(("BE: SystemConfigValidator to validate core system settings"))
+    BE_TagManagertohandleissuetaggingandtagorganization(("BE: TagManager to handle issue tagging and tag organization"))
+    BE_TelemetryandloggingforAIworkflowmonitoringtelemetry(("BE: Telemetry and logging for AI workflow monitoring (telemetry"))
+    BE_Templatefilesfor(("BE: Template files for "))
+    BE_TerminalConfiguratortosetupintegratedterminal(("BE: TerminalConfigurator to setup integrated terminal"))
+    BE_TestdefinitionsforvalidatingBAMLfunctionstests(("BE: Test definitions for validating BAML functions (tests"))
+    BE_Testdirectorystructureinitializationservice(("BE: Test directory structure initialization service"))
+    BE_Testframeworkconfigurationfilegenerationpytest(("BE: Test framework configuration file generation (pytest"))
+    BE_ThemeManagertohandleeditorthemeandcolorscheme(("BE: ThemeManager to handle editor theme and color scheme"))
+    BE_Tokencountingservicesupportingmultipletokenizerbackends(("BE: Token counting service supporting multiple tokenizer backends"))
+    BE_Typeannotationsaddedtoagentsmodule(("BE: Type annotations added to agents/ module"))
+    BE_Typeannotationsaddedtoallfunctionsignaturesinsilmari_rlm_act(("BE: Type annotations added to all function signatures in silmari_rlm_act/"))
+    BE_Typeannotationsaddedtocommandsmodule(("BE: Type annotations added to commands/ module"))
+    BE_Typeannotationsaddedtocontext_window_arraymodule(("BE: Type annotations added to context_window_array/ module"))
+    BE_Typeannotationsaddedtoplanning_pipelinemodule(("BE: Type annotations added to planning_pipeline/ module"))
+    BE_Upgrademigrationscriptsforversionupdatesmigrations(("BE: Upgrade/migration scripts for version updates (migrations/)"))
+    BE_Virtualenvironmentactivationscriptgeneration(("BE: Virtual environment activation script generation"))
+    BE_Windowboundarydetectionalgorithmusingsemanticanalysis(("BE: Window boundary detection algorithm using semantic analysis"))
+    BE_Workfloworchestrationdefinitionsworkflows(("BE: Workflow orchestration definitions (workflows"))
+    BE_Workfloworchestratorworkflow(("BE: Workflow orchestrator (workflow"))
+    BE_WorkflowConfigManagertoloadandapplyworkflowconfigurations(("BE: WorkflowConfigManager to load and apply workflow configurations"))
+    BE_WorkspaceOverrideManagertohandleprojectspecificsettingoverrides(("BE: WorkspaceOverrideManager to handle project-specific setting overrides"))
+    BE_integrationtest_baml_integration(("BE: integration/test_baml_integration"))
+    BE_integrationtest_workflows(("BE: integration/test_workflows"))
+    BE_py(("BE: py"))
+    BE_test_agents(("BE: test_agents"))
+    BE_test_checkpoints(("BE: test_checkpoints"))
+    BE_test_commands(("BE: test_commands"))
+    BE_test_context_window_array(("BE: test_context_window_array"))
+    BE_test_planning_pipeline(("BE: test_planning_pipeline"))
+    BE_test_silmari_rlm_act(("BE: test_silmari_rlm_act"))
+    BE_testsdirectorystructurewithsubdirectoriesunitintegrationfixtures(("BE: tests/ directory structure with subdirectories: unit/, integration/, fixtures/"))
+    BE_testspropertytest_agent_properties(("BE: tests/property/test_agent_properties"))
+    BE_testspropertytest_checkpoint_properties(("BE: tests/property/test_checkpoint_properties"))
+    BE_testspropertytest_context_properties(("BE: tests/property/test_context_properties"))
+    BE_testspropertytest_pipeline_properties(("BE: tests/property/test_pipeline_properties"))
+    FE_Autosaveindicatorshowinglastpersistencetime(("FE: Auto-save indicator showing last persistence time"))
+    FE_Beforeaftercomparisonviewshowingoptimizationresults(("FE: Before/after comparison view showing optimization results"))
+    FE_CLIinterfaceincommandsforuserinteraction(("FE: CLI interface in commands/ for user interaction"))
+    FE_CLIinterfacemaybeprovidedthroughcommandsdirectoryforuserinteraction(("FE: CLI interface may be provided through commands/ directory for user interaction"))
+    FE_Checkpointdiffviewershowingchangesbetweenstates(("FE: Checkpoint diff viewer showing changes between states"))
+    FE_Checkpointmanagementinterfacelistingavailablesnapshots(("FE: Checkpoint management interface listing available snapshots"))
+    FE_Checkpointverificationstatusindicators(("FE: Checkpoint verification status indicators"))
+    FE_CheckpointBrowserlistsandfiltersavailablecheckpoints(("FE: CheckpointBrowser - lists and filters available checkpoints"))
+    FE_CheckpointDetailsviewshowscheckpointmetadatatimestampstatusprogress(("FE: CheckpointDetails view - shows checkpoint metadata (timestamp, status, progress)"))
+    FE_CheckpointSelectorUIcomponentdisplaysavailablecheckpointsformanualselection(("FE: CheckpointSelector UI component - displays available checkpoints for manual selection"))
+    FE_Contextoptimizationcontrolpanelwithaggressivenessslider(("FE: Context optimization control panel with aggressiveness slider"))
+    FE_Contextwindowconfigurationpanelforadjustingwindowsize(("FE: Context window configuration panel for adjusting window size"))
+    FE_Contextwindowvisualizationcomponentshowingcurrentusagepercentage(("FE: Context window visualization component showing current usage percentage"))
+    FE_Errormessagesanduserguidance(("FE: Error messages and user guidance"))
+    FE_Exportimportinterfaceformovingcheckpointsbetweensystems(("FE: Export/import interface for moving checkpoints between systems"))
+    FE_FailureNotificationalertsuserwhenautomaticrecoveryistriggered(("FE: FailureNotification - alerts user when automatic recovery is triggered"))
+    FE_FourlayermemoryvisualizationshowingdistributionacrossL1L4(("FE: Four-layer memory visualization showing distribution across L1-L4"))
+    FE_Informationdensitymetershowingtokenefficiency(("FE: Information density meter showing token efficiency"))
+    FE_Interactivepromptsforconfigurationanddecisions(("FE: Interactive prompts for configuration and decisions"))
+    FE_Layerconfigurationinterfaceforadjustingsizelimitsandpolicies(("FE: Layer configuration interface for adjusting size limits and policies"))
+    FE_Layerspecificdetailpanelsdisplayingcontentsofeachmemorylayer(("FE: Layer-specific detail panels displaying contents of each memory layer"))
+    FE_Manualcheckpointcreationbuttonwithnamedescriptioninput(("FE: Manual checkpoint creation button with name/description input"))
+    FE_ManualRecoveryControlsUIformanuallytriggeringrecoveryoperations(("FE: ManualRecoveryControls - UI for manually triggering recovery operations"))
+    FE_Memoryheatmapshowingaccesspatternsandhotspots(("FE: Memory heatmap showing access patterns and hot spots"))
+    FE_Memorystatisticsdashboardshowinghitmissratesperlayer(("FE: Memory statistics dashboard showing hit/miss rates per layer"))
+    FE_NAThisisadirectorystructureandtestingorganizationrequirementwithnofrontendcomponents(("FE: N/A - This is a directory structure and testing organization requirement with no frontend components"))
+    FE_NAThisisadirectorystructureconventionrequirementwithnofrontendcomponents(("FE: N/A - This is a directory structure convention requirement with no frontend components"))
+    FE_NAThisisadirectorystructurerequirementwithnofrontendcomponents(("FE: N/A - This is a directory structure requirement with no frontend components"))
+    FE_NAThisisadocumentationorganizationrequirementwithnofrontendcomponents(("FE: N/A - This is a documentation organization requirement with no frontend components"))
+    FE_NAThisisatoolconfigurationboundaryrequirementwithnofrontendcomponents(("FE: N/A - This is a tool configuration boundary requirement with no frontend components"))
+    FE_NofrontendcomponentsrequiredCLIbasedinterface(("FE: No frontend components required - CLI-based interface"))
+    FE_NofrontendcomponentsrequiredIDEconfigurationfiles(("FE: No frontend components required - IDE configuration files"))
+    FE_NofrontendcomponentsrequiredIDEintegrationconfiguration(("FE: No frontend components required - IDE integration configuration"))
+    FE_Nofrontendcomponentsrequiredconfigurationisfilebased(("FE: No frontend components required - configuration is file-based"))
+    FE_Nofrontendcomponentsrequiredsystemconfigurationfiles(("FE: No frontend components required - system configuration files"))
+    FE_Notapplicablebackendperformanceoptimization(("FE: Not applicable - backend performance optimization"))
+    FE_NotapplicabledeclarativeAIworkflowspecifications(("FE: Not applicable - declarative AI workflow specifications"))
+    FE_NotapplicablethisisAIworkflowbackendinfrastructure(("FE: Not applicable - this is AI workflow backend infrastructure"))
+    FE_Notapplicablethisisabackendlibrarycomponent(("FE: Not applicable - this is a backend/library component"))
+    FE_Optimizationhistorywithrollbackoptions(("FE: Optimization history with rollback options"))
+    FE_Qualitymetricsdashboardshowingcompressionratioandretentionscores(("FE: Quality metrics dashboard showing compression ratio and retention scores"))
+    FE_Realtimeoptimizationsuggestionsbasedoncontextanalysis(("FE: Real-time optimization suggestions based on context analysis"))
+    FE_Realtimetokencounterdisplayinstatusbar(("FE: Real-time token counter display in status bar"))
+    FE_RecoveryHistoryviewshowspastrecoveryoperationsandoutcomes(("FE: RecoveryHistory view - shows past recovery operations and outcomes"))
+    FE_RecoveryStatusIndicatordisplaysrecoveryoperationprogress(("FE: RecoveryStatusIndicator - displays recovery operation progress"))
+    FE_Removedcontentreviewpanelformanualverification(("FE: Removed content review panel for manual verification"))
+    FE_ResumeConfirmationdialogconfirmsresumeoperationwithcheckpointdetails(("FE: ResumeConfirmation dialog - confirms resume operation with checkpoint details"))
+    FE_Searchinterfacewithlayerspecificfilteringoptions(("FE: Search interface with layer-specific filtering options"))
+    FE_SessionControlsUIforpauseresumeterminatesessionoperations(("FE: SessionControls - UI for pause, resume, terminate session operations"))
+    FE_SessionDashboarddisplaysallactiveandpausedsessions(("FE: SessionDashboard - displays all active and paused sessions"))
+    FE_SessionDetailsviewshowssessionmetadataprogressandexecutionhistory(("FE: SessionDetails view - shows session metadata, progress, and execution history"))
+    FE_SessionSelectorallowsusertoswitchbetweenactivesessions(("FE: SessionSelector - allows user to switch between active sessions"))
+    FE_SessionTimelinevisualizessessionlifecycleeventsovertime(("FE: SessionTimeline - visualizes session lifecycle events over time"))
+    FE_Staterecoverywizardforselectingandloadingcheckpoints(("FE: State recovery wizard for selecting and loading checkpoints"))
+    FE_Statusreportingandprogressindicators(("FE: Status reporting and progress indicators"))
+    FE_Storageusagedisplayshowingcheckpointdiskusage(("FE: Storage usage display showing checkpoint disk usage"))
+    FE_Timelineviewshowingmemorypromotiondemotionevents(("FE: Timeline view showing memory promotion/demotion events"))
+    FE_Visualdiffhighlightingchangesmadeduringoptimization(("FE: Visual diff highlighting changes made during optimization"))
+    FE_Visualrepresentationofcontextboundariesandsegments(("FE: Visual representation of context boundaries and segments"))
+    FE_Warningindicatorsforcontextcapacitythresholds809095(("FE: Warning indicators for context capacity thresholds (80%, 90%, 95%)"))
+    MW_Accesscontrolforwindowresizeoperations(("MW: Access control for window resize operations"))
+    MW_Accesstrackingmiddlewarerecordingallmemoryreadswrites(("MW: Access tracking middleware recording all memory reads/writes"))
+    MW_Addloggingforcheckpointoperationssuccessfailureduration(("MW: Add logging for checkpoint operations (success, failure, duration)"))
+    MW_Addrequesttimeouthandlingwithautomaticrecoverytrigger(("MW: Add request timeout handling with automatic recovery trigger"))
+    MW_Addtracingforworkflowcheckpointoperations(("MW: Add tracing for workflow checkpoint operations"))
+    MW_Auditloggingforallcheckpointcreaterestoredeleteoperations(("MW: Audit logging for all checkpoint create/restore/delete operations"))
+    MW_Auditloggingforallconfigurationchangeswithrollbackcapability(("MW: Audit logging for all configuration changes with rollback capability"))
+    MW_Auditloggingforallconfigurationchangeswithtimestampandchangesource(("MW: Audit logging for all configuration changes with timestamp and change source"))
+    MW_Auditloggingforallcontextwindowstatechanges(("MW: Audit logging for all context window state changes"))
+    MW_Auditloggingforallissueoperationswithuserattribution(("MW: Audit logging for all issue operations with user attribution"))
+    MW_Auditloggingforconfigurationchangesandcommandexecutions(("MW: Audit logging for configuration changes and command executions"))
+    MW_Authorizecheckpointaccessbasedonsessionownership(("MW: Authorize checkpoint access based on session ownership"))
+    MW_Automaticpromotiontriggersbasedonaccessthresholds(("MW: Automatic promotion triggers based on access thresholds"))
+    MW_BAMLcompilerconfigurationbaml(("MW: BAML compiler configuration (baml"))
+    MW_Buildartifactaccesscontrol(("MW: Build artifact access control"))
+    MW_Buildpipelineintegrationforcodegeneration(("MW: Build pipeline integration for code generation"))
+    MW_CGobridgelayerhandlingtypeconversionsbridge(("MW: CGo bridge layer handling type conversions (bridge"))
+    MW_CICDintegrationforautomatedclientregeneration(("MW: CI/CD integration for automated client regeneration"))
+    MW_Cacheinvalidationcoordinationacrosslayers(("MW: Cache invalidation coordination across layers"))
+    MW_Cachesizemonitoringandautomaticcleanup(("MW: Cache size monitoring and automatic cleanup"))
+    MW_Changevalidationmiddlewaretoensureissueupdatesarevalid(("MW: Change validation middleware to ensure issue updates are valid"))
+    MW_Checkpointaccesscontrolandpermissions(("MW: Checkpoint access control and permissions"))
+    MW_Checkpointcreationauthorizationandvalidation(("MW: Checkpoint creation authorization and validation"))
+    MW_Checkpointfilesizemonitoringandlimits(("MW: Checkpoint file size monitoring and limits"))
+    MW_CircuitbreakerforfailingLLMproviders(("MW: Circuit breaker for failing LLM providers"))
+    MW_Componentregistrymanaginglifecycleofallsubsystems(("MW: Component registry managing lifecycle of all subsystems"))
+    MW_Concurrentaccesscontrolduringpersistenceoperations(("MW: Concurrent access control during persistence operations"))
+    MW_Concurrentaccesscoordinationwithfilelocks(("MW: Concurrent access coordination with file locks"))
+    MW_ConfigurationaccesscontroltoprotectClaudesettings(("MW: Configuration access control to protect Claude settings"))
+    MW_Configurationaccesscontrolwithrolebasedpermissions(("MW: Configuration access control with role-based permissions"))
+    MW_Configurationconsistencycheckertovalidatecrossfiledependencies(("MW: Configuration consistency checker to validate cross-file dependencies"))
+    MW_Configurationdirectoryaccesscontrol(("MW: Configuration directory access control"))
+    MW_ConfigurationencryptionforsensitivesettingsAPIkeyscredentials(("MW: Configuration encryption for sensitive settings (API keys, credentials)"))
+    MW_Configurationencryptionsupportforsensitiveagentparameters(("MW: Configuration encryption support for sensitive agent parameters"))
+    MW_Configurationfileaccesscontroltoensureonlyauthorizedprocessescanmodifyagentsettings(("MW: Configuration file access control to ensure only authorized processes can modify agent settings"))
+    MW_Configurationloaderservicethatonlyreadsfromdesignatedconfigdirectories(("MW: Configuration loader service that only reads from designated config directories"))
+    MW_Configurationnamespaceresolverthatpreventsnamingcollisionsbetweentools(("MW: Configuration namespace resolver that prevents naming collisions between tools"))
+    MW_Configurationoverridemechanismfordifferentenvironments(("MW: Configuration override mechanism for different environments"))
+    MW_Configurationschemavalidationperdirectorytype(("MW: Configuration schema validation per directory type"))
+    MW_Configurationvalidationmiddlewarethatenforcestoolspecificschemas(("MW: Configuration validation middleware that enforces tool-specific schemas"))
+    MW_Contextpropagationforcancellationandtimeouts(("MW: Context propagation for cancellation and timeouts"))
+    MW_CosttrackingmiddlewareformonitoringAPIusagecosts(("MW: Cost tracking middleware for monitoring API usage costs"))
+    MW_Dataconsistencyvalidationduringlayertransitions(("MW: Data consistency validation during layer transitions"))
+    MW_Directorydiscoverymiddlewarethatcategorizesdirectoriesbytypesourceconfigtestetc(("MW: Directory discovery middleware that categorizes directories by type (source, config, test, etc"))
+    MW_Directorymigrationtoolforrefactoringexistingdirectoriestomatchconventions(("MW: Directory migration tool for refactoring existing directories to match conventions"))
+    MW_Directorynamingconventionenforcement(("MW: Directory naming convention enforcement"))
+    MW_Diskspacemonitoringbeforecheckpointcreation(("MW: Disk space monitoring before checkpoint creation"))
+    MW_Documentationroutingmiddlewareforservingdocsfromseparatedocumentationserver(("MW: Documentation routing middleware for serving docs from separate documentation server"))
+    MW_Documentationsearchindexerthatprocessesdocsthoughtsandplanningdirectories(("MW: Documentation search indexer that processes docs/, thoughts/, and planning directories"))
+    MW_Documentationversioningmiddlewarethatmapsdocumentationversionstocodereleases(("MW: Documentation versioning middleware that maps documentation versions to code releases"))
+    MW_Duplicatedirectorydetectionandprevention(("MW: Duplicate directory detection and prevention"))
+    MW_Environmentvariableloaderthatmapstoconfigdirectorylocations(("MW: Environment variable loader that maps to config directory locations"))
+    MW_Errorhandlingandretrylogicfortransientstoragefailures(("MW: Error handling and retry logic for transient storage failures"))
+    MW_Filelockingmiddlewaretopreventconcurrentwriteconflicts(("MW: File locking middleware to prevent concurrent write conflicts"))
+    MW_Filesystempermissionvalidation(("MW: File system permission validation"))
+    MW_Gitoperationvalidationanderrorhandling(("MW: Git operation validation and error handling"))
+    MW_Handlecheckpointdecryptionifencryptionisenabled(("MW: Handle checkpoint decryption if encryption is enabled"))
+    MW_Handleconcurrentcheckpointwritesfordifferentworkflows(("MW: Handle concurrent checkpoint writes for different workflows"))
+    MW_Handlefilesystempermissionsandaccesscontrol(("MW: Handle file system permissions and access control"))
+    MW_Implementcircuitbreakerpatterntopreventcascadingfailures(("MW: Implement circuit breaker pattern to prevent cascading failures"))
+    MW_Implementerrorhandlingfordiskfullscenarios(("MW: Implement error handling for disk full scenarios"))
+    MW_Implementlockingmechanismtopreventraceconditions(("MW: Implement locking mechanism to prevent race conditions"))
+    MW_Implementratelimitingonrecoveryattempts(("MW: Implement rate limiting on recovery attempts"))
+    MW_Importpathresolverthatensurestestscanimportfromsourcepackagesusingcleanimports(("MW: Import path resolver that ensures tests can import from source packages using clean imports"))
+    MW_Integrityverificationduringcheckpointcreationandloading(("MW: Integrity verification during checkpoint creation and loading"))
+    MW_Interprocesscommunicationlayerifneeded(("MW: Inter-process communication layer if needed"))
+    MW_Interceptorsforcheckpointcreationatkeyworkflowpoints(("MW: Interceptors for checkpoint creation at key workflow points"))
+    MW_Issueaccesscontroltoenforcepermissionsonissueoperations(("MW: Issue access control to enforce permissions on issue operations"))
+    MW_JSONwithcommentsparsertosupportcommentedconfigurationfiles(("MW: JSON-with-comments parser to support commented configuration files"))
+    MW_Layercapacitymonitoringandenforcement(("MW: Layer capacity monitoring and enforcement"))
+    MW_Logallfailureeventsandrecoveryoperationswithcontextualdata(("MW: Log all failure events and recovery operations with contextual data"))
+    MW_Logallresumeoperationsforaudittrail(("MW: Log all resume operations for audit trail"))
+    MW_Loggingaggregatorcollectinglogsfromallcomponents(("MW: Logging aggregator collecting logs from all components"))
+    MW_Loggingofallsessionlifecycleeventsforaudit(("MW: Logging of all session lifecycle events for audit"))
+    MW_Memorypoolmanagementforreducingallocations(("MW: Memory pool management for reducing allocations"))
+    MW_Metricsaggregatorforsystemwidetelemetry(("MW: Metrics aggregator for system-wide telemetry"))
+    MW_MetricscollectionformonitoringGomoduleperformance(("MW: Metrics collection for monitoring Go module performance"))
+    MW_Optimizationratelimitingtopreventexcessiveprocessing(("MW: Optimization rate limiting to prevent excessive processing"))
+    MW_Optimizationsafetycheckspreventingremovalofcriticalcontent(("MW: Optimization safety checks preventing removal of critical content"))
+    MW_Outputfilenamingconventionenforcement(("MW: Output file naming convention enforcement"))
+    MW_Pathresolutionmiddlewarethatappliescorrectnamingconventionbasedondirectorycategory(("MW: Path resolution middleware that applies correct naming convention based on directory category"))
+    MW_Pathvalidationmiddlewarethatensuresconfigurationpathsstartwith(("MW: Path validation middleware that ensures configuration paths start with '"))
+    MW_Performancemonitoringforlayeraccesstimes(("MW: Performance monitoring for layer access times"))
+    MW_Performancemonitoringforoptimizationoperations(("MW: Performance monitoring for optimization operations"))
+    MW_Permissionchecksformanualpromotiondemotionoperations(("MW: Permission checks for manual promotion/demotion operations"))
+    MW_Pluginsystemforextendingcorefunctionality(("MW: Plugin system for extending core functionality"))
+    MW_PrecommithookstovalidateBAMLsyntax(("MW: Pre-commit hooks to validate BAML syntax"))
+    MW_Preoptimizationvalidationensuringminimumcontextrequirements(("MW: Pre-optimization validation ensuring minimum context requirements"))
+    MW_Qualitythresholdenforcementminimuminformationretention(("MW: Quality threshold enforcement (minimum information retention)"))
+    MW_Ratelimitingforcontextwindowoperations(("MW: Rate limiting for context window operations"))
+    MW_Ratelimitingforresourceintensiveoperations(("MW: Rate limiting for resource-intensive operations"))
+    MW_Ratelimitingonsessioncreationtopreventabuse(("MW: Rate limiting on session creation to prevent abuse"))
+    MW_RequestbatchingforefficientGoPythoncommunication(("MW: Request batching for efficient Go-Python communication"))
+    MW_Requestinterceptorforaddingauthenticationheaders(("MW: Request interceptor for adding authentication headers"))
+    MW_Requestsizevalidationtopreventsinglemessageoverflow(("MW: Request size validation to prevent single-message overflow"))
+    MW_Requestresponseloggingfordebuggingandauditing(("MW: Request/response logging for debugging and auditing"))
+    MW_Responsevalidatorensuringoutputsmatchexpectedschemas(("MW: Response validator ensuring outputs match expected schemas"))
+    MW_Safetycheckmiddlewaretoenforceoperationrestrictions(("MW: Safety check middleware to enforce operation restrictions"))
+    MW_Schemavalidationmiddlewareforallconfigurationfiles(("MW: Schema validation middleware for all configuration files"))
+    MW_Schemavalidationmiddlewaretovalidateconfigurationstructurebeforeloading(("MW: Schema validation middleware to validate configuration structure before loading"))
+    MW_Sensitivedataprotectionforconfigurationfiles(("MW: Sensitive data protection for configuration files"))
+    MW_Sessionauthenticationandauthorizationforsessionoperations(("MW: Session authentication and authorization for session operations"))
+    MW_Sessioncontextinjectionintorequestprocessingpipeline(("MW: Session context injection into request processing pipeline"))
+    MW_Settingsfileaccesscontroltoprotecteditorconfiguration(("MW: Settings file access control to protect editor configuration"))
+    MW_SettingsvalidationmiddlewaretoensurevalidCursorconfiguration(("MW: Settings validation middleware to ensure valid Cursor configuration"))
+    MW_Snapshotcreationbeforedestructiveoperations(("MW: Snapshot creation before destructive operations"))
+    MW_Stateserializationformatvalidation(("MW: State serialization format validation"))
+    MW_Testexecutionenvironmentvalidation(("MW: Test execution environment validation"))
+    MW_TestexecutionmiddlewarethatsetsPYTHONPATHtoincludesourcedirectorieswithouttests(("MW: Test execution middleware that sets PYTHONPATH to include source directories without tests/"))
+    MW_Testfixtureloaderthatloadstestdatafromtestsfixtureswithoutpollutingsourcedirectories(("MW: Test fixture loader that loads test data from tests/fixtures/ without polluting source directories"))
+    MW_Tokencountvalidationbeforeappendoperations(("MW: Token count validation before append operations"))
+    MW_Toolconfigurationloadermiddlewarethatroutesconfigrequeststocorrecttooldirectory(("MW: Tool configuration loader middleware that routes config requests to correct tool directory"))
+    MW_Toolinitializationmiddlewarethatloadsconfigurationsindependencyorder(("MW: Tool initialization middleware that loads configurations in dependency order"))
+    MW_Transactionmanagementformultistepoperations(("MW: Transaction management for multi-step operations"))
+    MW_Userconfirmationrequiredforaggressiveoptimizationlevels(("MW: User confirmation required for aggressive optimization levels"))
+    MW_Validatecheckpointcompatibilitywithcurrentsystemversion(("MW: Validate checkpoint compatibility with current system version"))
+    MW_Validatecheckpointdatastructurebeforeserialization(("MW: Validate checkpoint data structure before serialization"))
+    MW_Validateworkflowstatestructureandtaskdependencies(("MW: Validate workflow state structure and task dependencies"))
+    MW_Validationdecoratorsformethodinputs(("MW: Validation decorators for method inputs"))
+    MW_ValidationrulesforBAMLsourcecorrectness(("MW: Validation rules for BAML source correctness"))
+    MW_Versioncompatibilitycheckerforextensionrequirements(("MW: Version compatibility checker for extension requirements"))
+    MW_Versioncompatibilitychecksduringrestoreoperations(("MW: Version compatibility checks during restore operations"))
+    MW_Virtualenvironmentisolationenforcement(("MW: Virtual environment isolation enforcement"))
+    MW_Windowcapacitythresholdmonitoringandalerting(("MW: Window capacity threshold monitoring and alerting"))
+    SH_(("SH: "))
+    SH_AISettingsdatamodelwithenable_suggestionsdelayacceptance_thresholdcustom_prompts(("SH: AISettings data model with enable_suggestions, delay, acceptance_threshold, custom_prompts"))
+    SH_APIdocumentationdocsapi(("SH: API documentation (docs/api/)"))
+    SH_AccessPatterndatamodeltrackingreadwritepatterns(("SH: AccessPattern data model tracking read/write patterns"))
+    SH_AgentCapabilityenumerationdefiningavailableagentactions(("SH: AgentCapability enumeration defining available agent actions"))
+    SH_AgentConfigdatamodelwithfieldsagent_idnametypecapabilitiesexecution_parameterspersona(("SH: AgentConfig data model with fields: agent_id, name, type, capabilities, execution_parameters, persona"))
+    SH_AgentPersonadatamodelwithfieldsroledescriptionsystem_promptbehavioral_guidelines(("SH: AgentPersona data model with fields: role, description, system_prompt, behavioral_guidelines"))
+    SH_Architecturediagramsdocsarchitecture(("SH: Architecture diagrams (docs/architecture/)"))
+    SH_ArtifactMetadatamodelfortrackingbuildoutputs(("SH: ArtifactMetadata model for tracking build outputs"))
+    SH_Baseclassesforagentscommandsandworkflowsbase(("SH: Base classes for agents, commands, and workflows (base"))
+    SH_Baseclientinterfacebase_client(("SH: Base client interface (base_client"))
+    SH_BeadsExceptioncustomexceptionsforissueoperations(("SH: BeadsException custom exceptions for issue operations"))
+    SH_Buildconfigurationforsetuptoolssetup(("SH: Build configuration for setuptools (setup"))
+    SH_BuildDirectoryConfigmodelwithfieldsnamepathartifact_types(("SH: BuildDirectoryConfig model with fields: name, path, artifact_types"))
+    SH_BuildUtilsutilityfordistributionpackageoperations(("SH: BuildUtils utility for distribution package operations"))
+    SH_CICDconfiguration(("SH: CI/CD configuration ("))
+    SH_CICDconfigurationdecisionwhethertopreserveorclearcachebetweenpipelineruns(("SH: CI/CD configuration decision: whether to preserve or clear cache between pipeline runs"))
+    SH_CICDpipelineconfigurationwithruffcheckdiffstep(("SH: CI/CD pipeline configuration with ruff check --diff step"))
+    SH_CICDpipelinestepformypytypechecking(("SH: CI/CD pipeline step for mypy type checking"))
+    SH_CacheDirectoryManagerforhandling(("SH: CacheDirectoryManager for handling "))
+    SH_CacheManagerutilityforcacheoperations(("SH: CacheManager utility for cache operations"))
+    SH_ChangelogCHANGELOG(("SH: Changelog (CHANGELOG"))
+    SH_Checkpointdatamodelwithfieldsidtimestampcontext_statemetadatachecksumversion(("SH: Checkpoint data model with fields: id, timestamp, context_state, metadata, checksum, version"))
+    SH_CheckpointConfigconfigurationmodelforretentionpolicyandcompressionsettings(("SH: CheckpointConfig - configuration model for retention policy and compression settings"))
+    SH_CheckpointConfigdatamodelwithenabledfrequencyretentioncleanuppolicies(("SH: CheckpointConfig data model with enabled, frequency, retention, cleanup policies"))
+    SH_CheckpointDescriptordatamodeldescribingcheckpointmetadataforselection(("SH: CheckpointDescriptor - data model describing checkpoint metadata for selection"))
+    SH_CheckpointDiffmodelshowingaddedmodifiedandremovedcontent(("SH: CheckpointDiff model showing added, modified, and removed content"))
+    SH_CheckpointDirectoryConfigmodelwithfieldsnamepathretention_days(("SH: CheckpointDirectoryConfig model with fields: name, path, retention_days"))
+    SH_CheckpointDiscoveryResultdatamodelforcheckpointdiscoveryresults(("SH: CheckpointDiscoveryResult - data model for checkpoint discovery results"))
+    SH_CheckpointExceptioncustomexceptionforcheckpointrelatederrors(("SH: CheckpointException - custom exception for checkpoint-related errors"))
+    SH_CheckpointIntegrityValidatorutilityforchecksumandintegrityverification(("SH: CheckpointIntegrityValidator - utility for checksum and integrity verification"))
+    SH_CheckpointManagerutilityforcheckpointCRUDoperations(("SH: CheckpointManager utility for checkpoint CRUD operations"))
+    SH_CheckpointMetadatadatamodelforcheckpointmetadatatimestampversionsession_idsize(("SH: CheckpointMetadata - data model for checkpoint metadata (timestamp, version, session_id, size)"))
+    SH_CheckpointMetadatamodelwithworkflow_idtimestampstate_hashversion(("SH: CheckpointMetadata model with workflow_id, timestamp, state_hash, version"))
+    SH_CheckpointMetadatawithfieldsnamedescriptionsizecreation_timecreatortags(("SH: CheckpointMetadata with fields: name, description, size, creation_time, creator, tags"))
+    SH_CheckpointNamingutilityforconsistentfilenaming(("SH: CheckpointNaming utility for consistent file naming"))
+    SH_CheckpointValidatorutilityforstateintegritychecks(("SH: CheckpointValidator utility for state integrity checks"))
+    SH_ClaudeConfigdatamodelwithworkspace_settingsmodel_preferencescontext_rules(("SH: ClaudeConfig data model with workspace_settings, model_preferences, context_rules"))
+    SH_ClaudeConfigSchemaJSONschemasforallconfigurationtypes(("SH: ClaudeConfigSchema JSON schemas for all configuration types"))
+    SH_CodeGenerationPreferenceswithstyle_guideformatting_rulesdocumentation_level(("SH: CodeGenerationPreferences with style_guide, formatting_rules, documentation_level"))
+    SH_CommontypedefinitionsreusedacrossBAMLfilescommon_types(("SH: Common type definitions reused across BAML files (common_types"))
+    SH_Compositestrategyforgeneratingrelatedworkflowcomponents(("SH: Composite strategy for generating related workflow components"))
+    SH_CompressionStrategyenumEXTRACTIVEABSTRACTIVEHYBRIDNONE(("SH: CompressionStrategy enum: EXTRACTIVE, ABSTRACTIVE, HYBRID, NONE"))
+    SH_ConfigDirectoryConfigmodelwithfieldsnamepathpurposeaccess_level(("SH: ConfigDirectoryConfig model with fields: name, path, purpose, access_level"))
+    SH_ConfigMergerforcombiningdefaultanduserconfigurations(("SH: ConfigMerger for combining default and user configurations"))
+    SH_ConfigMergerforcombiningmultipleconfigurationsourceswithpriorityrules(("SH: ConfigMerger for combining multiple configuration sources with priority rules"))
+    SH_ConfigSchemaJSONYAMLschemasforallconfigurationtypes(("SH: ConfigSchema JSON/YAML schemas for all configuration types"))
+    SH_ConfigTemplatemodelfordefaultconfigurationfiles(("SH: ConfigTemplate model for default configuration files"))
+    SH_ConfigValidationErrorcustomexceptionforconfigurationvalidationfailures(("SH: ConfigValidationError custom exception for configuration validation failures"))
+    SH_ConfigValidatorbaseclassforcustomvalidationlogic(("SH: ConfigValidator base class for custom validation logic"))
+    SH_ConfigValidatorutilityforconfigurationvalidation(("SH: ConfigValidator utility for configuration validation"))
+    SH_Configurationsettingspython_versionwarn_return_anywarn_unused_configsdisallow_untyped_defs(("SH: Configuration settings: python_version, warn_return_any, warn_unused_configs, disallow_untyped_defs"))
+    SH_Configurationlinelengthtargetversionselectrulesignorerulesexcludepatterns(("SH: Configuration: line-length, target-version, select rules, ignore rules, exclude patterns"))
+    SH_ConfigurationBoundaryValidatorutilitywithvalidateToolIsolationanddetectConfigurationLeaksmethods(("SH: ConfigurationBoundaryValidator utility with validateToolIsolation() and detectConfigurationLeaks() methods"))
+    SH_ConfigurationSchemaJSONschemasforallconfigurationfiletypes(("SH: ConfigurationSchema JSON schemas for all configuration file types"))
+    SH_ConfigurationSchemainterfacefordefiningtoolspecificconfigurationstructures(("SH: ConfigurationSchema interface for defining tool-specific configuration structures"))
+    SH_Constantsandconfigurationvaluesconstants(("SH: Constants and configuration values (constants"))
+    SH_ConstantsdefiningDOCUMENTATION_DIRSALLOWED_DOC_EXTENSIONSandDOCUMENTATION_TEMPLATES(("SH: Constants defining DOCUMENTATION_DIRS, ALLOWED_DOC_EXTENSIONS, and DOCUMENTATION_TEMPLATES"))
+    SH_ConstantsdefiningNAMING_PATTERNSmapcategorynamingconvention(("SH: Constants defining NAMING_PATTERNS map (category -&gt; naming convention)"))
+    SH_ConstantsdefiningTOOL_DIRECTORIESmaptool_namedirectory_path(("SH: Constants defining TOOL_DIRECTORIES map (tool_name -&gt; directory_path)"))
+    SH_ConstantsdefiningVALID_TEST_PATTERNSandINVALID_TEST_LOCATIONS(("SH: Constants defining VALID_TEST_PATTERNS and INVALID_TEST_LOCATIONS"))
+    SH_ConstantsfiledefiningSOURCE_DIRSlistandCONFIG_DIRSlist(("SH: Constants file defining SOURCE_DIRS list and CONFIG_DIRS list"))
+    SH_Constantsforbuilddirectorynamesandartifactpatterns(("SH: Constants for build directory names and artifact patterns"))
+    SH_Constantsforcheckpointdirectorypathsandfilepatterns(("SH: Constants for checkpoint directory paths and file patterns"))
+    SH_Constantsforconfigurationdirectorynamesanddefaultsettings(("SH: Constants for configuration directory names and default settings"))
+    SH_Constantsfordefaultconfigurationsconstants(("SH: Constants for default configurations (constants"))
+    SH_Constantsfordevelopmentdirectorynamesandpaths(("SH: Constants for development directory names and paths"))
+    SH_Constantsfordirectorynamesandpaths(("SH: Constants for directory names and paths"))
+    SH_Constantsforprotocolandconfigurationconstants(("SH: Constants for protocol and configuration (constants"))
+    SH_Constantsforsystemconfigurationconstants(("SH: Constants for system configuration (constants"))
+    SH_ConstantsCHECKPOINT_DIRMAX_CHECKPOINTSCHECKPOINT_RETENTION_DAYSCOMPRESSION_ALGORITHM(("SH: Constants: CHECKPOINT_DIR, MAX_CHECKPOINTS, CHECKPOINT_RETENTION_DAYS, COMPRESSION_ALGORITHM"))
+    SH_ConstantsDEFAULT_WINDOW_SIZEWARNING_THRESHOLDCRITICAL_THRESHOLD(("SH: Constants: DEFAULT_WINDOW_SIZE, WARNING_THRESHOLD, CRITICAL_THRESHOLD"))
+    SH_ConstantsL1_SIZEL2_SIZEL3_SIZEL4_SIZEPROMOTION_THRESHOLDDEMOTION_THRESHOLD(("SH: Constants: L1_SIZE, L2_SIZE, L3_SIZE, L4_SIZE, PROMOTION_THRESHOLD, DEMOTION_THRESHOLD"))
+    SH_ConstantsMIN_COMPRESSION_RATIOMAX_INFORMATION_LOSSDEDUPLICATION_THRESHOLDRELEVANCE_CUTOFF(("SH: Constants: MIN_COMPRESSION_RATIO, MAX_INFORMATION_LOSS, DEDUPLICATION_THRESHOLD, RELEVANCE_CUTOFF"))
+    SH_ContextBoundaryinterfaceforsemanticboundarydetection(("SH: ContextBoundary interface for semantic boundary detection"))
+    SH_ContextRuledatamodelwithinclude_patternsexclude_patternspriority(("SH: ContextRule data model with include_patterns, exclude_patterns, priority"))
+    SH_ContextStatedatamodelcontainingallfourmemorylayersandwindowstate(("SH: ContextState data model containing all four memory layers and window state"))
+    SH_ContextWindowdatamodelwithfieldsidsize_limitcurrent_tokenssegmentsmetadata(("SH: ContextWindow data model with fields: id, size_limit, current_tokens, segments, metadata"))
+    SH_ContributingguidelinesCONTRIBUTING(("SH: Contributing guidelines (CONTRIBUTING"))
+    SH_ConventionCheckerutilitywithisValidNamesuggestCorrectNameandgetCategoryForDirectorymethods(("SH: ConventionChecker utility with isValidName(), suggestCorrectName(), and getCategoryForDirectory() methods"))
+    SH_CursorSettingsdatamodelwitheditor_preferencesworkspace_configai_settings(("SH: CursorSettings data model with editor_preferences, workspace_config, ai_settings"))
+    SH_CursorSettingsSchemaJSONschemaforvalidation(("SH: CursorSettingsSchema JSON schema for validation"))
+    SH_CustomCommanddatamodelwithnamedescriptionprompt_templateparameters(("SH: CustomCommand data model with name, description, prompt_template, parameters"))
+    SH_Datamodelsforstatecheckpointsandeventsmodels(("SH: Data models for state, checkpoints, and events (models"))
+    SH_Databaseconfigurationdatabase(("SH: Database configuration: database="))
+    SH_Dependencyspecificationsrequirements(("SH: Dependency specifications (requirements"))
+    SH_DependencyGraphdatastructurefortaskdependencies(("SH: DependencyGraph - data structure for task dependencies"))
+    SH_DevDirectoryConfigmodelwithfieldsnamepathis_cacheis_permanent(("SH: DevDirectoryConfig model with fields: name, path, is_cache, is_permanent"))
+    SH_DiagnosticConfigforlintinganderrorreportingsettings(("SH: DiagnosticConfig for linting and error reporting settings"))
+    SH_DirectoryCategoryenumwithvaluesSOURCE_CODECONFIGURATIONDEVELOPMENTBUILDWORKFLOWSDOCUMENTATION(("SH: DirectoryCategory enum with values: SOURCE_CODE, CONFIGURATION, DEVELOPMENT, BUILD, WORKFLOWS, DOCUMENTATION"))
+    SH_DirectoryConfigmodelwithfieldsnamepathtypelanguage(("SH: DirectoryConfig model with fields: name, path, type, language"))
+    SH_DirectoryConventionValidatorclasswithvalidateNamingandvalidateCategorymethods(("SH: DirectoryConventionValidator class with validateNaming() and validateCategory() methods"))
+    SH_DirectoryConventionsdocumentationobjectspecifyingnamingpatterns(("SH: DirectoryConventions documentation object specifying naming patterns"))
+    SH_DirectoryMetadatamodeltrackingdirectorynamecategorypurposenaming_convention(("SH: DirectoryMetadata model tracking directory name, category, purpose, naming_convention"))
+    SH_DirectoryStructureenumdefiningvalidsourcevsconfigdirectorytypes(("SH: DirectoryStructure enum defining valid source vs config directory types"))
+    SH_DirectoryStructuremodeldefiningthe8sourcedirectories(("SH: DirectoryStructure model defining the 8 source directories"))
+    SH_DocPathResolverutilityforconstructingcrossreferencesbetweendocumentationfiles(("SH: DocPathResolver utility for constructing cross-references between documentation files"))
+    SH_DockerconfigurationDockerfiledockercompose(("SH: Docker configuration (Dockerfile, docker-compose"))
+    SH_Documentationexplainingenabledrulesandhowtouserufffix(("SH: Documentation explaining enabled rules and how to use ruff --fix"))
+    SH_Documentationexplainingpropertybasedtestingapproachandhowtowriteproperties(("SH: Documentation explaining property-based testing approach and how to write properties"))
+    SH_Documentationexplainingtypeannotationconventionsandmypyusage(("SH: Documentation explaining type annotation conventions and mypy usage"))
+    SH_Documentationindocsexplainingpytestcacheusageandlfffstepwiseflags(("SH: Documentation in docs/ explaining pytest cache usage and --lf, --ff, --stepwise flags"))
+    SH_DocumentationindexdocsREADME(("SH: Documentation index (docs/README"))
+    SH_DocumentationonBAMLarchitectureandpatternsbaml_srcREADME(("SH: Documentation on BAML architecture and patterns (baml_src/README"))
+    SH_DocumentationonGomodulearchitecturegoREADME(("SH: Documentation on Go module architecture (go/README"))
+    SH_Documentationonusinggeneratedclientbaml_clientREADME(("SH: Documentation on using generated client (baml_client/README"))
+    SH_DocumentationMetadatamodelfortrackingdocumentationtypestatuslast_updatedandrelationships(("SH: DocumentationMetadata model for tracking documentation type, status, last_updated, and relationships"))
+    SH_DocumentationStructureclassdefininghierarchydocsformalthoughtsresearchplansplanning(("SH: DocumentationStructure class defining hierarchy: docs/ (formal), thoughts/ (research), plans/ (planning)"))
+    SH_DocumentationValidatorutilitywithvalidateNoExecutableCodeandvalidateMarkdownStructuremethods(("SH: DocumentationValidator utility with validateNoExecutableCode() and validateMarkdownStructure() methods"))
+    SH_EditorPreferencesdatamodelwithfontthemeindentationformattingoptions(("SH: EditorPreferences data model with font, theme, indentation, formatting options"))
+    SH_EnumsforLLMprovidersmodelnamesandparametersenums(("SH: Enums for LLM providers, model names, and parameters (enums"))
+    SH_Enumsforstatesstatusesandeventtypesenums(("SH: Enums for states, statuses, and event types (enums"))
+    SH_EnvironmentVariableresolverforenvironmentvariablesubstitutioninconfigs(("SH: EnvironmentVariable resolver for environment variable substitution in configs"))
+    SH_ExamplesdemonstratingBAMLusageexamples(("SH: Examples demonstrating BAML usage (examples"))
+    SH_Examplesofgoodpropertytestsastemplatesfordevelopers(("SH: Examples of good property tests as templates for developers"))
+    SH_ExecutionParametersdatamodelwithtimeoutmax_iterationsretry_policyresource_limits(("SH: ExecutionParameters data model with timeout, max_iterations, retry_policy, resource_limits"))
+    SH_ExtensionDefinitiondatamodelwithidversionrequiredflag(("SH: ExtensionDefinition data model with id, version, required flag"))
+    SH_FailureClassificationenumforfailuretypestransientpermanentresourcelogic(("SH: FailureClassification - enum for failure types (transient, permanent, resource, logic)"))
+    SH_FailureContextdatamodelcapturingfailuredetailstypetimestampstacktracestate(("SH: FailureContext - data model capturing failure details (type, timestamp, stack trace, state)"))
+    SH_FaultToleranceConfigconfigurationforretrylimitstimeoutsnotificationsettings(("SH: FaultToleranceConfig - configuration for retry limits, timeouts, notification settings"))
+    SH_FeatureFlagdatamodelwithflag_nameenabledrollout_percentageconditions(("SH: FeatureFlag data model with flag_name, enabled, rollout_percentage, conditions"))
+    SH_FileLockManagerutilityforconcurrentaccesscontrol(("SH: FileLockManager utility for concurrent access control"))
+    SH_FileSystemLockutilityforsafeconcurrentfileaccess(("SH: FileSystemLock utility for safe concurrent file access"))
+    SH_FileSystemUtilsutilityfunctionsforatomicfileoperations(("SH: FileSystemUtils - utility functions for atomic file operations"))
+    SH_FileSystemUtilsfordirectoryoperations(("SH: FileSystemUtils for directory operations"))
+    SH_FileSystemUtilsforsafefilereadingwritingin(("SH: FileSystemUtils for safe file reading/writing in "))
+    SH_FormatConfigforcodeformattingpreferences(("SH: FormatConfig for code formatting preferences"))
+    SH_GeneratedtypedefinitionsfromBAMLschemastypes(("SH: Generated type definitions from BAML schemas (types"))
+    SH_GitConfigforversioncontrolintegrationsettings(("SH: GitConfig for version control integration settings"))
+    SH_GitConfigmodelwithrepositorysettingsbranchremotehooks(("SH: GitConfig model with repository settings (branch, remote, hooks)"))
+    SH_GitIgnoreRulemodelfor(("SH: GitIgnoreRule model for "))
+    SH_GitUtilsutilityforGitoperations(("SH: GitUtils utility for Git operations"))
+    SH_HealthCheckConfigdatamodelwithintervalsthresholdsnotificationtargets(("SH: HealthCheckConfig data model with intervals, thresholds, notification targets"))
+    SH_HealthCheckResultdatamodelforhealthmonitoringresults(("SH: HealthCheckResult - data model for health monitoring results"))
+    SH_HiddenFileSystemUtilsfordotfileoperations(("SH: HiddenFileSystemUtils for dotfile operations"))
+    SH_IDEintegrationfileswithruffconfiguration(("SH: IDE integration files with ruff configuration"))
+    SH_IDEsettingsfiles(("SH: IDE settings files ("))
+    SH_ImportanceScoreinterfacewithscoringalgorithmspecifications(("SH: ImportanceScore interface with scoring algorithm specifications"))
+    SH_IntegrationSettingsdatamodelforexternaltoolconfigurations(("SH: IntegrationSettings data model for external tool configurations"))
+    SH_IntegrityCheckresultmodelwithverificationstatusanderrors(("SH: IntegrityCheck result model with verification status and errors"))
+    SH_InterfacedefinitionsforGoPythoncontractsinterfaces(("SH: Interface definitions for Go-Python contracts (interfaces"))
+    SH_Interfacesforextensibilitypointsinterfaces(("SH: Interfaces for extensibility points (interfaces"))
+    SH_Issuedatamodelwithfieldsidtitledescriptionstatusprioritycreated_atupdated_atassigneetagsmilestone(("SH: Issue data model with fields: id, title, description, status, priority, created_at, updated_at, assignee, tags, milestone"))
+    SH_IssueCommentdatamodelwithtextauthortimestamp(("SH: IssueComment data model with text, author, timestamp"))
+    SH_IssueFilterinterfaceforqueryconstruction(("SH: IssueFilter interface for query construction"))
+    SH_IssueHistorydatamodelfortrackingchanges(("SH: IssueHistory data model for tracking changes"))
+    SH_IssueIDGeneratorforcreatinguniqueissueidentifiers(("SH: IssueIDGenerator for creating unique issue identifiers"))
+    SH_IssuePriorityenumerationcriticalhighmediumlow(("SH: IssuePriority enumeration: critical, high, medium, low"))
+    SH_IssueRelationshipdatamodelforlinkingrelatedissues(("SH: IssueRelationship data model for linking related issues"))
+    SH_IssueStatusenumerationopenin_progressblockedresolvedclosed(("SH: IssueStatus enumeration: open, in_progress, blocked, resolved, closed"))
+    SH_JSONCParserJSONwithCommentsutilityforparsingconfigurationfiles(("SH: JSONCParser (JSON with Comments) utility for parsing configuration files"))
+    SH_KeyBindingdatamodelwithcommandkeywhencontextcondition(("SH: KeyBinding data model with command, key, when (context condition)"))
+    SH_LayerConfiginterfacedefiningsizelimitsandretentionpoliciesperlayer(("SH: LayerConfig interface defining size limits and retention policies per layer"))
+    SH_LayerStatisticsdatamodelwithhit_ratemiss_ratepromotion_countdemotion_count(("SH: LayerStatistics data model with hit_rate, miss_rate, promotion_count, demotion_count"))
+    SH_LicensefileLICENSE(("SH: License file (LICENSE)"))
+    SH_LoggingConfigdatamodelwithlevelformatoutputsrotation(("SH: LoggingConfig data model with level, format, outputs, rotation"))
+    SH_Makefileforcommondevelopmenttasks(("SH: Makefile for common development tasks"))
+    SH_Makefileorscripttargetsforrunningruffmakelintmakeformat(("SH: Makefile or script targets for running ruff (make lint, make format)"))
+    SH_MarkdownRendererforformattingissuecontent(("SH: MarkdownRenderer for formatting issue content"))
+    SH_MemoryConfigdatamodelwithworking_memoryepisodic_memorysemantic_memoryprocedural_memorysettings(("SH: MemoryConfig data model with working_memory, episodic_memory, semantic_memory, procedural_memory settings"))
+    SH_MemoryItemdatamodelwithfieldsidcontentlayerimportance_scoreaccess_countlast_accessedmetadata(("SH: MemoryItem data model with fields: id, content, layer, importance_score, access_count, last_accessed, metadata"))
+    SH_MemoryLayerdatamodelwithfieldslayer_idcapacitycurrent_sizeeviction_policyaccess_stats(("SH: MemoryLayer data model with fields: layer_id, capacity, current_size, eviction_policy, access_stats"))
+    SH_Milestonedatamodelwithnamedescriptiondue_dateissues(("SH: Milestone data model with name, description, due_date, issues"))
+    SH_ModelPreferencedatamodelwithtask_typemodel_nametemperaturemax_tokens(("SH: ModelPreference data model with task_type, model_name, temperature, max_tokens"))
+    SH_Modulespecificoverridesforgraduallyadoptingstricttyping(("SH: Module-specific overrides for gradually adopting strict typing"))
+    SH_NamingConventionenumwithvaluesDOTFILESNAKE_CASEKEBAB_CASELOWERCASE(("SH: NamingConvention enum with values: DOTFILE, SNAKE_CASE, KEBAB_CASE, LOWERCASE"))
+    SH_OptimizationConfigdatamodelwithfieldsaggressivenesspreserve_recentmin_retentionstrategies(("SH: OptimizationConfig data model with fields: aggressiveness, preserve_recent, min_retention, strategies"))
+    SH_OptimizationResultdatamodelwithfieldsoriginal_tokensoptimized_tokenscompression_ratioremoved_segmentsquality_metrics(("SH: OptimizationResult data model with fields: original_tokens, optimized_tokens, compression_ratio, removed_segments, quality_metrics"))
+    SH_OptimizationSnapshotdatamodelforrollbackcapability(("SH: OptimizationSnapshot data model for rollback capability"))
+    SH_OutputFileNamingutilityforconsistentfilenaming(("SH: OutputFileNaming utility for consistent file naming"))
+    SH_Packagemetadatasetup(("SH: Package metadata (setup"))
+    SH_PathMatcherutilityforevaluatingcontextrulepatterns(("SH: PathMatcher utility for evaluating context rule patterns"))
+    SH_PathValidatorutilityclasswithisSourceDirectoryandisConfigDirectorymethods(("SH: PathValidator utility class with isSourceDirectory() and isConfigDirectory() methods"))
+    SH_PathValidatorutilityforpathvalidation(("SH: PathValidator utility for path validation"))
+    SH_Perfileruleconfigurationforspecialcasese(("SH: Per-file rule configuration for special cases (e"))
+    SH_PerformanceConfigdatamodelwiththread_poolsconnection_poolscache_sizes(("SH: PerformanceConfig data model with thread_pools, connection_pools, cache_sizes"))
+    SH_PersistenceConfiginterfacedefiningcheckpointfrequencyandretention(("SH: PersistenceConfig interface defining checkpoint frequency and retention"))
+    SH_PluginConfigdatamodelwithsearch_pathsload_orderenabled_plugins(("SH: PluginConfig data model with search_paths, load_order, enabled_plugins"))
+    SH_Precommithookconfigurationformypy(("SH: Pre-commit hook configuration for mypy ("))
+    SH_Precommithookforruffcheckandruffformat(("SH: Pre-commit hook for ruff check and ruff format"))
+    SH_Profiledefinitionsfordifferenttestscenariosfastthoroughdebug(("SH: Profile definitions for different test scenarios (fast, thorough, debug)"))
+    SH_PromotionCriteriainterfacefordefiningpromotionrules(("SH: PromotionCriteria interface for defining promotion rules"))
+    SH_PromptTemplatedatamodelwithtemplate_stringvariablesexamples(("SH: PromptTemplate data model with template_string, variables, examples"))
+    SH_PruningPolicyinterfacedefiningremovalcriteria(("SH: PruningPolicy interface defining removal criteria"))
+    SH_Pydanticmodelsforrequestresponsevalidationmodels(("SH: Pydantic models for request/response validation (models"))
+    SH_Pythonwrappermodulego_module(("SH: Python wrapper module (go_module"))
+    SH_QualityMetricsdatamodelwithfieldsinformation_retentionsemantic_coherencecompression_ratio(("SH: QualityMetrics data model with fields: information_retention, semantic_coherence, compression_ratio"))
+    SH_RLMActStatedatamodelrepresentingcompleteRLMACTstate(("SH: RLMActState - data model representing complete RLM-ACT state"))
+    SH_RecoveryAttemptdatamodeltrackingrecoveryoperationdetails(("SH: RecoveryAttempt - data model tracking recovery operation details"))
+    SH_RecoveryOptionsinterfaceforconfiguringrestorebehavior(("SH: RecoveryOptions interface for configuring restore behavior"))
+    SH_RecoveryOutcomedatamodelcapturingrecoveryresultsandmetrics(("SH: RecoveryOutcome - data model capturing recovery results and metrics"))
+    SH_RecoveryStrategyenuminterfacedefiningrecoveryapproachesrollbackrestartpartial(("SH: RecoveryStrategy - enum/interface defining recovery approaches (rollback, restart, partial)"))
+    SH_RelevanceScoredatamodelwithfieldscontent_idscorefactorstimestamp(("SH: RelevanceScore data model with fields: content_id, score, factors, timestamp"))
+    SH_ResourceLimitsdatamodelwithmemorycpudisknetworkconstraints(("SH: ResourceLimits data model with memory, cpu, disk, network constraints"))
+    SH_ResumeContextdatamodelcapturingresumeoperationdetailsandoutcomes(("SH: ResumeContext - data model capturing resume operation details and outcomes"))
+    SH_RetentionPolicymodeldefiningcleanuprules(("SH: RetentionPolicy model defining cleanup rules"))
+    SH_SafetyRuledatamodelwithrule_typerestrictionsallowed_operations(("SH: SafetyRule data model with rule_type, restrictions, allowed_operations"))
+    SH_Schemadefinitionsforconfigurationvalidationschemas(("SH: Schema definitions for configuration validation (schemas"))
+    SH_Schemadefinitionsforstructuredoutputsschemas(("SH: Schema definitions for structured outputs (schemas"))
+    SH_SecurityConfigdatamodelwithallowed_operationsrestrictionsrate_limits(("SH: SecurityConfig data model with allowed_operations, restrictions, rate_limits"))
+    SH_SerializationUtilsutilityfunctionsforserializationdeserialization(("SH: SerializationUtils - utility functions for serialization/deserialization"))
+    SH_Sessiondatamodelrepresentingsessionstatesession_idworkflow_idstatusmetadata(("SH: Session - data model representing session state (session_id, workflow_id, status, metadata)"))
+    SH_SessionConfigconfigurationforsessionbehaviorautopausetimeoutmaxconcurrentsessions(("SH: SessionConfig - configuration for session behavior (auto-pause timeout, max concurrent sessions)"))
+    SH_SessionContinuityValidatorutilityforvalidatingsessionstatecanberesumed(("SH: SessionContinuityValidator - utility for validating session state can be resumed"))
+    SH_SessionLifecycleEventdatamodelforsessioneventspauseresumecheckpointerror(("SH: SessionLifecycleEvent - data model for session events (pause, resume, checkpoint, error)"))
+    SH_SessionMetadatadetailedsessioninformationtimestampsruntimeevents(("SH: SessionMetadata - detailed session information (timestamps, runtime, events)"))
+    SH_SessionRegistryinmemoryregistrytrackingactivesessions(("SH: SessionRegistry - in-memory registry tracking active sessions"))
+    SH_SessionStatusenumforsessionstatesactivepausedcompletedfailedexpired(("SH: SessionStatus - enum for session states (active, paused, completed, failed, expired)"))
+    SH_Settingsmax_examples200deadlineNoneorcustomtimeout(("SH: Settings: max_examples=200, deadline=None or custom timeout"))
+    SH_SettingsMergerforcombininguserandworkspacesettings(("SH: SettingsMerger for combining user and workspace settings"))
+    SH_Sharedpromptfragmentsandtemplatesshared_prompts(("SH: Shared prompt fragments and templates (shared_prompts"))
+    SH_SilmariConfigdatamodelaggregatingallconfigurationsections(("SH: SilmariConfig data model aggregating all configuration sections"))
+    SH_StateDeserializerutilityforconvertingcheckpointdatabacktostateobjects(("SH: StateDeserializer - utility for converting checkpoint data back to state objects"))
+    SH_StateSerializerutilitysupportingmultipleformats(("SH: StateSerializer utility supporting multiple formats"))
+    SH_StrategyforgeneratingAgentconfigurationsandstates(("SH: Strategy for generating Agent configurations and states"))
+    SH_StrategyforgeneratingCheckpointdatastructures(("SH: Strategy for generating Checkpoint data structures"))
+    SH_StrategyforgeneratingvalidContextobjectswithfourlayermemoryarchitecture(("SH: Strategy for generating valid Context objects with four-layer memory architecture"))
+    SH_Strictmodeflagscheck_untyped_defsno_implicit_optionalwarn_redundant_casts(("SH: Strict mode flags: check_untyped_defs, no_implicit_optional, warn_redundant_casts"))
+    SH_StyleguideforBAMLcodeconsistencySTYLE_GUIDE(("SH: Style guide for BAML code consistency (STYLE_GUIDE"))
+    SH_SystemConfigdatamodelwithenvironmentloggingresourcesplugins(("SH: SystemConfig data model with environment, logging, resources, plugins"))
+    SH_TaskNodedatamodelforindividualworkflowtasks(("SH: TaskNode - data model for individual workflow tasks"))
+    SH_TemplateRendererforprompttemplateprocessing(("SH: TemplateRenderer for prompt template processing"))
+    SH_TerminalConfigforintegratedterminalpreferences(("SH: TerminalConfig for integrated terminal preferences"))
+    SH_Testfixturesforintegrationtestingfixtures(("SH: Test fixtures for integration testing (fixtures/)"))
+    SH_TestfixturesformockingLLMresponsesfixtures(("SH: Test fixtures for mocking LLM responses (fixtures/)"))
+    SH_TestDirectoryValidatorutilityclasswithvalidateTestLocationmethod(("SH: TestDirectoryValidator utility class with validateTestLocation() method"))
+    SH_TestPathResolverutilityforconstructingproperimportpathsfromteststosource(("SH: TestPathResolver utility for constructing proper import paths from tests to source"))
+    SH_TestStructuremodeldefiningtestsubdirectoriesunitintegratione2e(("SH: TestStructure model defining test subdirectories (unit, integration, e2e)"))
+    SH_TokenCounterinterfacesupportingmultipletokenizationschemes(("SH: TokenCounter interface supporting multiple tokenization schemes"))
+    SH_ToolConfigmodelforpytestmypyruffhypothesisconfigurations(("SH: ToolConfig model for pytest, mypy, ruff, hypothesis configurations"))
+    SH_ToolConfigLoaderabstractclasswithloadConfigvalidateConfigandmergeWithDefaultsmethods(("SH: ToolConfigLoader abstract class with loadConfig(), validateConfig(), and mergeWithDefaults() methods"))
+    SH_ToolConfigurationbaseclasswithpropertiestool_nameconfig_directoryschemaloader_function(("SH: ToolConfiguration base class with properties: tool_name, config_directory, schema, loader_function"))
+    SH_ToolRegistrysingletonmaintainingmapoftool_nameToolConfiguration(("SH: ToolRegistry singleton maintaining map of tool_name -&gt; ToolConfiguration"))
+    SH_TroubleshootingguidedocsTROUBLESHOOTING(("SH: Troubleshooting guide (docs/TROUBLESHOOTING"))
+    SH_Typedefinitionsandprotocolstypes(("SH: Type definitions and protocols (types"))
+    SH_TypedefinitionssharedbetweenGoandPythontypes(("SH: Type definitions shared between Go and Python (types"))
+    SH_Typestubfilesintypingsdirectoryforuntypeddependencies(("SH: Type stub files in typings/ directory for untyped dependencies"))
+    SH_Userguidesdocsguides(("SH: User guides (docs/guides/)"))
+    SH_UtilityBAMLfunctionsutils(("SH: Utility BAML functions (utils"))
+    SH_Utilityfunctionsforcommonoperationsutils(("SH: Utility functions for common operations (utils"))
+    SH_Utilityfunctionsfordataconversionutils(("SH: Utility functions for data conversion (utils"))
+    SH_Utilityfunctionsforpromptformattingutils(("SH: Utility functions for prompt formatting (utils"))
+    SH_Utilityfunctionscalculate_importanceshould_promoteshould_demoteconsolidate_layers(("SH: Utility functions: calculate_importance(), should_promote(), should_demote(), consolidate_layers()"))
+    SH_Utilityfunctionscalculate_relevancedetect_duplicatescompress_segmentsummarize_contentassess_quality(("SH: Utility functions: calculate_relevance(), detect_duplicates(), compress_segment(), summarize_content(), assess_quality()"))
+    SH_Utilityfunctionscalculate_tokensdetect_boundariescompress_content(("SH: Utility functions: calculate_tokens(), detect_boundaries(), compress_content()"))
+    SH_Utilityfunctionsserialize_statedeserialize_statecalculate_checksumverify_integritycompress_checkpoint(("SH: Utility functions: serialize_state(), deserialize_state(), calculate_checksum(), verify_integrity(), compress_checkpoint()"))
+    SH_VersionhistoryandchangelogCHANGELOG(("SH: Version history and changelog (CHANGELOG"))
+    SH_VersionMigratorutilityforhandlingcheckpointversionmigrations(("SH: VersionMigrator - utility for handling checkpoint version migrations"))
+    SH_VirtualEnvConfigmodelwithPythonversionandpackagerequirements(("SH: VirtualEnvConfig model with Python version and package requirements"))
+    SH_VirtualEnvUtilsforenvironmentmanagement(("SH: VirtualEnvUtils for environment management"))
+    SH_WindowSegmentdatamodelwithfieldscontenttoken_counttimestampboundaries(("SH: WindowSegment data model with fields: content, token_count, timestamp, boundaries"))
+    SH_WindowStateenumNORMALWARNINGCRITICALOVERFLOW(("SH: WindowState enum: NORMAL, WARNING, CRITICAL, OVERFLOW"))
+    SH_WorkflowCheckpointConfigconfigurationforincrementalupdatesandretention(("SH: WorkflowCheckpointConfig - configuration for incremental updates and retention"))
+    SH_WorkflowConfigdatamodelwithtimeoutretriescheckpointingerror_handling(("SH: WorkflowConfig data model with timeout, retries, checkpointing, error_handling"))
+    SH_WorkflowContextdatamodelforexecutioncontextandvariables(("SH: WorkflowContext - data model for execution context and variables"))
+    SH_WorkflowMetadatametadatamodelworkflow_idstatusprogresstimestamps(("SH: WorkflowMetadata - metadata model (workflow_id, status, progress, timestamps)"))
+    SH_WorkflowStatedatamodelrepresentingcompleteworkflowstate(("SH: WorkflowState - data model representing complete workflow state"))
+    SH_WorkflowStatemodelforserializableworkflowstate(("SH: WorkflowState model for serializable workflow state"))
+    SH_WorkspaceOverridedatamodelforprojectspecificsettingoverrides(("SH: WorkspaceOverride data model for project-specific setting overrides"))
+    SH_YAMLParserandJSONParserutilitiesforconfigurationparsing(("SH: YAMLParser and JSONParser utilities for configuration parsing"))
+    SH_YAMLParserwithsupportforreferencesandincludes(("SH: YAMLParser with support for references and includes"))
+    SH_tool(("SH: (tool"))
+    SH___init__(("SH: __init__"))
+    SH_conftest(("SH: conftest"))
+    SH_fixturessample_contexts(("SH: fixtures/sample_contexts"))
+    SH_fixturestest_factories(("SH: fixtures/test_factories"))
+    SH_isortconfigurationwithinruffforimportsorting(("SH: isort configuration within ruff for import sorting"))
+    SH_mypy(("SH: mypy"))
+    SH_pytest(("SH: pytest"))
+    SH_ruff(("SH: ruff"))
+    SH_strategies(("SH: strategies"))
+    end
+    REQ_000_1 -.-> BE_FilesystemAPItocreatedirectoriesprogrammatically
+    REQ_000_1 -.-> BE_Directoryexistencevalidationservice
+    REQ_000_1 -.-> BE_Pythonpackageinitialization__init__
+    REQ_000_1 -.-> BE_Gomoduleinitializationgo
+    REQ_000_1 -.-> BE_Errorhandlingfordirectorycreationfailures
+    REQ_000_1 -.-> BE_Loggingservicetotrackdirectorycreationevents
+    REQ_000_1 -.-> MW_Filesystempermissionvalidation
+    REQ_000_1 -.-> MW_Directorynamingconventionenforcement
+    REQ_000_1 -.-> MW_Duplicatedirectorydetectionandprevention
+    REQ_000_1 -.-> SH_DirectoryConfigmodelwithfieldsnamepathtypelanguage
+    REQ_000_1 -.-> SH_DirectoryStructuremodeldefiningthe8sourcedirectories
+    REQ_000_1 -.-> SH_FileSystemUtilsfordirectoryoperations
+    REQ_000_1 -.-> SH_PathValidatorutilityforpathvalidation
+    REQ_000_1 -.-> SH_Constantsfordirectorynamesandpaths
+    REQ_000_2 -.-> BE_Hiddendirectorycreationservicedotfilehandling
+    REQ_000_2 -.-> BE_Configurationfiletemplategenerationservice
+    REQ_000_2 -.-> BE_Directoryspecificinitializationlogicforeachconfigtype
+    REQ_000_2 -.-> BE_Configurationvalidationservicetoverifydirectorysetup
+    REQ_000_2 -.-> BE_Templatefilesfor
+    REQ_000_2 -.-> BE_Gitintegrationservicetomanage
+    REQ_000_2 -.-> MW_Configurationdirectoryaccesscontrol
+    REQ_000_2 -.-> MW_Sensitivedataprotectionforconfigurationfiles
+    REQ_000_2 -.-> MW_Configurationschemavalidationperdirectorytype
+    REQ_000_2 -.-> SH_ConfigDirectoryConfigmodelwithfieldsnamepathpurposeaccess_level
+    REQ_000_2 -.-> SH_ConfigTemplatemodelfordefaultconfigurationfiles
+    REQ_000_2 -.-> SH_HiddenFileSystemUtilsfordotfileoperations
+    REQ_000_2 -.-> SH_ConfigValidatorutilityforconfigurationvalidation
+    REQ_000_2 -.-> SH_Constantsforconfigurationdirectorynamesanddefaultsettings
+    REQ_000_2 -.-> SH_GitIgnoreRulemodelfor
+    REQ_000_3 -.-> BE_Pythonvirtualenvironmentcreationservicevenvmodule
+    REQ_000_3 -.-> BE_Testdirectorystructureinitializationservice
+    REQ_000_3 -.-> BE_Cachedirectorymonitoringandcleanupservice
+    REQ_000_3 -.-> BE_Virtualenvironmentactivationscriptgeneration
+    REQ_000_3 -.-> BE_Testframeworkconfigurationfilegenerationpytest
+    REQ_000_3 -.-> BE_Developmenttoolinstallationservicepipinstallpytestmypyruffhypothesis
+    REQ_000_3 -.-> BE_Gitignorerulegeneratorfordevelopmentartifacts
+    REQ_000_3 -.-> MW_Virtualenvironmentisolationenforcement
+    REQ_000_3 -.-> MW_Cachesizemonitoringandautomaticcleanup
+    REQ_000_3 -.-> MW_Testexecutionenvironmentvalidation
+    REQ_000_3 -.-> SH_DevDirectoryConfigmodelwithfieldsnamepathis_cacheis_permanent
+    REQ_000_3 -.-> SH_VirtualEnvConfigmodelwithPythonversionandpackagerequirements
+    REQ_000_3 -.-> SH_TestStructuremodeldefiningtestsubdirectoriesunitintegratione2e
+    REQ_000_3 -.-> SH_CacheManagerutilityforcacheoperations
+    REQ_000_3 -.-> SH_VirtualEnvUtilsforenvironmentmanagement
+    REQ_000_3 -.-> SH_Constantsfordevelopmentdirectorynamesandpaths
+    REQ_000_3 -.-> SH_ToolConfigmodelforpytestmypyruffhypothesisconfigurations
+    REQ_000_4 -.-> BE_Distributiondirectorycreationservice
+    REQ_000_4 -.-> BE_Outputdirectorystructureinitializationservice
+    REQ_000_4 -.-> BE_Gitrepositoryinitializationservicegitinit
+    REQ_000_4 -.-> BE_Gitconfigurationserviceforuserandrepositorysettings
+    REQ_000_4 -.-> BE_Buildartifactcleanupservicefordistandoutput
+    REQ_000_4 -.-> BE_Githookinstallationserviceforprecommitprepushhooks
+    REQ_000_4 -.-> BE_Artifactarchivalserviceforoldbuilds
+    REQ_000_4 -.-> MW_Buildartifactaccesscontrol
+    REQ_000_4 -.-> MW_Gitoperationvalidationanderrorhandling
+    REQ_000_4 -.-> MW_Outputfilenamingconventionenforcement
+    REQ_000_4 -.-> SH_BuildDirectoryConfigmodelwithfieldsnamepathartifact_types
+    REQ_000_4 -.-> SH_GitConfigmodelwithrepositorysettingsbranchremotehooks
+    REQ_000_4 -.-> SH_ArtifactMetadatamodelfortrackingbuildoutputs
+    REQ_000_4 -.-> SH_BuildUtilsutilityfordistributionpackageoperations
+    REQ_000_4 -.-> SH_GitUtilsutilityforGitoperations
+    REQ_000_4 -.-> SH_Constantsforbuilddirectorynamesandartifactpatterns
+    REQ_000_4 -.-> SH_OutputFileNamingutilityforconsistentfilenaming
+    REQ_000_5 -.-> BE_Checkpointdirectoryinitializationservice
+    REQ_000_5 -.-> BE_StateserializationserviceJSONpicklebinaryformats
+    REQ_000_5 -.-> BE_Checkpointmetadatagenerationservice
+    REQ_000_5 -.-> BE_Atomiccheckpointwriteservicewithlockmechanism
+    REQ_000_5 -.-> BE_Checkpointrestorationandvalidationservice
+    REQ_000_5 -.-> BE_Checkpointcleanupservicewithconfigurableretentionpolicy
+    REQ_000_5 -.-> BE_Checkpointlistingandsearchservicebyworkflow_idortimestamp
+    REQ_000_5 -.-> BE_Stateintegrityvalidationservicehashverification
+    REQ_000_5 -.-> BE_Concurrentcheckpointmanagementwithfilelocking
+    REQ_000_5 -.-> MW_Checkpointaccesscontrolandpermissions
+    REQ_000_5 -.-> MW_Stateserializationformatvalidation
+    REQ_000_5 -.-> MW_Checkpointfilesizemonitoringandlimits
+    REQ_000_5 -.-> MW_Concurrentaccesscoordinationwithfilelocks
+    REQ_000_5 -.-> SH_CheckpointDirectoryConfigmodelwithfieldsnamepathretention_days
+    REQ_000_5 -.-> SH_CheckpointMetadatamodelwithworkflow_idtimestampstate_hashversion
+    REQ_000_5 -.-> SH_WorkflowStatemodelforserializableworkflowstate
+    REQ_000_5 -.-> SH_CheckpointManagerutilityforcheckpointCRUDoperations
+    REQ_000_5 -.-> SH_StateSerializerutilitysupportingmultipleformats
+    REQ_000_5 -.-> SH_CheckpointNamingutilityforconsistentfilenaming
+    REQ_000_5 -.-> SH_RetentionPolicymodeldefiningcleanuprules
+    REQ_000_5 -.-> SH_Constantsforcheckpointdirectorypathsandfilepatterns
+    REQ_000_5 -.-> SH_CheckpointValidatorutilityforstateintegritychecks
+    REQ_000_5 -.-> SH_FileLockManagerutilityforconcurrentaccesscontrol
+    REQ_001_1 -.-> FE_Notapplicablethisisabackendlibrarycomponent
+    REQ_001_1 -.-> FE_CLIinterfacemaybeprovidedthroughcommandsdirectoryforuserinteraction
+    REQ_001_1 -.-> BE_Coreenginemodulecore
+    REQ_001_1 -.-> BE_Memorylayerimplementationsworking_memory
+    REQ_001_1 -.-> BE_Statemanagerforcheckpointpersistencestate_manager
+    REQ_001_1 -.-> BE_Eventbusmessagebrokerforcomponentcommunicationevents
+    REQ_001_1 -.-> BE_Configurationloadersupporting
+    REQ_001_1 -.-> BE_Agentlifecyclemanageragent_manager
+    REQ_001_1 -.-> BE_Commandregistryandexecutorcommand_executor
+    REQ_001_1 -.-> BE_Workfloworchestratorworkflow
+    REQ_001_1 -.-> BE_Contextmanagerintegratingwithcontext_window_arraycontext
+    REQ_001_1 -.-> BE_Planninginterfaceconnectingtoplanning_pipelineplanning
+    REQ_001_1 -.-> BE_Metricscollectorandreportermetrics
+    REQ_001_1 -.-> BE_Errorhandlingandexceptionhierarchyexceptions
+    REQ_001_1 -.-> BE_Loggingconfigurationandutilitieslogging
+    REQ_001_1 -.-> MW_Pluginsystemforextendingcorefunctionality
+    REQ_001_1 -.-> MW_Interceptorsforcheckpointcreationatkeyworkflowpoints
+    REQ_001_1 -.-> MW_Validationdecoratorsformethodinputs
+    REQ_001_1 -.-> MW_Ratelimitingforresourceintensiveoperations
+    REQ_001_1 -.-> MW_Transactionmanagementformultistepoperations
+    REQ_001_1 -.-> SH_Baseclassesforagentscommandsandworkflowsbase
+    REQ_001_1 -.-> SH_Datamodelsforstatecheckpointsandeventsmodels
+    REQ_001_1 -.-> SH_Typedefinitionsandprotocolstypes
+    REQ_001_1 -.-> SH_Constantsforsystemconfigurationconstants
+    REQ_001_1 -.-> SH_Utilityfunctionsforcommonoperationsutils
+    REQ_001_1 -.-> SH_Enumsforstatesstatusesandeventtypesenums
+    REQ_001_1 -.-> SH_Interfacesforextensibilitypointsinterfaces
+    REQ_001_1 -.-> SH_Schemadefinitionsforconfigurationvalidationschemas
+    REQ_001_2 -.-> FE_Notapplicablebackendperformanceoptimization
+    REQ_001_2 -.-> BE_Gomoduleinitializationandconfigurationmain
+    REQ_001_2 -.-> BE_Performancecriticalalgorithmsimplementationalgorithms
+    REQ_001_2 -.-> BE_Concurrentprocessingengineusinggoroutinesconcurrent
+    REQ_001_2 -.-> BE_SystemlevelfileoperationsandIOfileops
+    REQ_001_2 -.-> BE_Memoryefficientdatastructuresdatastructures
+    REQ_001_2 -.-> BE_Binaryprotocolserializationdeserializationprotocol
+    REQ_001_2 -.-> BE_CGoexportfunctionsforPythonconsumptionexports
+    REQ_001_2 -.-> BE_Errorhandlinganderrorcodedefinitionserrors
+    REQ_001_2 -.-> BE_LogginginterfacecompatiblewithPythonlogginglogging
+    REQ_001_2 -.-> BE_Benchmarksuiteforperformancevalidationbenchmark_test
+    REQ_001_2 -.-> BE_Buildscriptforcrossplatformcompilationbuild
+    REQ_001_2 -.-> MW_CGobridgelayerhandlingtypeconversionsbridge
+    REQ_001_2 -.-> MW_Memorypoolmanagementforreducingallocations
+    REQ_001_2 -.-> MW_RequestbatchingforefficientGoPythoncommunication
+    REQ_001_2 -.-> MW_Contextpropagationforcancellationandtimeouts
+    REQ_001_2 -.-> MW_MetricscollectionformonitoringGomoduleperformance
+    REQ_001_2 -.-> SH_Pythonwrappermodulego_module
+    REQ_001_2 -.-> SH_TypedefinitionssharedbetweenGoandPythontypes
+    REQ_001_2 -.-> SH_Constantsforprotocolandconfigurationconstants
+    REQ_001_2 -.-> SH_InterfacedefinitionsforGoPythoncontractsinterfaces
+    REQ_001_2 -.-> SH_Utilityfunctionsfordataconversionutils
+    REQ_001_2 -.-> SH_Testfixturesforintegrationtestingfixtures
+    REQ_001_2 -.-> SH_Buildconfigurationforsetuptoolssetup
+    REQ_001_2 -.-> SH_DocumentationonGomodulearchitecturegoREADME
+    REQ_001_3 -.-> FE_NotapplicablethisisAIworkflowbackendinfrastructure
+    REQ_001_3 -.-> BE_BAMLclientinitializationmodule__init__
+    REQ_001_3 -.-> BE_GeneratedclientclassesforeachBAMLfunctiongeneratedbyBAMLcompiler
+    REQ_001_3 -.-> BE_LLMprovideradaptersopenai_adapter
+    REQ_001_3 -.-> BE_RequestbuilderforconstructingLLMAPIcallsrequest_builder
+    REQ_001_3 -.-> BE_Responseparserforextractingstructureddataresponse_parser
+    REQ_001_3 -.-> BE_AsyncexecutorfornonblockingAIworkflowexecutionasync_executor
+    REQ_001_3 -.-> BE_Retryhandlerwithexponentialbackoffretry
+    REQ_001_3 -.-> BE_RatelimitertorespectAPIquotasrate_limiter
+    REQ_001_3 -.-> BE_CachelayerforreducingredundantLLMcallscache
+    REQ_001_3 -.-> BE_StreaminghandlerforstreamingLLMresponsesstreaming
+    REQ_001_3 -.-> BE_ErrormapperforLLMspecificerrorserrors
+    REQ_001_3 -.-> BE_ConfigurationloaderforAPIcredentialsconfig
+    REQ_001_3 -.-> BE_TelemetryandloggingforAIworkflowmonitoringtelemetry
+    REQ_001_3 -.-> MW_Requestinterceptorforaddingauthenticationheaders
+    REQ_001_3 -.-> MW_Responsevalidatorensuringoutputsmatchexpectedschemas
+    REQ_001_3 -.-> MW_CircuitbreakerforfailingLLMproviders
+    REQ_001_3 -.-> MW_Requestresponseloggingfordebuggingandauditing
+    REQ_001_3 -.-> MW_CosttrackingmiddlewareformonitoringAPIusagecosts
+    REQ_001_3 -.-> SH_GeneratedtypedefinitionsfromBAMLschemastypes
+    REQ_001_3 -.-> SH_Pydanticmodelsforrequestresponsevalidationmodels
+    REQ_001_3 -.-> SH_EnumsforLLMprovidersmodelnamesandparametersenums
+    REQ_001_3 -.-> SH_Constantsfordefaultconfigurationsconstants
+    REQ_001_3 -.-> SH_Utilityfunctionsforpromptformattingutils
+    REQ_001_3 -.-> SH_Baseclientinterfacebase_client
+    REQ_001_3 -.-> SH_Schemadefinitionsforstructuredoutputsschemas
+    REQ_001_3 -.-> SH_TestfixturesformockingLLMresponsesfixtures
+    REQ_001_3 -.-> SH_Documentationonusinggeneratedclientbaml_clientREADME
+    REQ_001_4 -.-> FE_NotapplicabledeclarativeAIworkflowspecifications
+    REQ_001_4 -.-> BE_BAMLfunctiondefinitionsforcoreAIworkflowsplanning
+    REQ_001_4 -.-> BE_Prompttemplateswithvariableinterpolationprompts
+    REQ_001_4 -.-> BE_OutputschemadefinitionsusingBAMLtypesystemschemas
+    REQ_001_4 -.-> BE_ModelconfigurationsfordifferentLLMprovidersmodels
+    REQ_001_4 -.-> BE_Workfloworchestrationdefinitionsworkflows
+    REQ_001_4 -.-> BE_Retryanderrorhandlingstrategieserror_handling
+    REQ_001_4 -.-> BE_TestdefinitionsforvalidatingBAMLfunctionstests
+    REQ_001_4 -.-> MW_BAMLcompilerconfigurationbaml
+    REQ_001_4 -.-> MW_Buildpipelineintegrationforcodegeneration
+    REQ_001_4 -.-> MW_ValidationrulesforBAMLsourcecorrectness
+    REQ_001_4 -.-> MW_PrecommithookstovalidateBAMLsyntax
+    REQ_001_4 -.-> MW_CICDintegrationforautomatedclientregeneration
+    REQ_001_4 -.-> SH_CommontypedefinitionsreusedacrossBAMLfilescommon_types
+    REQ_001_4 -.-> SH_Constantsandconfigurationvaluesconstants
+    REQ_001_4 -.-> SH_Sharedpromptfragmentsandtemplatesshared_prompts
+    REQ_001_4 -.-> SH_UtilityBAMLfunctionsutils
+    REQ_001_4 -.-> SH_DocumentationonBAMLarchitectureandpatternsbaml_srcREADME
+    REQ_001_4 -.-> SH_ExamplesdemonstratingBAMLusageexamples
+    REQ_001_4 -.-> SH_StyleguideforBAMLcodeconsistencySTYLE_GUIDE
+    REQ_001_4 -.-> SH_VersionhistoryandchangelogCHANGELOG
+    REQ_001_5 -.-> FE_CLIinterfaceincommandsforuserinteraction
+    REQ_001_5 -.-> FE_Statusreportingandprogressindicators
+    REQ_001_5 -.-> FE_Interactivepromptsforconfigurationanddecisions
+    REQ_001_5 -.-> FE_Errormessagesanduserguidance
+    REQ_001_5 -.-> BE_Mainentrypointorchestratingallcomponentsmain
+    REQ_001_5 -.-> BE_Dependencyinjectioncontainerforcomponentwiringcontainer
+    REQ_001_5 -.-> BE_Configurationaggregatorloadingfromallconfigsourcesconfig_loader
+    REQ_001_5 -.-> BE_BuildscriptcoordinatingPythonGoandBAMLbuildsbuild
+    REQ_001_5 -.-> BE_Deploymentautomationscriptsdeploy
+    REQ_001_5 -.-> BE_Integrationtestsuitecoveringendtoendscenariostestsintegration
+    REQ_001_5 -.-> BE_Healthcheckendpointsformonitoringsystemstatushealth
+    REQ_001_5 -.-> BE_Initializationroutinesettingupcheckpointdirectoriesinit
+    REQ_001_5 -.-> BE_Upgrademigrationscriptsforversionupdatesmigrations
+    REQ_001_5 -.-> MW_Componentregistrymanaginglifecycleofallsubsystems
+    REQ_001_5 -.-> MW_Interprocesscommunicationlayerifneeded
+    REQ_001_5 -.-> MW_Configurationoverridemechanismfordifferentenvironments
+    REQ_001_5 -.-> MW_Loggingaggregatorcollectinglogsfromallcomponents
+    REQ_001_5 -.-> MW_Metricsaggregatorforsystemwidetelemetry
+    REQ_001_5 -.-> SH_Packagemetadatasetup
+    REQ_001_5 -.-> SH_Dependencyspecificationsrequirements
+    REQ_001_5 -.-> SH_DockerconfigurationDockerfiledockercompose
+    REQ_001_5 -.-> SH_CICDconfiguration
+    REQ_001_5 -.-> SH_Makefileforcommondevelopmenttasks
+    REQ_001_5 -.-> SH_DocumentationindexdocsREADME
+    REQ_001_5 -.-> SH_ContributingguidelinesCONTRIBUTING
+    REQ_001_5 -.-> SH_LicensefileLICENSE
+    REQ_001_5 -.-> SH_ChangelogCHANGELOG
+    REQ_001_5 -.-> SH_Architecturediagramsdocsarchitecture
+    REQ_001_5 -.-> SH_APIdocumentationdocsapi
+    REQ_001_5 -.-> SH_Userguidesdocsguides
+    REQ_001_5 -.-> SH_TroubleshootingguidedocsTROUBLESHOOTING
+    REQ_002_1 -.-> FE_Nofrontendcomponentsrequiredconfigurationisfilebased
+    REQ_002_1 -.-> BE_AgentConfigLoaderservicetoreadandparseconfigurationfilesfrom
+    REQ_002_1 -.-> BE_AgentConfigValidatortovalidateconfigurationagainstJSONschemas
+    REQ_002_1 -.-> BE_AgentRegistryservicetoregisterandmanageavailableagentconfigurations
+    REQ_002_1 -.-> BE_ConfigurationWatchertodetectandreloadconfigurationchanges
+    REQ_002_1 -.-> BE_AgentFactorytoinstantiateagentsbasedonloadedconfigurations
+    REQ_002_1 -.-> BE_DefaultConfigProvidertogeneratedefaultagentconfigurations
+    REQ_002_1 -.-> BE_ConfigurationMigratortohandleversionupgradesofconfigfiles
+    REQ_002_1 -.-> BE_AgentCapabilityResolvertovalidateandresolveagentcapabilities
+    REQ_002_1 -.-> BE_ExecutionParameterValidatortoensureexecutionparametersarewithinacceptableranges
+    REQ_002_1 -.-> MW_Configurationfileaccesscontroltoensureonlyauthorizedprocessescanmodifyagentsettings
+    REQ_002_1 -.-> MW_Schemavalidationmiddlewaretovalidateconfigurationstructurebeforeloading
+    REQ_002_1 -.-> MW_Configurationencryptionsupportforsensitiveagentparameters
+    REQ_002_1 -.-> MW_Auditloggingforallconfigurationchangeswithtimestampandchangesource
+    REQ_002_1 -.-> SH_AgentConfigdatamodelwithfieldsagent_idnametypecapabilitiesexecution_parameterspersona
+    REQ_002_1 -.-> SH_AgentPersonadatamodelwithfieldsroledescriptionsystem_promptbehavioral_guidelines
+    REQ_002_1 -.-> SH_AgentCapabilityenumerationdefiningavailableagentactions
+    REQ_002_1 -.-> SH_ExecutionParametersdatamodelwithtimeoutmax_iterationsretry_policyresource_limits
+    REQ_002_1 -.-> SH_ConfigurationSchemaJSONschemasforallconfigurationfiletypes
+    REQ_002_1 -.-> SH_ConfigValidationErrorcustomexceptionforconfigurationvalidationfailures
+    REQ_002_1 -.-> SH_FileSystemUtilsforsafefilereadingwritingin
+    REQ_002_1 -.-> SH_YAMLParserandJSONParserutilitiesforconfigurationparsing
+    REQ_002_2 -.-> FE_NofrontendcomponentsrequiredCLIbasedinterface
+    REQ_002_2 -.-> BE_BeadsRepositoryservicetomanageCRUDoperationsonissuefiles
+    REQ_002_2 -.-> BE_IssueParsertoreadandwriteissuefilesinYAMLJSONformat
+    REQ_002_2 -.-> BE_IssueIndexertomaintainsearchindexesforfastquerying
+    REQ_002_2 -.-> BE_IssueSearchServicetoperformfulltextandfilteredsearches
+    REQ_002_2 -.-> BE_MilestoneManagertocreateandmanageprojectmilestones
+    REQ_002_2 -.-> BE_TagManagertohandleissuetaggingandtagorganization
+    REQ_002_2 -.-> BE_IssueRelationshipResolvertomanageissuedependenciesandrelationships
+    REQ_002_2 -.-> BE_IssueWorkflowEnginetoenforcestatustransitionrules
+    REQ_002_2 -.-> BE_IssueHistoryTrackertorecordallchangestoissues
+    REQ_002_2 -.-> BE_BeadsQueryBuildertoconstructcomplexissuequeries
+    REQ_002_2 -.-> BE_IssueSyncServicetohandleconcurrentaccessandfilelocking
+    REQ_002_2 -.-> BE_IssueNotificationServicetotriggereventsonissuechanges
+    REQ_002_2 -.-> BE_BeadsBackupServicetoperiodicallybackupissuedata
+    REQ_002_2 -.-> MW_Filelockingmiddlewaretopreventconcurrentwriteconflicts
+    REQ_002_2 -.-> MW_Issueaccesscontroltoenforcepermissionsonissueoperations
+    REQ_002_2 -.-> MW_Changevalidationmiddlewaretoensureissueupdatesarevalid
+    REQ_002_2 -.-> MW_Auditloggingforallissueoperationswithuserattribution
+    REQ_002_2 -.-> SH_Issuedatamodelwithfieldsidtitledescriptionstatusprioritycreated_atupdated_atassigneetagsmilestone
+    REQ_002_2 -.-> SH_IssueCommentdatamodelwithtextauthortimestamp
+    REQ_002_2 -.-> SH_IssueStatusenumerationopenin_progressblockedresolvedclosed
+    REQ_002_2 -.-> SH_IssuePriorityenumerationcriticalhighmediumlow
+    REQ_002_2 -.-> SH_Milestonedatamodelwithnamedescriptiondue_dateissues
+    REQ_002_2 -.-> SH_IssueRelationshipdatamodelforlinkingrelatedissues
+    REQ_002_2 -.-> SH_IssueHistorydatamodelfortrackingchanges
+    REQ_002_2 -.-> SH_IssueFilterinterfaceforqueryconstruction
+    REQ_002_2 -.-> SH_BeadsExceptioncustomexceptionsforissueoperations
+    REQ_002_2 -.-> SH_FileSystemLockutilityforsafeconcurrentfileaccess
+    REQ_002_2 -.-> SH_IssueIDGeneratorforcreatinguniqueissueidentifiers
+    REQ_002_2 -.-> SH_MarkdownRendererforformattingissuecontent
+    REQ_002_3 -.-> FE_NofrontendcomponentsrequiredIDEintegrationconfiguration
+    REQ_002_3 -.-> BE_ClaudeConfigLoadertoreadandparseClaudeCodeconfigurationfiles
+    REQ_002_3 -.-> BE_CommandRegistrytoregisterandmanagecustomslashcommands
+    REQ_002_3 -.-> BE_PromptTemplateEnginetoloadandrenderprompttemplateswithvariablesubstitution
+    REQ_002_3 -.-> BE_ContextRuleEnginetoevaluatewhichfilesshouldbeincludedinClaudescontext
+    REQ_002_3 -.-> BE_ClaudeModelSelectortochooseappropriatemodelbasedontasktype
+    REQ_002_3 -.-> BE_IntegrationManagertoconfigureexternaltoolintegrations
+    REQ_002_3 -.-> BE_CodeStyleEnforcertoapplycodegenerationpreferences
+    REQ_002_3 -.-> BE_SafetyGuardServicetoenforcesafetyrulesonoperations
+    REQ_002_3 -.-> BE_ClaudeConfigValidatortovalidateconfigurationfilesagainstschemas
+    REQ_002_3 -.-> BE_ContextSizeOptimizertomanagecontextwindowefficiently
+    REQ_002_3 -.-> BE_CommandAliasResolvertoexpandcommandaliases
+    REQ_002_3 -.-> BE_LoggingConfiguratortosetuploggingbasedonconfiguration
+    REQ_002_3 -.-> MW_ConfigurationaccesscontroltoprotectClaudesettings
+    REQ_002_3 -.-> MW_Schemavalidationmiddlewareforallconfigurationfiles
+    REQ_002_3 -.-> MW_Safetycheckmiddlewaretoenforceoperationrestrictions
+    REQ_002_3 -.-> MW_Auditloggingforconfigurationchangesandcommandexecutions
+    REQ_002_3 -.-> SH_ClaudeConfigdatamodelwithworkspace_settingsmodel_preferencescontext_rules
+    REQ_002_3 -.-> SH_CustomCommanddatamodelwithnamedescriptionprompt_templateparameters
+    REQ_002_3 -.-> SH_PromptTemplatedatamodelwithtemplate_stringvariablesexamples
+    REQ_002_3 -.-> SH_ContextRuledatamodelwithinclude_patternsexclude_patternspriority
+    REQ_002_3 -.-> SH_ModelPreferencedatamodelwithtask_typemodel_nametemperaturemax_tokens
+    REQ_002_3 -.-> SH_IntegrationSettingsdatamodelforexternaltoolconfigurations
+    REQ_002_3 -.-> SH_SafetyRuledatamodelwithrule_typerestrictionsallowed_operations
+    REQ_002_3 -.-> SH_CodeGenerationPreferenceswithstyle_guideformatting_rulesdocumentation_level
+    REQ_002_3 -.-> SH_ClaudeConfigSchemaJSONschemasforallconfigurationtypes
+    REQ_002_3 -.-> SH_PathMatcherutilityforevaluatingcontextrulepatterns
+    REQ_002_3 -.-> SH_TemplateRendererforprompttemplateprocessing
+    REQ_002_3 -.-> SH_ConfigMergerforcombiningdefaultanduserconfigurations
+    REQ_002_4 -.-> FE_NofrontendcomponentsrequiredIDEconfigurationfiles
+    REQ_002_4 -.-> BE_CursorConfigLoadertoreadandmergeCursorsettingsfiles
+    REQ_002_4 -.-> BE_CursorSettingsValidatortovalidatesettingsagainstCursorsschema
+    REQ_002_4 -.-> BE_KeybindingResolvertoprocessandvalidatecustomkeybindings
+    REQ_002_4 -.-> BE_ExtensionManagertotrackandvalidaterequiredextensions
+    REQ_002_4 -.-> BE_AISettingsConfiguratortosetupAIpairprogrammingpreferences
+    REQ_002_4 -.-> BE_WorkspaceOverrideManagertohandleprojectspecificsettingoverrides
+    REQ_002_4 -.-> BE_SettingsMigratortoconvertVSCodesettingstoCursorformat
+    REQ_002_4 -.-> BE_DiagnosticConfiguratortosetuplintingandtypechecking
+    REQ_002_4 -.-> BE_FormatConfiguratortomanagecodeformattingpreferences
+    REQ_002_4 -.-> BE_GitIntegrationSetuptoconfigureversioncontrolsettings
+    REQ_002_4 -.-> BE_TerminalConfiguratortosetupintegratedterminal
+    REQ_002_4 -.-> BE_ThemeManagertohandleeditorthemeandcolorscheme
+    REQ_002_4 -.-> BE_CursorDefaultsProvidertosupplydefaultsettingsfornewprojects
+    REQ_002_4 -.-> MW_Settingsfileaccesscontroltoprotecteditorconfiguration
+    REQ_002_4 -.-> MW_JSONwithcommentsparsertosupportcommentedconfigurationfiles
+    REQ_002_4 -.-> MW_SettingsvalidationmiddlewaretoensurevalidCursorconfiguration
+    REQ_002_4 -.-> MW_Versioncompatibilitycheckerforextensionrequirements
+    REQ_002_4 -.-> SH_CursorSettingsdatamodelwitheditor_preferencesworkspace_configai_settings
+    REQ_002_4 -.-> SH_EditorPreferencesdatamodelwithfontthemeindentationformattingoptions
+    REQ_002_4 -.-> SH_KeyBindingdatamodelwithcommandkeywhencontextcondition
+    REQ_002_4 -.-> SH_ExtensionDefinitiondatamodelwithidversionrequiredflag
+    REQ_002_4 -.-> SH_AISettingsdatamodelwithenable_suggestionsdelayacceptance_thresholdcustom_prompts
+    REQ_002_4 -.-> SH_WorkspaceOverridedatamodelforprojectspecificsettingoverrides
+    REQ_002_4 -.-> SH_DiagnosticConfigforlintinganderrorreportingsettings
+    REQ_002_4 -.-> SH_FormatConfigforcodeformattingpreferences
+    REQ_002_4 -.-> SH_GitConfigforversioncontrolintegrationsettings
+    REQ_002_4 -.-> SH_TerminalConfigforintegratedterminalpreferences
+    REQ_002_4 -.-> SH_CursorSettingsSchemaJSONschemaforvalidation
+    REQ_002_4 -.-> SH_JSONCParserJSONwithCommentsutilityforparsingconfigurationfiles
+    REQ_002_4 -.-> SH_SettingsMergerforcombininguserandworkspacesettings
+    REQ_002_5 -.-> FE_Nofrontendcomponentsrequiredsystemconfigurationfiles
+    REQ_002_5 -.-> BE_SilmariConfigLoadertoloadandmergeallconfigurationfilesfrom
+    REQ_002_5 -.-> BE_SystemConfigValidatortovalidatecoresystemsettings
+    REQ_002_5 -.-> BE_MemoryArchitectureConfiguratortosetupfourlayermemorysystembasedonmemory
+    REQ_002_5 -.-> BE_WorkflowConfigManagertoloadandapplyworkflowconfigurations
+    REQ_002_5 -.-> BE_CheckpointConfigServicetoconfigurecheckpointbehaviorandpolicies
+    REQ_002_5 -.-> BE_FeatureFlagManagertomanagefeaturetogglesandgradualrollouts
+    REQ_002_5 -.-> BE_EnvironmentConfigResolvertohandleenvironmentspecificoverrides
+    REQ_002_5 -.-> BE_ResourceLimitEnforcertoapplyandmonitorresourceconstraints
+    REQ_002_5 -.-> BE_LoggingConfiguratortosetuploggingbasedonconfiguration
+    REQ_002_5 -.-> BE_PluginLoadertodiscoverandloadpluginsfromconfigureddirectories
+    REQ_002_5 -.-> BE_PerformanceTunertoapplyperformancerelatedconfigurations
+    REQ_002_5 -.-> BE_SecurityConfigAppliertoenforcesecuritysettings
+    REQ_002_5 -.-> BE_HealthCheckConfiguratortosetupsystemhealthmonitoring
+    REQ_002_5 -.-> BE_ConfigReloadertosupporthotreloadofconfigurationchanges
+    REQ_002_5 -.-> BE_DefaultConfigGeneratortocreateinitialconfigurationfiles
+    REQ_002_5 -.-> BE_ConfigMigrationServicetohandleconfigurationversionupgrades
+    REQ_002_5 -.-> BE_ConfigBackupServicetobackupconfigurationfilesbeforechanges
+    REQ_002_5 -.-> MW_Configurationaccesscontrolwithrolebasedpermissions
+    REQ_002_5 -.-> MW_Schemavalidationmiddlewareforallconfigurationfiles
+    REQ_002_5 -.-> MW_ConfigurationencryptionforsensitivesettingsAPIkeyscredentials
+    REQ_002_5 -.-> MW_Auditloggingforallconfigurationchangeswithrollbackcapability
+    REQ_002_5 -.-> MW_Configurationconsistencycheckertovalidatecrossfiledependencies
+    REQ_002_5 -.-> SH_SilmariConfigdatamodelaggregatingallconfigurationsections
+    REQ_002_5 -.-> SH_SystemConfigdatamodelwithenvironmentloggingresourcesplugins
+    REQ_002_5 -.-> SH_MemoryConfigdatamodelwithworking_memoryepisodic_memorysemantic_memoryprocedural_memorysettings
+    REQ_002_5 -.-> SH_WorkflowConfigdatamodelwithtimeoutretriescheckpointingerror_handling
+    REQ_002_5 -.-> SH_CheckpointConfigdatamodelwithenabledfrequencyretentioncleanuppolicies
+    REQ_002_5 -.-> SH_FeatureFlagdatamodelwithflag_nameenabledrollout_percentageconditions
+    REQ_002_5 -.-> SH_ResourceLimitsdatamodelwithmemorycpudisknetworkconstraints
+    REQ_002_5 -.-> SH_LoggingConfigdatamodelwithlevelformatoutputsrotation
+    REQ_002_5 -.-> SH_PluginConfigdatamodelwithsearch_pathsload_orderenabled_plugins
+    REQ_002_5 -.-> SH_PerformanceConfigdatamodelwiththread_poolsconnection_poolscache_sizes
+    REQ_002_5 -.-> SH_SecurityConfigdatamodelwithallowed_operationsrestrictionsrate_limits
+    REQ_002_5 -.-> SH_HealthCheckConfigdatamodelwithintervalsthresholdsnotificationtargets
+    REQ_002_5 -.-> SH_ConfigSchemaJSONYAMLschemasforallconfigurationtypes
+    REQ_002_5 -.-> SH_ConfigValidatorbaseclassforcustomvalidationlogic
+    REQ_002_5 -.-> SH_EnvironmentVariableresolverforenvironmentvariablesubstitutioninconfigs
+    REQ_002_5 -.-> SH_ConfigMergerforcombiningmultipleconfigurationsourceswithpriorityrules
+    REQ_002_5 -.-> SH_YAMLParserwithsupportforreferencesandincludes
+    REQ_003_1 -.-> BE_CheckpointManager
+    REQ_003_1 -.-> MW_Validatecheckpointdatastructurebeforeserialization
+    REQ_003_1 -.-> MW_Handlefilesystempermissionsandaccesscontrol
+    REQ_003_1 -.-> MW_Implementerrorhandlingfordiskfullscenarios
+    REQ_003_1 -.-> MW_Addloggingforcheckpointoperationssuccessfailureduration
+    REQ_003_1 -.-> SH_RLMActStatedatamodelrepresentingcompleteRLMACTstate
+    REQ_003_1 -.-> SH_CheckpointMetadatadatamodelforcheckpointmetadatatimestampversionsession_idsize
+    REQ_003_1 -.-> SH_CheckpointConfigconfigurationmodelforretentionpolicyandcompressionsettings
+    REQ_003_1 -.-> SH_SerializationUtilsutilityfunctionsforserializationdeserialization
+    REQ_003_1 -.-> SH_FileSystemUtilsutilityfunctionsforatomicfileoperations
+    REQ_003_1 -.-> SH_CheckpointExceptioncustomexceptionforcheckpointrelatederrors
+    REQ_003_2 -.-> BE_CheckpointManager
+    REQ_003_2 -.-> MW_Validateworkflowstatestructureandtaskdependencies
+    REQ_003_2 -.-> MW_Handleconcurrentcheckpointwritesfordifferentworkflows
+    REQ_003_2 -.-> MW_Implementlockingmechanismtopreventraceconditions
+    REQ_003_2 -.-> MW_Addtracingforworkflowcheckpointoperations
+    REQ_003_2 -.-> SH_WorkflowStatedatamodelrepresentingcompleteworkflowstate
+    REQ_003_2 -.-> SH_TaskNodedatamodelforindividualworkflowtasks
+    REQ_003_2 -.-> SH_DependencyGraphdatastructurefortaskdependencies
+    REQ_003_2 -.-> SH_WorkflowContextdatamodelforexecutioncontextandvariables
+    REQ_003_2 -.-> SH_WorkflowMetadatametadatamodelworkflow_idstatusprogresstimestamps
+    REQ_003_2 -.-> SH_WorkflowCheckpointConfigconfigurationforincrementalupdatesandretention
+    REQ_003_3 -.-> FE_CheckpointSelectorUIcomponentdisplaysavailablecheckpointsformanualselection
+    REQ_003_3 -.-> FE_CheckpointDetailsviewshowscheckpointmetadatatimestampstatusprogress
+    REQ_003_3 -.-> FE_ResumeConfirmationdialogconfirmsresumeoperationwithcheckpointdetails
+    REQ_003_3 -.-> FE_CheckpointBrowserlistsandfiltersavailablecheckpoints
+    REQ_003_3 -.-> BE_CheckpointManager
+    REQ_003_3 -.-> MW_Validatecheckpointcompatibilitywithcurrentsystemversion
+    REQ_003_3 -.-> MW_Authorizecheckpointaccessbasedonsessionownership
+    REQ_003_3 -.-> MW_Logallresumeoperationsforaudittrail
+    REQ_003_3 -.-> MW_Handlecheckpointdecryptionifencryptionisenabled
+    REQ_003_3 -.-> SH_CheckpointDescriptordatamodeldescribingcheckpointmetadataforselection
+    REQ_003_3 -.-> SH_CheckpointIntegrityValidatorutilityforchecksumandintegrityverification
+    REQ_003_3 -.-> SH_StateDeserializerutilityforconvertingcheckpointdatabacktostateobjects
+    REQ_003_3 -.-> SH_VersionMigratorutilityforhandlingcheckpointversionmigrations
+    REQ_003_3 -.-> SH_CheckpointDiscoveryResultdatamodelforcheckpointdiscoveryresults
+    REQ_003_3 -.-> SH_ResumeContextdatamodelcapturingresumeoperationdetailsandoutcomes
+    REQ_003_4 -.-> FE_RecoveryStatusIndicatordisplaysrecoveryoperationprogress
+    REQ_003_4 -.-> FE_FailureNotificationalertsuserwhenautomaticrecoveryistriggered
+    REQ_003_4 -.-> FE_RecoveryHistoryviewshowspastrecoveryoperationsandoutcomes
+    REQ_003_4 -.-> FE_ManualRecoveryControlsUIformanuallytriggeringrecoveryoperations
+    REQ_003_4 -.-> BE_FaultToleranceManager
+    REQ_003_4 -.-> MW_Implementcircuitbreakerpatterntopreventcascadingfailures
+    REQ_003_4 -.-> MW_Addrequesttimeouthandlingwithautomaticrecoverytrigger
+    REQ_003_4 -.-> MW_Implementratelimitingonrecoveryattempts
+    REQ_003_4 -.-> MW_Logallfailureeventsandrecoveryoperationswithcontextualdata
+    REQ_003_4 -.-> SH_FailureContextdatamodelcapturingfailuredetailstypetimestampstacktracestate
+    REQ_003_4 -.-> SH_RecoveryStrategyenuminterfacedefiningrecoveryapproachesrollbackrestartpartial
+    REQ_003_4 -.-> SH_HealthCheckResultdatamodelforhealthmonitoringresults
+    REQ_003_4 -.-> SH_RecoveryAttemptdatamodeltrackingrecoveryoperationdetails
+    REQ_003_4 -.-> SH_FailureClassificationenumforfailuretypestransientpermanentresourcelogic
+    REQ_003_4 -.-> SH_RecoveryOutcomedatamodelcapturingrecoveryresultsandmetrics
+    REQ_003_4 -.-> SH_FaultToleranceConfigconfigurationforretrylimitstimeoutsnotificationsettings
+    REQ_003_5 -.-> FE_SessionDashboarddisplaysallactiveandpausedsessions
+    REQ_003_5 -.-> FE_SessionControlsUIforpauseresumeterminatesessionoperations
+    REQ_003_5 -.-> FE_SessionDetailsviewshowssessionmetadataprogressandexecutionhistory
+    REQ_003_5 -.-> FE_SessionTimelinevisualizessessionlifecycleeventsovertime
+    REQ_003_5 -.-> FE_SessionSelectorallowsusertoswitchbetweenactivesessions
+    REQ_003_5 -.-> BE_SessionManager
+    REQ_003_5 -.-> MW_Sessionauthenticationandauthorizationforsessionoperations
+    REQ_003_5 -.-> MW_Ratelimitingonsessioncreationtopreventabuse
+    REQ_003_5 -.-> MW_Sessioncontextinjectionintorequestprocessingpipeline
+    REQ_003_5 -.-> MW_Loggingofallsessionlifecycleeventsforaudit
+    REQ_003_5 -.-> SH_Sessiondatamodelrepresentingsessionstatesession_idworkflow_idstatusmetadata
+    REQ_003_5 -.-> SH_SessionMetadatadetailedsessioninformationtimestampsruntimeevents
+    REQ_003_5 -.-> SH_SessionStatusenumforsessionstatesactivepausedcompletedfailedexpired
+    REQ_003_5 -.-> SH_SessionLifecycleEventdatamodelforsessioneventspauseresumecheckpointerror
+    REQ_003_5 -.-> SH_SessionConfigconfigurationforsessionbehaviorautopausetimeoutmaxconcurrentsessions
+    REQ_003_5 -.-> SH_SessionRegistryinmemoryregistrytrackingactivesessions
+    REQ_003_5 -.-> SH_SessionContinuityValidatorutilityforvalidatingsessionstatecanberesumed
+    REQ_004_1 -.-> BE_testsdirectorystructurewithsubdirectoriesunitintegrationfixtures
+    REQ_004_1 -.-> BE_test_silmari_rlm_act
+    REQ_004_1 -.-> BE_test_planning_pipeline
+    REQ_004_1 -.-> BE_test_context_window_array
+    REQ_004_1 -.-> BE_test_agents
+    REQ_004_1 -.-> BE_test_commands
+    REQ_004_1 -.-> BE_test_checkpoints
+    REQ_004_1 -.-> BE_integrationtest_workflows
+    REQ_004_1 -.-> BE_integrationtest_baml_integration
+    REQ_004_1 -.-> SH_conftest
+    REQ_004_1 -.-> SH_fixturessample_contexts
+    REQ_004_1 -.-> SH_fixturestest_factories
+    REQ_004_1 -.-> SH_pytest
+    REQ_004_1 -.-> SH___init__
+    REQ_004_2 -.-> BE_
+    REQ_004_2 -.-> SH_
+    REQ_004_2 -.-> SH_pytest
+    REQ_004_2 -.-> SH_Documentationindocsexplainingpytestcacheusageandlfffstepwiseflags
+    REQ_004_2 -.-> SH_CICDconfigurationdecisionwhethertopreserveorclearcachebetweenpipelineruns
+    REQ_004_3 -.-> BE_
+    REQ_004_3 -.-> BE_Typeannotationsaddedtoallfunctionsignaturesinsilmari_rlm_act
+    REQ_004_3 -.-> BE_Typeannotationsaddedtoplanning_pipelinemodule
+    REQ_004_3 -.-> BE_Typeannotationsaddedtocontext_window_arraymodule
+    REQ_004_3 -.-> BE_Typeannotationsaddedtoagentsmodule
+    REQ_004_3 -.-> BE_Typeannotationsaddedtocommandsmodule
+    REQ_004_3 -.-> BE_py
+    REQ_004_3 -.-> SH_mypy
+    REQ_004_3 -.-> SH_Configurationsettingspython_versionwarn_return_anywarn_unused_configsdisallow_untyped_defs
+    REQ_004_3 -.-> SH_Strictmodeflagscheck_untyped_defsno_implicit_optionalwarn_redundant_casts
+    REQ_004_3 -.-> SH_Modulespecificoverridesforgraduallyadoptingstricttyping
+    REQ_004_3 -.-> SH_Typestubfilesintypingsdirectoryforuntypeddependencies
+    REQ_004_3 -.-> SH_
+    REQ_004_3 -.-> SH_Precommithookconfigurationformypy
+    REQ_004_3 -.-> SH_CICDpipelinestepformypytypechecking
+    REQ_004_3 -.-> SH_IDEsettingsfiles
+    REQ_004_3 -.-> SH_Documentationexplainingtypeannotationconventionsandmypyusage
+    REQ_004_4 -.-> BE_
+    REQ_004_4 -.-> BE_Rufflintingappliedtosilmari_rlm_actwithappropriateruleexclusions
+    REQ_004_4 -.-> BE_Rufflintingappliedtoplanning_pipeline
+    REQ_004_4 -.-> BE_Rufflintingappliedtocontext_window_array
+    REQ_004_4 -.-> BE_Rufflintingappliedtoagents
+    REQ_004_4 -.-> BE_Rufflintingappliedtocommands
+    REQ_004_4 -.-> BE_Rufflintingappliedtotestswithtestspecificruleadjustments
+    REQ_004_4 -.-> SH_ruff
+    REQ_004_4 -.-> SH_Configurationlinelengthtargetversionselectrulesignorerulesexcludepatterns
+    REQ_004_4 -.-> SH_Perfileruleconfigurationforspecialcasese
+    REQ_004_4 -.-> SH_isortconfigurationwithinruffforimportsorting
+    REQ_004_4 -.-> SH_tool
+    REQ_004_4 -.-> SH_
+    REQ_004_4 -.-> SH_Precommithookforruffcheckandruffformat
+    REQ_004_4 -.-> SH_CICDpipelineconfigurationwithruffcheckdiffstep
+    REQ_004_4 -.-> SH_Makefileorscripttargetsforrunningruffmakelintmakeformat
+    REQ_004_4 -.-> SH_IDEintegrationfileswithruffconfiguration
+    REQ_004_4 -.-> SH_Documentationexplainingenabledrulesandhowtouserufffix
+    REQ_004_5 -.-> BE_
+    REQ_004_5 -.-> BE_testspropertytest_context_properties
+    REQ_004_5 -.-> BE_testspropertytest_agent_properties
+    REQ_004_5 -.-> BE_testspropertytest_pipeline_properties
+    REQ_004_5 -.-> BE_testspropertytest_checkpoint_properties
+    REQ_004_5 -.-> BE_Statefultestclassesforworkflowstatemachinetesting
+    REQ_004_5 -.-> BE_PropertytestsvalidatingRLMACTalgorithminvariants
+    REQ_004_5 -.-> SH_strategies
+    REQ_004_5 -.-> SH_StrategyforgeneratingvalidContextobjectswithfourlayermemoryarchitecture
+    REQ_004_5 -.-> SH_StrategyforgeneratingAgentconfigurationsandstates
+    REQ_004_5 -.-> SH_StrategyforgeneratingCheckpointdatastructures
+    REQ_004_5 -.-> SH_Compositestrategyforgeneratingrelatedworkflowcomponents
+    REQ_004_5 -.-> SH_tool
+    REQ_004_5 -.-> SH_Settingsmax_examples200deadlineNoneorcustomtimeout
+    REQ_004_5 -.-> SH_Databaseconfigurationdatabase
+    REQ_004_5 -.-> SH_Profiledefinitionsfordifferenttestscenariosfastthoroughdebug
+    REQ_004_5 -.-> SH_
+    REQ_004_5 -.-> SH_Documentationexplainingpropertybasedtestingapproachandhowtowriteproperties
+    REQ_004_5 -.-> SH_Examplesofgoodpropertytestsastemplatesfordevelopers
+    REQ_005_1 -.-> FE_Contextwindowvisualizationcomponentshowingcurrentusagepercentage
+    REQ_005_1 -.-> FE_Realtimetokencounterdisplayinstatusbar
+    REQ_005_1 -.-> FE_Warningindicatorsforcontextcapacitythresholds809095
+    REQ_005_1 -.-> FE_Contextwindowconfigurationpanelforadjustingwindowsize
+    REQ_005_1 -.-> FE_Visualrepresentationofcontextboundariesandsegments
+    REQ_005_1 -.-> BE_APIendpointPOSTapicontextwindowinitializeInitializenewcontextwindowwithsizeparameters
+    REQ_005_1 -.-> BE_APIendpointGETapicontextwindowstatusRetrievecurrentwindowstateandusagestatistics
+    REQ_005_1 -.-> BE_APIendpointPOSTapicontextwindowappendAppendcontenttocontextwindow
+    REQ_005_1 -.-> BE_APIendpointPOSTapicontextwindowslideTriggerslidingwindowoperation
+    REQ_005_1 -.-> BE_APIendpointPUTapicontextwindowresizeDynamicallyresizewindowboundaries
+    REQ_005_1 -.-> BE_Tokencountingservicesupportingmultipletokenizerbackends
+    REQ_005_1 -.-> BE_Windowboundarydetectionalgorithmusingsemanticanalysis
+    REQ_005_1 -.-> BE_Overflowpreventionservicewithautomaticcompressiontriggers
+    REQ_005_1 -.-> BE_Contextsegmentationserviceforidentifyinglogicalboundaries
+    REQ_005_1 -.-> MW_Tokencountvalidationbeforeappendoperations
+    REQ_005_1 -.-> MW_Windowcapacitythresholdmonitoringandalerting
+    REQ_005_1 -.-> MW_Requestsizevalidationtopreventsinglemessageoverflow
+    REQ_005_1 -.-> MW_Ratelimitingforcontextwindowoperations
+    REQ_005_1 -.-> MW_Accesscontrolforwindowresizeoperations
+    REQ_005_1 -.-> MW_Auditloggingforallcontextwindowstatechanges
+    REQ_005_1 -.-> SH_ContextWindowdatamodelwithfieldsidsize_limitcurrent_tokenssegmentsmetadata
+    REQ_005_1 -.-> SH_WindowSegmentdatamodelwithfieldscontenttoken_counttimestampboundaries
+    REQ_005_1 -.-> SH_TokenCounterinterfacesupportingmultipletokenizationschemes
+    REQ_005_1 -.-> SH_WindowStateenumNORMALWARNINGCRITICALOVERFLOW
+    REQ_005_1 -.-> SH_ContextBoundaryinterfaceforsemanticboundarydetection
+    REQ_005_1 -.-> SH_Utilityfunctionscalculate_tokensdetect_boundariescompress_content
+    REQ_005_1 -.-> SH_ConstantsDEFAULT_WINDOW_SIZEWARNING_THRESHOLDCRITICAL_THRESHOLD
+    REQ_005_2 -.-> FE_FourlayermemoryvisualizationshowingdistributionacrossL1L4
+    REQ_005_2 -.-> FE_Layerspecificdetailpanelsdisplayingcontentsofeachmemorylayer
+    REQ_005_2 -.-> FE_Memoryheatmapshowingaccesspatternsandhotspots
+    REQ_005_2 -.-> FE_Layerconfigurationinterfaceforadjustingsizelimitsandpolicies
+    REQ_005_2 -.-> FE_Searchinterfacewithlayerspecificfilteringoptions
+    REQ_005_2 -.-> FE_Memorystatisticsdashboardshowinghitmissratesperlayer
+    REQ_005_2 -.-> FE_Timelineviewshowingmemorypromotiondemotionevents
+    REQ_005_2 -.-> BE_APIendpointPOSTapimemorylayersinitializeInitializefourlayerarchitecture
+    REQ_005_2 -.-> BE_APIendpointGETapimemorylayerslayer_idRetrievelayercontentsandmetadata
+    REQ_005_2 -.-> BE_APIendpointPOSTapimemorylayersstoreStoreitemwithautomaticlayerassignment
+    REQ_005_2 -.-> BE_APIendpointGETapimemorylayerssearchCrosslayersearchwithrelevanceranking
+    REQ_005_2 -.-> BE_APIendpointPOSTapimemorylayerspromoteManuallypromoteitemtohigherlayer
+    REQ_005_2 -.-> BE_APIendpointPOSTapimemorylayersdemoteManuallydemoteitemtolowerlayer
+    REQ_005_2 -.-> BE_APIendpointGETapimemorylayersstatsRetrievestatisticsforalllayers
+    REQ_005_2 -.-> BE_Layermanagerservicecoordinatingoperationsacrossallfourlayers
+    REQ_005_2 -.-> BE_Promotiondemotionenginebasedonaccessfrequencyandimportancescores
+    REQ_005_2 -.-> BE_Memoryconsolidationservicerunningperiodicoptimization
+    REQ_005_2 -.-> BE_Importancescoringalgorithmusingcontentanalysisandusagepatterns
+    REQ_005_2 -.-> BE_EvictionpolicyimplementationLRULFUcustomperlayer
+    REQ_005_2 -.-> BE_Crosslayerindexingserviceforfastretrieval
+    REQ_005_2 -.-> MW_Accesstrackingmiddlewarerecordingallmemoryreadswrites
+    REQ_005_2 -.-> MW_Layercapacitymonitoringandenforcement
+    REQ_005_2 -.-> MW_Automaticpromotiontriggersbasedonaccessthresholds
+    REQ_005_2 -.-> MW_Cacheinvalidationcoordinationacrosslayers
+    REQ_005_2 -.-> MW_Permissionchecksformanualpromotiondemotionoperations
+    REQ_005_2 -.-> MW_Performancemonitoringforlayeraccesstimes
+    REQ_005_2 -.-> MW_Dataconsistencyvalidationduringlayertransitions
+    REQ_005_2 -.-> SH_MemoryLayerdatamodelwithfieldslayer_idcapacitycurrent_sizeeviction_policyaccess_stats
+    REQ_005_2 -.-> SH_MemoryItemdatamodelwithfieldsidcontentlayerimportance_scoreaccess_countlast_accessedmetadata
+    REQ_005_2 -.-> SH_LayerConfiginterfacedefiningsizelimitsandretentionpoliciesperlayer
+    REQ_005_2 -.-> SH_PromotionCriteriainterfacefordefiningpromotionrules
+    REQ_005_2 -.-> SH_ImportanceScoreinterfacewithscoringalgorithmspecifications
+    REQ_005_2 -.-> SH_AccessPatterndatamodeltrackingreadwritepatterns
+    REQ_005_2 -.-> SH_LayerStatisticsdatamodelwithhit_ratemiss_ratepromotion_countdemotion_count
+    REQ_005_2 -.-> SH_Utilityfunctionscalculate_importanceshould_promoteshould_demoteconsolidate_layers
+    REQ_005_2 -.-> SH_ConstantsL1_SIZEL2_SIZEL3_SIZEL4_SIZEPROMOTION_THRESHOLDDEMOTION_THRESHOLD
+    REQ_005_3 -.-> FE_Contextoptimizationcontrolpanelwithaggressivenessslider
+    REQ_005_3 -.-> FE_Beforeaftercomparisonviewshowingoptimizationresults
+    REQ_005_3 -.-> FE_Informationdensitymetershowingtokenefficiency
+    REQ_005_3 -.-> FE_Removedcontentreviewpanelformanualverification
+    REQ_005_3 -.-> FE_Optimizationhistorywithrollbackoptions
+    REQ_005_3 -.-> FE_Realtimeoptimizationsuggestionsbasedoncontextanalysis
+    REQ_005_3 -.-> FE_Qualitymetricsdashboardshowingcompressionratioandretentionscores
+    REQ_005_3 -.-> FE_Visualdiffhighlightingchangesmadeduringoptimization
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextoptimizeTriggercontextoptimizationwithparameters
+    REQ_005_3 -.-> BE_APIendpointGETapicontextoptimizepreviewPreviewoptimizationresultsbeforeapplying
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextoptimizerollbackRollbacktopreoptimizationstate
+    REQ_005_3 -.-> BE_APIendpointGETapicontextoptimizemetricsRetrieveoptimizationqualitymetrics
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextdeduplicateRundeduplicationanalysis
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextcompressApplycompressionalgorithms
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextsummarizeGeneratesummariesofverbosecontent
+    REQ_005_3 -.-> BE_APIendpointPOSTapicontextpruneRemovelowrelevancecontentbasedonscoring
+    REQ_005_3 -.-> BE_Compressionserviceusingmultiplealgorithmsextractiveabstractive
+    REQ_005_3 -.-> BE_Deduplicationenginewithfuzzymatchingandsemanticsimilarity
+    REQ_005_3 -.-> BE_SummarizationserviceusingLLMbasedsummarization
+    REQ_005_3 -.-> BE_Relevancescoringengineanalyzingcontentimportancetocurrentcontext
+    REQ_005_3 -.-> BE_Pruningservicewithconfigurablethresholdsandsafetychecks
+    REQ_005_3 -.-> BE_Rollbackservicemaintainingoptimizationhistoryandsnapshots
+    REQ_005_3 -.-> BE_Qualityassessmentservicemeasuringinformationretention
+    REQ_005_3 -.-> MW_Preoptimizationvalidationensuringminimumcontextrequirements
+    REQ_005_3 -.-> MW_Optimizationsafetycheckspreventingremovalofcriticalcontent
+    REQ_005_3 -.-> MW_Qualitythresholdenforcementminimuminformationretention
+    REQ_005_3 -.-> MW_Optimizationratelimitingtopreventexcessiveprocessing
+    REQ_005_3 -.-> MW_Snapshotcreationbeforedestructiveoperations
+    REQ_005_3 -.-> MW_Performancemonitoringforoptimizationoperations
+    REQ_005_3 -.-> MW_Userconfirmationrequiredforaggressiveoptimizationlevels
+    REQ_005_3 -.-> SH_OptimizationConfigdatamodelwithfieldsaggressivenesspreserve_recentmin_retentionstrategies
+    REQ_005_3 -.-> SH_OptimizationResultdatamodelwithfieldsoriginal_tokensoptimized_tokenscompression_ratioremoved_segmentsquality_metrics
+    REQ_005_3 -.-> SH_RelevanceScoredatamodelwithfieldscontent_idscorefactorstimestamp
+    REQ_005_3 -.-> SH_CompressionStrategyenumEXTRACTIVEABSTRACTIVEHYBRIDNONE
+    REQ_005_3 -.-> SH_PruningPolicyinterfacedefiningremovalcriteria
+    REQ_005_3 -.-> SH_QualityMetricsdatamodelwithfieldsinformation_retentionsemantic_coherencecompression_ratio
+    REQ_005_3 -.-> SH_OptimizationSnapshotdatamodelforrollbackcapability
+    REQ_005_3 -.-> SH_Utilityfunctionscalculate_relevancedetect_duplicatescompress_segmentsummarize_contentassess_quality
+    REQ_005_3 -.-> SH_ConstantsMIN_COMPRESSION_RATIOMAX_INFORMATION_LOSSDEDUPLICATION_THRESHOLDRELEVANCE_CUTOFF
+    REQ_005_4 -.-> FE_Checkpointmanagementinterfacelistingavailablesnapshots
+    REQ_005_4 -.-> FE_Manualcheckpointcreationbuttonwithnamedescriptioninput
+    REQ_005_4 -.-> FE_Checkpointdiffviewershowingchangesbetweenstates
+    REQ_005_4 -.-> FE_Staterecoverywizardforselectingandloadingcheckpoints
+    REQ_005_4 -.-> FE_Autosaveindicatorshowinglastpersistencetime
+    REQ_005_4 -.-> FE_Storageusagedisplayshowingcheckpointdiskusage
+    REQ_005_4 -.-> FE_Checkpointverificationstatusindicators
+    REQ_005_4 -.-> FE_Exportimportinterfaceformovingcheckpointsbetweensystems
+    REQ_005_4 -.-> BE_APIendpointPOSTapicontextcheckpointcreateCreatenewcheckpointwithmetadata
+    REQ_005_4 -.-> BE_APIendpointGETapicontextcheckpointlistListallavailablecheckpoints
+    REQ_005_4 -.-> BE_APIendpointGETapicontextcheckpointidRetrievecheckpointdetails
+    REQ_005_4 -.-> BE_APIendpointPOSTapicontextcheckpointrestoreRestorecontextfromcheckpoint
+    REQ_005_4 -.-> BE_APIendpointDELETEapicontextcheckpointidDeletecheckpoint
+    REQ_005_4 -.-> BE_APIendpointPOSTapicontextcheckpointverifyVerifycheckpointintegrity
+    REQ_005_4 -.-> BE_APIendpointGETapicontextcheckpointdiffComparetwocheckpoints
+    REQ_005_4 -.-> BE_APIendpointPOSTapicontextcheckpointexportExportcheckpointtofile
+    REQ_005_4 -.-> BE_Checkpointcreationservicewithatomicwriteguarantees
+    REQ_005_4 -.-> BE_Incrementalpersistenceenginetrackingdeltasbetweenstates
+    REQ_005_4 -.-> BE_StateserializationservicesupportingmultipleformatsJSONMessagePackProtocolBuffers
+    REQ_005_4 -.-> BE_Recoveryservicewithautomaticfallbacktopreviouscheckpoints
+    REQ_005_4 -.-> BE_Integrityverificationusingchecksumsandvalidation
+    REQ_005_4 -.-> BE_Checkpointcleanupservicemanagingretentionpolicies
+    REQ_005_4 -.-> BE_Compressionserviceforreducingstoragefootprint
+    REQ_005_4 -.-> BE_Backgroundpersistenceworkerforasynccheckpointcreation
+    REQ_005_4 -.-> MW_Checkpointcreationauthorizationandvalidation
+    REQ_005_4 -.-> MW_Diskspacemonitoringbeforecheckpointcreation
+    REQ_005_4 -.-> MW_Integrityverificationduringcheckpointcreationandloading
+    REQ_005_4 -.-> MW_Versioncompatibilitychecksduringrestoreoperations
+    REQ_005_4 -.-> MW_Concurrentaccesscontrolduringpersistenceoperations
+    REQ_005_4 -.-> MW_Auditloggingforallcheckpointcreaterestoredeleteoperations
+    REQ_005_4 -.-> MW_Errorhandlingandretrylogicfortransientstoragefailures
+    REQ_005_4 -.-> SH_Checkpointdatamodelwithfieldsidtimestampcontext_statemetadatachecksumversion
+    REQ_005_4 -.-> SH_ContextStatedatamodelcontainingallfourmemorylayersandwindowstate
+    REQ_005_4 -.-> SH_CheckpointMetadatawithfieldsnamedescriptionsizecreation_timecreatortags
+    REQ_005_4 -.-> SH_PersistenceConfiginterfacedefiningcheckpointfrequencyandretention
+    REQ_005_4 -.-> SH_IntegrityCheckresultmodelwithverificationstatusanderrors
+    REQ_005_4 -.-> SH_CheckpointDiffmodelshowingaddedmodifiedandremovedcontent
+    REQ_005_4 -.-> SH_RecoveryOptionsinterfaceforconfiguringrestorebehavior
+    REQ_005_4 -.-> SH_Utilityfunctionsserialize_statedeserialize_statecalculate_checksumverify_integritycompress_checkpoint
+    REQ_005_4 -.-> SH_ConstantsCHECKPOINT_DIRMAX_CHECKPOINTSCHECKPOINT_RETENTION_DAYSCOMPRESSION_ALGORITHM
+    REQ_006_1 -.-> FE_NAThisisadirectorystructurerequirementwithnofrontendcomponents
+    REQ_006_1 -.-> BE_EnforcedirectorystructurevalidationinCICDpipeline
+    REQ_006_1 -.-> BE_Createdirectorystructurelintingscriptthatvalidatessourceconfigseparation
+    REQ_006_1 -.-> BE_Implementprecommithooksthatpreventconfigfilesinsourcedirectories
+    REQ_006_1 -.-> BE_Addbuildconfigurationthatexcludesconfigdirectoriesfromsourcecompilation
+    REQ_006_1 -.-> MW_Configurationloaderservicethatonlyreadsfromdesignatedconfigdirectories
+    REQ_006_1 -.-> MW_Pathvalidationmiddlewarethatensuresconfigurationpathsstartwith
+    REQ_006_1 -.-> MW_Environmentvariableloaderthatmapstoconfigdirectorylocations
+    REQ_006_1 -.-> SH_DirectoryStructureenumdefiningvalidsourcevsconfigdirectorytypes
+    REQ_006_1 -.-> SH_PathValidatorutilityclasswithisSourceDirectoryandisConfigDirectorymethods
+    REQ_006_1 -.-> SH_ConstantsfiledefiningSOURCE_DIRSlistandCONFIG_DIRSlist
+    REQ_006_1 -.-> SH_DirectoryConventionsdocumentationobjectspecifyingnamingpatterns
+    REQ_006_2 -.-> FE_NAThisisadirectorystructureandtestingorganizationrequirementwithnofrontendcomponents
+    REQ_006_2 -.-> BE_Configurepytest
+    REQ_006_2 -.-> BE_Createtestdiscoveryscriptthatvalidatesnotestfilesexistoutsidetestsdirectory
+    REQ_006_2 -.-> BE_Implementbuildprocessthatexplicitlyexcludestestsfromdistributionpackagesinsetup
+    REQ_006_2 -.-> BE_AddCICDvalidationstepthatchecksfortestfilenamingpatternsoutsidetestsdirectory
+    REQ_006_2 -.-> BE_Configurecoveragetoolstoseparatetestcoveragefromimplementationcoverage
+    REQ_006_2 -.-> MW_TestexecutionmiddlewarethatsetsPYTHONPATHtoincludesourcedirectorieswithouttests
+    REQ_006_2 -.-> MW_Importpathresolverthatensurestestscanimportfromsourcepackagesusingcleanimports
+    REQ_006_2 -.-> MW_Testfixtureloaderthatloadstestdatafromtestsfixtureswithoutpollutingsourcedirectories
+    REQ_006_2 -.-> SH_TestDirectoryValidatorutilityclasswithvalidateTestLocationmethod
+    REQ_006_2 -.-> SH_ConstantsdefiningVALID_TEST_PATTERNSandINVALID_TEST_LOCATIONS
+    REQ_006_2 -.-> SH_TestPathResolverutilityforconstructingproperimportpathsfromteststosource
+    REQ_006_2 -.-> SH_CacheDirectoryManagerforhandling
+    REQ_006_2 -.-> SH_
+    REQ_006_3 -.-> FE_NAThisisadocumentationorganizationrequirementwithnofrontendcomponents
+    REQ_006_3 -.-> BE_ConfiguredocumentationbuildtoolsSphinxMkDocstousedocsasrootdirectory
+    REQ_006_3 -.-> BE_Createdocumentationvalidationscriptthatensuresnoexecutablecodeindocumentationdirectories
+    REQ_006_3 -.-> BE_Implementautomateddocumentationgenerationpipelinethatoutputstodocsfromsourcedocstrings
+    REQ_006_3 -.-> BE_AddCICDstepthatbuildsdocumentationandvalidateslinksstructureandcompleteness
+    REQ_006_3 -.-> BE_Createdocumentationindexgeneratorthatcatalogsalldocumentationbycategory
+    REQ_006_3 -.-> MW_Documentationroutingmiddlewareforservingdocsfromseparatedocumentationserver
+    REQ_006_3 -.-> MW_Documentationsearchindexerthatprocessesdocsthoughtsandplanningdirectories
+    REQ_006_3 -.-> MW_Documentationversioningmiddlewarethatmapsdocumentationversionstocodereleases
+    REQ_006_3 -.-> SH_DocumentationStructureclassdefininghierarchydocsformalthoughtsresearchplansplanning
+    REQ_006_3 -.-> SH_DocumentationValidatorutilitywithvalidateNoExecutableCodeandvalidateMarkdownStructuremethods
+    REQ_006_3 -.-> SH_ConstantsdefiningDOCUMENTATION_DIRSALLOWED_DOC_EXTENSIONSandDOCUMENTATION_TEMPLATES
+    REQ_006_3 -.-> SH_DocumentationMetadatamodelfortrackingdocumentationtypestatuslast_updatedandrelationships
+    REQ_006_3 -.-> SH_DocPathResolverutilityforconstructingcrossreferencesbetweendocumentationfiles
+    REQ_006_4 -.-> FE_NAThisisadirectorystructureconventionrequirementwithnofrontendcomponents
+    REQ_006_4 -.-> BE_Createdirectorystructurelinterthatvalidatesnamingconventionsagainstdefinedpatterns
+    REQ_006_4 -.-> BE_Implementdirectorycategorizationscriptthatvalidates30directoriesacross6categories
+    REQ_006_4 -.-> BE_Addprecommithookthatpreventscreationofdirectoriesviolatingnamingconventions
+    REQ_006_4 -.-> BE_Generatedirectorystructuredocumentationautomaticallyfromdirectorytreeanalysis
+    REQ_006_4 -.-> BE_Createdirectorytemplatesystemfornewcomponentsthatenforcesconventions
+    REQ_006_4 -.-> MW_Directorydiscoverymiddlewarethatcategorizesdirectoriesbytypesourceconfigtestetc
+    REQ_006_4 -.-> MW_Pathresolutionmiddlewarethatappliescorrectnamingconventionbasedondirectorycategory
+    REQ_006_4 -.-> MW_Directorymigrationtoolforrefactoringexistingdirectoriestomatchconventions
+    REQ_006_4 -.-> SH_NamingConventionenumwithvaluesDOTFILESNAKE_CASEKEBAB_CASELOWERCASE
+    REQ_006_4 -.-> SH_DirectoryCategoryenumwithvaluesSOURCE_CODECONFIGURATIONDEVELOPMENTBUILDWORKFLOWSDOCUMENTATION
+    REQ_006_4 -.-> SH_DirectoryConventionValidatorclasswithvalidateNamingandvalidateCategorymethods
+    REQ_006_4 -.-> SH_ConstantsdefiningNAMING_PATTERNSmapcategorynamingconvention
+    REQ_006_4 -.-> SH_DirectoryMetadatamodeltrackingdirectorynamecategorypurposenaming_convention
+    REQ_006_4 -.-> SH_ConventionCheckerutilitywithisValidNamesuggestCorrectNameandgetCategoryForDirectorymethods
+    REQ_006_5 -.-> FE_NAThisisatoolconfigurationboundaryrequirementwithnofrontendcomponents
+    REQ_006_5 -.-> BE_CreateToolConfigurationManagerservicethatloadsconfigurationonlyfromdesignatedtooldirectories
+    REQ_006_5 -.-> BE_Implementconfigurationvalidationthatensuresnocrosstoolconfigurationpollution
+    REQ_006_5 -.-> BE_Addtoolregistrationsystemwhereeachtooldeclaresitsconfigurationdirectoryandschema
+    REQ_006_5 -.-> BE_Createtoolisolationvalidatorthatchecksforconfigurationfilesinwrongdirectories
+    REQ_006_5 -.-> BE_Implementconfigurationmergingstrategythatrespectstoolboundarieswhileallowingsystemleveloverrides
+    REQ_006_5 -.-> MW_Toolconfigurationloadermiddlewarethatroutesconfigrequeststocorrecttooldirectory
+    REQ_006_5 -.-> MW_Configurationnamespaceresolverthatpreventsnamingcollisionsbetweentools
+    REQ_006_5 -.-> MW_Toolinitializationmiddlewarethatloadsconfigurationsindependencyorder
+    REQ_006_5 -.-> MW_Configurationvalidationmiddlewarethatenforcestoolspecificschemas
+    REQ_006_5 -.-> SH_ToolConfigurationbaseclasswithpropertiestool_nameconfig_directoryschemaloader_function
+    REQ_006_5 -.-> SH_ToolRegistrysingletonmaintainingmapoftool_nameToolConfiguration
+    REQ_006_5 -.-> SH_ConfigurationBoundaryValidatorutilitywithvalidateToolIsolationanddetectConfigurationLeaksmethods
+    REQ_006_5 -.-> SH_ConstantsdefiningTOOL_DIRECTORIESmaptool_namedirectory_path
+    REQ_006_5 -.-> SH_ToolConfigLoaderabstractclasswithloadConfigvalidateConfigandmergeWithDefaultsmethods
+    REQ_006_5 -.-> SH_ConfigurationSchemainterfacefordefiningtoolspecificconfigurationstructures

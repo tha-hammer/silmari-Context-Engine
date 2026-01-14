@@ -30,3 +30,7 @@ Thumbs.db
 
 # BAML
 baml_client/
+.rlm-act-checkpoints/*.json
+.workflow-checkpoints/*.json
+dist/*
+go/build/*

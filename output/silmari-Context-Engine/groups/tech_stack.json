@@ -1,11 +1,18 @@
 {
   "languages": [
-    "Go",
-    "Python"
+    "Python",
+    "Go"
   ],
-  "frameworks": [],
-  "testing_frameworks": [],
+  "frameworks": [
+    "BAML"
+  ],
+  "testing_frameworks": [
+    "hypothesis",
+    "pytest"
+  ],
   "build_systems": [
-    "Go Modules"
+    "Go Modules",
+    "pip/setuptools",
+    "Poetry"
   ]
 }

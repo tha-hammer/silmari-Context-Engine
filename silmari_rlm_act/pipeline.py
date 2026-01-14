@@ -297,6 +297,27 @@ class RLMActPipeline:
             for entry_id in result.metadata["cwa_entry_ids"]:
                 self.state.track_context_entry(phase_type, entry_id)
 
+    def _is_markdown_plan(self, path: str) -> bool:
+        """Detect if plan file is Markdown (not JSON).
+
+        Returns True if file is Markdown, False if JSON.
+        """
+        path_obj = Path(path)
+
+        # Check extension first
+        if path_obj.suffix.lower() in [".md", ".markdown"]:
+            return True
+        if path_obj.suffix.lower() == ".json":
+            return False
+
+        # Try to parse as JSON
+        try:
+            with open(path_obj, "r", encoding="utf-8") as f:
+                json.load(f)
+            return False  # Valid JSON
+        except json.JSONDecodeError:
+            return True  # Not JSON, assume Markdown
+
     def _validate_hierarchy_path(
         self, hierarchy_path: str
     ) -> tuple[Optional[RequirementHierarchy], Optional[str], dict[str, Any]]:
@@ -511,81 +532,118 @@ class RLMActPipeline:
         # Check if semantic validation is requested
         validate_full = kwargs.get("validate_full", False)
 
-        # If hierarchy_path is provided, validate and create synthetic results for both phases
-        if hierarchy_path:
-            # Validate the hierarchy JSON (structural validation)
-            hierarchy, error, validation_metadata = self._validate_hierarchy_path(
-                hierarchy_path
-            )
+        # Track if this is a Markdown plan (skip all phases except IMPLEMENTATION)
+        is_markdown_plan = False
 
-            if error:
-                # Validation failed - REQ_004.4
-                completed_at = datetime.now()
-                return PhaseResult(
-                    phase_type=PhaseType.DECOMPOSITION,
-                    status=PhaseStatus.FAILED,
-                    errors=[error],
+        # If hierarchy_path is provided, check if it's Markdown or JSON
+        if hierarchy_path:
+            is_markdown_plan = self._is_markdown_plan(hierarchy_path)
+
+            if is_markdown_plan:
+                # Markdown plan: skip ALL phases except IMPLEMENTATION
+                skipped_phases = [
+                    PhaseType.RESEARCH,
+                    PhaseType.DECOMPOSITION,
+                    PhaseType.TDD_PLANNING,
+                    PhaseType.MULTI_DOC,
+                    PhaseType.BEADS_SYNC,
+                ]
+                for phase_type in skipped_phases:
+                    synthetic_result = PhaseResult(
+                        phase_type=phase_type,
+                        status=PhaseStatus.COMPLETE,
+                        artifacts=[],
+                        started_at=started_at,
+                        completed_at=datetime.now(),
+                        metadata={
+                            "skipped": True,
+                            "reason": "markdown_plan provided",
+                        },
+                    )
+                    self.state.set_phase_result(phase_type, synthetic_result)
+
+                # Create checkpoint for markdown plan skip
+                self.checkpoint_manager.write_checkpoint(
+                    state=self.state,
+                    phase="markdown-plan-skip",
+                )
+
+                all_artifacts.append(hierarchy_path)
+
+            else:
+                # JSON hierarchy: validate and skip only RESEARCH and DECOMPOSITION
+                hierarchy, error, validation_metadata = self._validate_hierarchy_path(
+                    hierarchy_path
+                )
+
+                if error:
+                    # Validation failed - REQ_004.4
+                    completed_at = datetime.now()
+                    return PhaseResult(
+                        phase_type=PhaseType.DECOMPOSITION,
+                        status=PhaseStatus.FAILED,
+                        errors=[error],
+                        started_at=started_at,
+                        completed_at=completed_at,
+                        duration_seconds=(completed_at - started_at).total_seconds(),
+                        metadata={
+                            "validation_failed": True,
+                            "validated": False,  # REQ_004.4.9
+                            "error_count": 1,  # REQ_004.4.10
+                            "hierarchy_path": hierarchy_path,
+                        },
+                    )
+
+                # REQ_003.3: Perform semantic validation if --validate-full is enabled
+                if validate_full:
+                    semantic_result = self._perform_semantic_validation(
+                        hierarchy_path=hierarchy_path,
+                        research_path=research_path,
+                    )
+                    if semantic_result:
+                        validation_metadata["semantic_validation"] = semantic_result
+
+                # Create synthetic RESEARCH result
+                synthetic_research = PhaseResult(
+                    phase_type=PhaseType.RESEARCH,
+                    status=PhaseStatus.COMPLETE,
+                    artifacts=[],
                     started_at=started_at,
-                    completed_at=completed_at,
-                    duration_seconds=(completed_at - started_at).total_seconds(),
+                    completed_at=datetime.now(),
                     metadata={
-                        "validation_failed": True,
-                        "validated": False,  # REQ_004.4.9
-                        "error_count": 1,  # REQ_004.4.10
-                        "hierarchy_path": hierarchy_path,
+                        "skipped": True,
+                        "reason": "hierarchy_path provided",
                     },
                 )
+                self.state.set_phase_result(PhaseType.RESEARCH, synthetic_research)
 
-            # REQ_003.3: Perform semantic validation if --validate-full is enabled
-            if validate_full:
-                semantic_result = self._perform_semantic_validation(
-                    hierarchy_path=hierarchy_path,
-                    research_path=research_path,
+                # Create checkpoint for skipped research phase
+                self.checkpoint_manager.write_checkpoint(
+                    state=self.state,
+                    phase="research-skipped",
                 )
-                if semantic_result:
-                    validation_metadata["semantic_validation"] = semantic_result
 
-            # Create synthetic RESEARCH result
-            synthetic_research = PhaseResult(
-                phase_type=PhaseType.RESEARCH,
-                status=PhaseStatus.COMPLETE,
-                artifacts=[],
-                started_at=started_at,
-                completed_at=datetime.now(),
-                metadata={
-                    "skipped": True,
-                    "reason": "hierarchy_path provided",
-                },
-            )
-            self.state.set_phase_result(PhaseType.RESEARCH, synthetic_research)
+                # Create synthetic DECOMPOSITION result
+                synthetic_decomp = PhaseResult(
+                    phase_type=PhaseType.DECOMPOSITION,
+                    status=PhaseStatus.COMPLETE,
+                    artifacts=[hierarchy_path],
+                    started_at=started_at,
+                    completed_at=datetime.now(),
+                    metadata={
+                        "skipped": True,
+                        "reason": "hierarchy_path provided",
+                        **validation_metadata,
+                    },
+                )
+                self.state.set_phase_result(PhaseType.DECOMPOSITION, synthetic_decomp)
+                all_artifacts.append(hierarchy_path)
 
-            # Create checkpoint for skipped research phase
-            self.checkpoint_manager.write_checkpoint(
-                state=self.state,
-                phase="research-skipped",
-            )
-
-            # Create synthetic DECOMPOSITION result
-            synthetic_decomp = PhaseResult(
-                phase_type=PhaseType.DECOMPOSITION,
-                status=PhaseStatus.COMPLETE,
-                artifacts=[hierarchy_path],
-                started_at=started_at,
-                completed_at=datetime.now(),
-                metadata={
-                    "skipped": True,
-                    "reason": "hierarchy_path provided",
-                    **validation_metadata,
-                },
-            )
-            self.state.set_phase_result(PhaseType.DECOMPOSITION, synthetic_decomp)
-            all_artifacts.append(hierarchy_path)
-
-            # Create checkpoint for skipped decomposition phase
-            self.checkpoint_manager.write_checkpoint(
-                state=self.state,
-                phase="decomposition-skipped",
-            )
+                # Create checkpoint for skipped decomposition phase
+                self.checkpoint_manager.write_checkpoint(
+                    state=self.state,
+                    phase="decomposition-skipped",
+                )
 
         # If only research_path is provided (no hierarchy_path), create synthetic research result
         elif research_path:
@@ -617,7 +675,7 @@ class RLMActPipeline:
             PhaseType.TDD_PLANNING: {"plan_name": plan_name, "hierarchy_path": hierarchy_path} if hierarchy_path else {"plan_name": plan_name},
             PhaseType.MULTI_DOC: {"hierarchy_path": hierarchy_path} if hierarchy_path else {},
             PhaseType.BEADS_SYNC: {"plan_name": plan_name},
-            PhaseType.IMPLEMENTATION: {},
+            PhaseType.IMPLEMENTATION: {"phase_paths": [hierarchy_path]} if is_markdown_plan else {},
         }
 
         # Update with any provided kwargs

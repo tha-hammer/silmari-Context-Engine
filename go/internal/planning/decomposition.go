@@ -9,19 +9,19 @@ import (
 
 // DecompositionConfig contains configuration for requirement decomposition.
 type DecompositionConfig struct {
-	MaxSubProcesses          int  `json:"max_sub_processes"`
-	MinSubProcesses          int  `json:"min_sub_processes"`
+	MaxSubProcesses           int  `json:"max_sub_processes"`
+	MinSubProcesses           int  `json:"min_sub_processes"`
 	IncludeAcceptanceCriteria bool `json:"include_acceptance_criteria"`
-	ExpandDimensions         bool `json:"expand_dimensions"`
+	ExpandDimensions          bool `json:"expand_dimensions"`
 }
 
 // DefaultDecompositionConfig returns the default configuration.
 func DefaultDecompositionConfig() *DecompositionConfig {
 	return &DecompositionConfig{
-		MaxSubProcesses:          5,
-		MinSubProcesses:          2,
+		MaxSubProcesses:           15,
+		MinSubProcesses:           2,
 		IncludeAcceptanceCriteria: true,
-		ExpandDimensions:         false,
+		ExpandDimensions:          false,
 	}
 }
 
@@ -33,8 +33,8 @@ type SaveCallback func(hierarchy *RequirementHierarchy)
 
 // DecompositionStats contains statistics from the decomposition process.
 type DecompositionStats struct {
-	RequirementsFound     int `json:"requirements_found"`
-	SubprocessesExpanded  int `json:"subprocesses_expanded"`
+	RequirementsFound    int `json:"requirements_found"`
+	SubprocessesExpanded int `json:"subprocesses_expanded"`
 	TotalNodes           int `json:"total_nodes"`
 	ExtractionTimeMs     int `json:"extraction_time_ms"`
 	ExpansionTimeMs      int `json:"expansion_time_ms"`
@@ -103,8 +103,8 @@ func DecomposeRequirements(
 
 	var data struct {
 		Requirements []struct {
-			Description   string   `json:"description"`
-			SubProcesses  []string `json:"sub_processes"`
+			Description     string   `json:"description"`
+			SubProcesses    []string `json:"sub_processes"`
 			RelatedConcepts []string `json:"related_concepts"`
 		} `json:"requirements"`
 	}
@@ -229,9 +229,9 @@ func DecomposeRequirements(
 	hierarchy.Metadata["decomposition_stats"] = map[string]interface{}{
 		"requirements_found":    stats.RequirementsFound,
 		"subprocesses_expanded": stats.SubprocessesExpanded,
-		"total_nodes":          stats.TotalNodes,
-		"extraction_time_ms":   stats.ExtractionTimeMs,
-		"expansion_time_ms":    stats.ExpansionTimeMs,
+		"total_nodes":           stats.TotalNodes,
+		"extraction_time_ms":    stats.ExtractionTimeMs,
+		"expansion_time_ms":     stats.ExpansionTimeMs,
 	}
 
 	return hierarchy, nil
@@ -292,7 +292,10 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
 // buildExpansionPrompt builds the prompt for expanding a requirement.
 func buildExpansionPrompt(researchContent, parentDescription string, subProcesses []string) string {
 	subProcessJSON, _ := json.Marshal(subProcesses)
-	return fmt.Sprintf(`You are an expert software analyst. Expand each requirement into specific implementation requirements.
+	return fmt.Sprintf(`        You are an expert software analyst. Expand each requirement into specific implementation requirements.
+        The sofware developer needs to know what detailed requirements are needed to implement this requirement for this project.
+        For each implementation requirement:
+
 
 RESEARCH CONTEXT:
 %s
@@ -303,11 +306,22 @@ PARENT REQUIREMENT:
 SUB-PROCESSES TO EXPAND:
 %s
 
-For each implementation requirement:
-1. Provide a clear, actionable description
-2. List ALL REQUIRED STEPS to implement the requirement
-3. For each step, provide specific acceptance criteria
-4. Consider technical and functional aspects
+        1. Provide a clear, actionable description
+        2. List ALL REQUIRED STEPS to implement the requirement
+        3. For each step, provide specific acceptance criteria
+        4. Consider technical and functional aspects
+        5. If the requirement lists specific actions, questions or decisions, include them as acceptance criteria
+        6. If the requirement is a decision, include the decision and the criteria for making that decision
+        7. If the requirement is a question, include the question and the criteria for answering it
+        8. Add any related or dependent concepts
+        9. EACH AND EVERY STEP to implement the requirement must be included
+        10. For each requirement, specify exactly what components are needed:
+            - frontend: UI components, pages, forms, validation, user interactions
+            - backend: API endpoints, services, data processing, business logic
+            - middleware: authentication, authorization, request/response processing
+            - shared: data models, utilities, constants, interfaces
+        Assume sub-processes exist even if not stated. Propose granular steps. Imagine you are the user of the system and you are trying to implement the requirement. Think about the user's problem and how to solve it.
+        
 
 Return ONLY valid JSON in this exact format:
 {

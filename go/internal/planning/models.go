@@ -607,6 +607,172 @@ func AllPhases() []PhaseType {
 	}
 }
 
+// IsFirstPhase returns true if this is the first phase (PhaseResearch).
+func (pt PhaseType) IsFirstPhase() bool {
+	return pt == PhaseResearch
+}
+
+// IsLastPhase returns true if this is the last phase (PhaseImplementation).
+func (pt PhaseType) IsLastPhase() bool {
+	return pt == PhaseImplementation
+}
+
+// HasNext returns true if there is a subsequent phase.
+func (pt PhaseType) HasNext() bool {
+	return pt != PhaseImplementation
+}
+
+// HasPrevious returns true if there is a preceding phase.
+func (pt PhaseType) HasPrevious() bool {
+	return pt != PhaseResearch
+}
+
+// GetDistanceFromStart returns the number of phases from PhaseResearch (0-based).
+func (pt PhaseType) GetDistanceFromStart() int {
+	return int(pt)
+}
+
+// GetDistanceToEnd returns the number of phases remaining to PhaseImplementation.
+func (pt PhaseType) GetDistanceToEnd() int {
+	return int(PhaseImplementation) - int(pt)
+}
+
+// PhaseIterator provides iteration utilities for phases.
+type PhaseIterator struct {
+	phases  []PhaseType
+	current int
+}
+
+// NewPhaseIterator creates a new PhaseIterator starting from the beginning.
+func NewPhaseIterator() *PhaseIterator {
+	return &PhaseIterator{
+		phases:  AllPhases(),
+		current: 0,
+	}
+}
+
+// ForEach iterates through all phases in order, calling the callback for each.
+// Stops on the first error returned by the callback.
+func (pi *PhaseIterator) ForEach(callback func(PhaseType) error) error {
+	for _, phase := range pi.phases {
+		if err := callback(phase); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GetPhaseAtIndex returns the phase at the given index or error if out of bounds.
+func (pi *PhaseIterator) GetPhaseAtIndex(index int) (PhaseType, error) {
+	if index < 0 || index >= len(pi.phases) {
+		return PhaseResearch, fmt.Errorf("phase index %d out of bounds (0-%d)", index, len(pi.phases)-1)
+	}
+	return pi.phases[index], nil
+}
+
+// GetPhaseCount returns the total number of phases (6).
+func (pi *PhaseIterator) GetPhaseCount() int {
+	return len(pi.phases)
+}
+
+// Reset resets the iterator to the beginning.
+func (pi *PhaseIterator) Reset() {
+	pi.current = 0
+}
+
+// Current returns the current phase without advancing.
+func (pi *PhaseIterator) Current() PhaseType {
+	if pi.current >= len(pi.phases) {
+		return pi.phases[len(pi.phases)-1]
+	}
+	return pi.phases[pi.current]
+}
+
+// Next advances and returns the next phase, or error if at end.
+func (pi *PhaseIterator) Next() (PhaseType, error) {
+	if pi.current >= len(pi.phases) {
+		return PhaseImplementation, errors.New("iterator exhausted")
+	}
+	phase := pi.phases[pi.current]
+	pi.current++
+	return phase, nil
+}
+
+// HasMore returns true if there are more phases to iterate.
+func (pi *PhaseIterator) HasMore() bool {
+	return pi.current < len(pi.phases)
+}
+
+// PhaseDependencyChecker provides dependency checking for phases.
+type PhaseDependencyChecker struct {
+	PhaseResults map[PhaseType]*PhaseResult
+}
+
+// NewPhaseDependencyChecker creates a new dependency checker.
+func NewPhaseDependencyChecker(results map[PhaseType]*PhaseResult) *PhaseDependencyChecker {
+	if results == nil {
+		results = make(map[PhaseType]*PhaseResult)
+	}
+	return &PhaseDependencyChecker{
+		PhaseResults: results,
+	}
+}
+
+// AreDependenciesMet returns true if all phases before the given phase have StatusComplete.
+// PhaseResearch has no dependencies and always returns true.
+func (pdc *PhaseDependencyChecker) AreDependenciesMet(phase PhaseType) bool {
+	// Research has no dependencies
+	if phase == PhaseResearch {
+		return true
+	}
+
+	// Check all preceding phases
+	for i := 0; i < int(phase); i++ {
+		precedingPhase := PhaseType(i)
+		result := pdc.PhaseResults[precedingPhase]
+		if result == nil || result.Status != StatusComplete {
+			return false
+		}
+	}
+	return true
+}
+
+// GetBlockingPhases returns a slice of phases that are blocking the given phase.
+// These are phases that precede the target and don't have StatusComplete.
+func (pdc *PhaseDependencyChecker) GetBlockingPhases(phase PhaseType) []PhaseType {
+	var blocking []PhaseType
+
+	// Research has no blockers
+	if phase == PhaseResearch {
+		return blocking
+	}
+
+	// Check all preceding phases
+	for i := 0; i < int(phase); i++ {
+		precedingPhase := PhaseType(i)
+		result := pdc.PhaseResults[precedingPhase]
+		if result == nil || result.Status != StatusComplete {
+			blocking = append(blocking, precedingPhase)
+		}
+	}
+	return blocking
+}
+
+// GetBlockingPhasesDetailed returns detailed information about blocking phases.
+func (pdc *PhaseDependencyChecker) GetBlockingPhasesDetailed(phase PhaseType) []string {
+	blocking := pdc.GetBlockingPhases(phase)
+	var details []string
+	for _, blocker := range blocking {
+		result := pdc.PhaseResults[blocker]
+		status := "not started"
+		if result != nil {
+			status = result.Status.String()
+		}
+		details = append(details, fmt.Sprintf("%s (%s)", blocker.String(), status))
+	}
+	return details
+}
+
 // PhaseStatus represents phase execution state.
 type PhaseStatus int
 
@@ -668,6 +834,41 @@ func (ps PhaseStatus) CanTransitionTo(next PhaseStatus) bool {
 	default:
 		return false
 	}
+}
+
+// IsPending returns true if the status is StatusPending.
+func (ps PhaseStatus) IsPending() bool {
+	return ps == StatusPending
+}
+
+// IsActive returns true if the status is StatusInProgress.
+func (ps PhaseStatus) IsActive() bool {
+	return ps == StatusInProgress
+}
+
+// GetValidTransitions returns a slice of valid status transitions from the current status.
+func (ps PhaseStatus) GetValidTransitions() []PhaseStatus {
+	switch ps {
+	case StatusPending:
+		return []PhaseStatus{StatusInProgress}
+	case StatusInProgress:
+		return []PhaseStatus{StatusComplete, StatusFailed}
+	case StatusFailed:
+		return []PhaseStatus{StatusInProgress}
+	case StatusComplete:
+		return []PhaseStatus{}
+	default:
+		return []PhaseStatus{}
+	}
+}
+
+// TransitionTo attempts to transition to the new status.
+// Returns the new status if valid, otherwise returns an error.
+func (ps PhaseStatus) TransitionTo(next PhaseStatus) (PhaseStatus, error) {
+	if !ps.CanTransitionTo(next) {
+		return ps, fmt.Errorf("invalid transition from %s to %s", ps.String(), next.String())
+	}
+	return next, nil
 }
 
 // MarshalJSON implements json.Marshaler for PhaseStatus.

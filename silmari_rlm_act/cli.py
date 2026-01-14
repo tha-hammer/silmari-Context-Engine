@@ -80,7 +80,7 @@ def main() -> None:
     "--plan-path",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     default=None,
-    help="Path to existing requirement hierarchy JSON file (skips research and decomposition phases)",
+    help="Path to existing plan document (Markdown or JSON). Skips to implementation phase for Markdown, skips research/decomposition for JSON.",
 )
 @click.option(
     "--validate-full",
@@ -198,8 +198,12 @@ def run(
         click.echo("Starting RLM-Act pipeline...")
         click.echo(f"  Project: {project_path}")
         if plan_path:
-            click.echo(f"  Requirement hierarchy JSON: {plan_path}")
-            click.echo("  (Research and decomposition phases will be skipped)")
+            if plan_path.endswith((".md", ".markdown")):
+                click.echo(f"  Plan document (Markdown): {plan_path}")
+                click.echo("  (All phases will be skipped, starting implementation directly)")
+            else:
+                click.echo(f"  Requirement hierarchy JSON: {plan_path}")
+                click.echo("  (Research and decomposition phases will be skipped)")
         elif research_path:
             click.echo(f"  Research document: {research_path}")
             click.echo("  (Research phase will be skipped)")

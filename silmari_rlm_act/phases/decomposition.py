@@ -61,6 +61,8 @@ class DecompositionPhase:
         self.project_path = Path(project_path)
         self.cwa = cwa
         self.config = config or DecompositionConfig()
+        # Cache output directory to prevent creating new dirs on each incremental save
+        self._output_dir: Optional[Path] = None
 
     def _load_research(self, research_path: Path) -> str:
         """Load research document content.
@@ -184,22 +186,24 @@ class DecompositionPhase:
         Returns:
             Path to saved hierarchy JSON file
         """
-        # Determine output directory based on research path
-        # Use same directory structure as plans
-        date_str = datetime.now().strftime("%Y-%m-%d-%H-%M")
-        plan_name = research_path.stem.replace("research-", "").replace("_", "-")
+        # Cache output directory on first call to prevent creating new dirs
+        # on each incremental save (the save_callback is called per-requirement)
+        if self._output_dir is None:
+            date_str = datetime.now().strftime("%Y-%m-%d-%H-%M")
+            plan_name = research_path.stem.replace("research-", "").replace("_", "-")
 
-        output_dir = (
-            self.project_path
-            / "thoughts"
-            / "searchable"
-            / "shared"
-            / "plans"
-            / f"{date_str}-tdd-{plan_name}"
-        )
-        output_dir.mkdir(parents=True, exist_ok=True)
+            self._output_dir = (
+                self.project_path
+                / "thoughts"
+                / "searchable"
+                / "shared"
+                / "plans"
+                / f"{date_str}-tdd-{plan_name}"
+            )
 
-        hierarchy_path = output_dir / "requirement_hierarchy.json"
+        self._output_dir.mkdir(parents=True, exist_ok=True)
+
+        hierarchy_path = self._output_dir / "requirement_hierarchy.json"
         hierarchy_dict = self._serialize_hierarchy(hierarchy)
 
         with open(hierarchy_path, "w", encoding="utf-8") as f:
@@ -244,6 +248,8 @@ class DecompositionPhase:
             PhaseResult with requirement hierarchy or errors
         """
         started_at = datetime.now()
+        # Reset output directory cache for fresh execution
+        self._output_dir = None
 
         try:
             # Load research content

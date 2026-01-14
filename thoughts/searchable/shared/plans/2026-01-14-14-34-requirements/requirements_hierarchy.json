@@ -1,0 +1,1700 @@
+{
+  "requirements": [
+    {
+      "id": "REQ_000",
+      "description": "The system must organize the project into 14 main directories with clear separation of concerns for core implementation, language support, CLI & automation, data & utilities, development, and planning components",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_000.1",
+          "description": "Maintain silmari_rlm_act/ as the main Python package directory containing core RLM ACT implementation with proper package structure, module organization, and initialization files",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "silmari_rlm_act/ directory exists at project root level",
+            "Directory contains __init__.py file to mark it as a Python package",
+            "All core RLM ACT implementation modules are contained within this directory",
+            "Package can be imported using 'from silmari_rlm_act import *' syntax",
+            "No circular import dependencies exist within the package",
+            "All submodules follow consistent naming conventions (snake_case)",
+            "Package structure supports relative imports between modules",
+            "Version information is accessible via __version__ attribute",
+            "Package metadata is defined in __init__.py or version.py",
+            "No core implementation code exists outside this directory in other main directories",
+            "Directory structure allows for logical separation of concerns within the package",
+            "All modules have appropriate docstrings describing their purpose"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is a backend package structure"
+            ],
+            "backend": [
+              "Create/maintain __init__.py with package-level imports and version info",
+              "Organize core modules by functional responsibility (e.g., models/, services/, utils/)",
+              "Implement version.py or include __version__ in __init__.py",
+              "Create subpackage __init__.py files for nested directories",
+              "Maintain module-level docstrings in each .py file",
+              "Ensure all business logic, data processing, and core algorithms reside in this package"
+            ],
+            "middleware": [
+              "No middleware-specific requirements - package structure only"
+            ],
+            "shared": [
+              "Define package-level constants in constants.py or __init__.py",
+              "Create types.py or models.py for shared data structures",
+              "Implement common utility functions in utils/ subdirectory",
+              "Maintain py.typed marker file if package includes type hints",
+              "Create exceptions.py for custom exception classes",
+              "Define interfaces/protocols in protocols.py or interfaces.py"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.maintainSilmariRlmActPackage",
+          "related_concepts": [
+            "Python package structure",
+            "Module initialization",
+            "Import path management",
+            "Core business logic organization",
+            "Package versioning",
+            "__init__.py conventions",
+            "Namespace packages"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.2",
+          "description": "Maintain planning_pipeline/ for pipeline orchestration logic, workflow management, task sequencing, and coordination between different processing stages",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "planning_pipeline/ directory exists at project root level separate from silmari_rlm_act/",
+            "Directory contains __init__.py to mark it as a Python package",
+            "All pipeline orchestration logic is contained within this directory",
+            "Pipeline can be imported and used independently of other packages",
+            "Contains clear separation between pipeline definition and pipeline execution logic",
+            "Pipeline stages are clearly defined and documented",
+            "Error handling and recovery mechanisms are implemented",
+            "Pipeline state can be persisted and resumed",
+            "Logging is implemented for pipeline execution tracking",
+            "Integration points with silmari_rlm_act/ are well-defined",
+            "No pipeline logic exists in other directories",
+            "Pipeline configuration can be loaded from external sources"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is backend pipeline logic"
+            ],
+            "backend": [
+              "Create/maintain __init__.py with pipeline registry and main exports",
+              "Implement pipeline orchestrator class for workflow coordination",
+              "Create pipeline stage classes/functions for each processing step",
+              "Implement state management for pipeline execution tracking",
+              "Create pipeline builder/factory for constructing pipelines",
+              "Implement error handling and retry logic for failed stages",
+              "Create pipeline executor for running pipeline instances",
+              "Implement hooks for stage entry/exit callbacks",
+              "Create pipeline serialization/deserialization for persistence"
+            ],
+            "middleware": [
+              "No middleware-specific requirements - pipeline orchestration only"
+            ],
+            "shared": [
+              "Define PipelineStage interface/protocol for stage implementations",
+              "Create PipelineContext data model for shared pipeline state",
+              "Implement PipelineConfig data class for configuration",
+              "Define PipelineResult data model for execution results",
+              "Create pipeline exceptions (PipelineError, StageFailure, etc.)",
+              "Implement utility functions for pipeline validation",
+              "Define constants for pipeline stage names and statuses"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.maintainPlanningPipelineDirectory",
+          "related_concepts": [
+            "Pipeline orchestration",
+            "Workflow management",
+            "Task sequencing",
+            "State machine patterns",
+            "Async processing",
+            "Pipeline stages",
+            "Error handling in pipelines",
+            "Pipeline monitoring"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.3",
+          "description": "Maintain agents/ directory for agent-related code including agent implementations, configurations, behaviors, and coordination logic",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "agents/ directory exists at project root level",
+            "Directory contains __init__.py to mark it as a Python package",
+            "All agent implementation code is contained within this directory",
+            "Agents can be registered and discovered dynamically",
+            "Agent configurations are stored and managed within this directory",
+            "Clear interface/base class exists for all agent implementations",
+            "Agent communication mechanisms are well-defined",
+            "Agent lifecycle (initialization, execution, cleanup) is properly managed",
+            "No agent implementation code exists in other main directories",
+            "Agent behaviors can be composed and extended",
+            "Agent coordination logic is clearly separated from individual agent logic",
+            "Documentation exists for creating new agents"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is backend agent system"
+            ],
+            "backend": [
+              "Create/maintain __init__.py with agent registry and exports",
+              "Implement base Agent class or protocol defining agent interface",
+              "Create agent factory for instantiating agents by type",
+              "Implement agent registry for discovering and managing agents",
+              "Create specific agent implementations (subclasses or implementations)",
+              "Implement agent lifecycle manager (start, stop, restart)",
+              "Create agent coordinator for multi-agent interactions",
+              "Implement agent communication bus or message passing system",
+              "Create agent configuration loader and validator",
+              "Implement agent behavior composition system"
+            ],
+            "middleware": [
+              "No middleware-specific requirements - agent system only"
+            ],
+            "shared": [
+              "Define Agent interface/protocol with standard methods",
+              "Create AgentConfig data model for agent configuration",
+              "Implement AgentState data class for agent state tracking",
+              "Define AgentMessage data model for inter-agent communication",
+              "Create agent-specific exceptions (AgentError, AgentTimeout, etc.)",
+              "Implement utility functions for agent validation",
+              "Define constants for agent types, states, and message types",
+              "Create AgentMetadata data model for agent information"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.maintainAgentsDirectory",
+          "related_concepts": [
+            "Agent-based architecture",
+            "Agent lifecycle management",
+            "Agent communication protocols",
+            "Agent configuration",
+            "Multi-agent coordination",
+            "Agent behaviors",
+            "Agent state management",
+            "Agent registration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.4",
+          "description": "Maintain baml_src/ and baml_client/ directories for BAML (Bayesian Approximate Machine Learning) integration with source configurations in baml_src/ and generated client code in baml_client/",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "baml_src/ directory exists at project root for BAML source files",
+            "baml_client/ directory exists at project root for generated client code",
+            "baml_src/ contains all BAML configuration and source files",
+            "baml_client/ contains only generated code (not manually edited)",
+            "Clear build process exists to generate client from source",
+            "baml_client/ includes __init__.py for Python package imports",
+            "Generated client code is type-safe and includes type hints",
+            "BAML source changes trigger client code regeneration",
+            "baml_client/ is excluded from manual code reviews (generated code marker)",
+            "Documentation exists for BAML configuration in baml_src/",
+            "Client code generation is integrated into build/setup process",
+            "No BAML-related code exists outside these two directories"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is BAML integration layer"
+            ],
+            "backend": [
+              "Create/maintain baml_src/ directory structure for BAML configs",
+              "Implement BAML configuration files (.baml or similar format)",
+              "Create baml_client/__init__.py for generated client exports",
+              "Set up code generation script to produce client from source",
+              "Implement client wrapper classes for BAML service interaction",
+              "Create error handling for BAML client operations",
+              "Implement client initialization and connection management",
+              "Create integration points between client and core application",
+              "Set up automated regeneration of client code in build process"
+            ],
+            "middleware": [
+              "No middleware-specific requirements - client integration only"
+            ],
+            "shared": [
+              "Define request/response models used by BAML client",
+              "Create type definitions for BAML data structures",
+              "Implement utility functions for BAML data transformation",
+              "Define constants for BAML service endpoints and configuration",
+              "Create exceptions for BAML client errors (BamlClientError, etc.)",
+              "Implement validation functions for BAML requests/responses",
+              "Create configuration data models for BAML client setup"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.maintainBamlIntegration",
+          "related_concepts": [
+            "BAML configuration",
+            "Code generation",
+            "Client-server architecture",
+            "API client patterns",
+            "Configuration management",
+            "Generated code handling",
+            "Build process integration",
+            "Type safety in generated code"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_000.5",
+          "description": "Maintain go/ directory for Go language implementation components including performance-critical code, concurrent processing modules, and Go-specific integrations with proper Go module structure",
+          "type": "sub_process",
+          "parent_id": "REQ_000",
+          "children": [],
+          "acceptance_criteria": [
+            "go/ directory exists at project root level",
+            "Directory contains valid go.mod file defining the Go module",
+            "go.sum file tracks dependency checksums",
+            "All Go implementation code is contained within this directory",
+            "Go code follows standard Go project layout conventions",
+            "Clear interfaces exist for Python-Go interoperability",
+            "Go code can be built independently of Python code",
+            "Performance-critical components are implemented in Go",
+            "Concurrent processing modules use Go's goroutines and channels",
+            "No Go code exists outside this directory",
+            "Documentation exists for building and running Go components",
+            "Integration points with Python code are well-defined"
+          ],
+          "implementation": {
+            "frontend": [
+              "No frontend components required - this is backend Go implementation"
+            ],
+            "backend": [
+              "Create/maintain go.mod with proper module name and dependencies",
+              "Organize Go code into packages following Go conventions (cmd/, pkg/, internal/)",
+              "Implement performance-critical algorithms in Go",
+              "Create concurrent processing modules using goroutines",
+              "Implement CGo bindings if Python-Go interop is needed",
+              "Create main entry points in cmd/ subdirectory if standalone binaries needed",
+              "Implement error handling following Go idioms",
+              "Create interfaces for dependency injection and testing",
+              "Implement logging using Go logging libraries",
+              "Set up build scripts or Makefile for Go compilation"
+            ],
+            "middleware": [
+              "Implement HTTP/RPC server in Go if serving as API backend",
+              "Create middleware for request processing if applicable",
+              "Implement authentication/authorization if Go handles auth"
+            ],
+            "shared": [
+              "Define Go structs for data models matching Python models",
+              "Create utility packages for common operations",
+              "Implement constants and configuration structs",
+              "Define interfaces for Go components",
+              "Create custom error types for error handling",
+              "Implement serialization/deserialization for Python-Go communication",
+              "Define protocol buffers or JSON schemas for data exchange"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "DirectoryStructure.maintainGoImplementation",
+          "related_concepts": [
+            "Go module structure",
+            "Multi-language project architecture",
+            "Performance optimization",
+            "Concurrent programming",
+            "Go-Python interoperability",
+            "CGo bindings",
+            "Go package organization",
+            "Cross-compilation"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_001",
+      "description": "The system must implement a multi-language architecture with Python as the primary language and Go support for performance-critical components",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_001.1",
+          "description": "Implement core functionality in Python within silmari_rlm_act/ package including the RLM ACT system, agent orchestration, planning pipeline integration, and context management",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "silmari_rlm_act/ package contains __init__.py with proper module exports",
+            "Core RLM ACT classes are implemented with type hints and pass mypy type checking",
+            "Agent orchestration system can initialize, manage, and terminate agents",
+            "Planning pipeline integration allows core modules to trigger and consume planning results",
+            "Context window management utilities handle context creation, updates, and retrieval",
+            "All core modules have unit tests with >80% code coverage",
+            "Package is installable via poetry/pip and all dependencies are declared in pyproject.toml",
+            "Logging is implemented using Python's logging module with configurable levels",
+            "Error handling uses custom exception classes for domain-specific errors",
+            "Configuration can be loaded from files (YAML/JSON) or environment variables",
+            "Documentation strings (docstrings) exist for all public classes and methods",
+            "Core functionality works with Python 3.8+"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Core package is backend/library code with no direct UI components"
+            ],
+            "backend": [
+              "RLM ACT core engine class with initialization, execution, and state management methods",
+              "Agent orchestration service with agent lifecycle management (create, start, stop, monitor)",
+              "Planning pipeline integration service to send requests and receive planning results",
+              "Context window manager service for managing conversation/interaction context",
+              "Event bus or message queue integration for inter-component communication",
+              "State persistence layer for saving/loading system state",
+              "Health check and monitoring endpoints for system status",
+              "Async task execution support using asyncio or threading",
+              "Resource management for memory and compute-intensive operations",
+              "Plugin/extension system for modular functionality"
+            ],
+            "middleware": [
+              "Input validation for all public API methods using pydantic or similar",
+              "Rate limiting for resource-intensive operations",
+              "Circuit breaker pattern for external service calls",
+              "Retry logic with exponential backoff for transient failures",
+              "Request context propagation for distributed tracing",
+              "Error middleware to catch and standardize exception responses"
+            ],
+            "shared": [
+              "Core data models: Agent, Task, Context, PlanningRequest, PlanningResponse, SystemState",
+              "Configuration data model with validation schemas",
+              "Result/Response wrapper types for standardized return values",
+              "Enum definitions for agent states, task statuses, error codes",
+              "Constants file for system-wide configuration values",
+              "Utility functions for serialization/deserialization (JSON, pickle)",
+              "Type aliases and protocols for interface definitions",
+              "Custom exception hierarchy: SilmariBaseException, AgentException, PipelineException, ContextException",
+              "Logger factory utility for consistent logging setup",
+              "Validation utilities for input sanitization"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "silmari_rlm_act.core.PythonCoreModule",
+          "related_concepts": [
+            "Python package structure",
+            "RLM (Reinforcement Learning Model) ACT implementation",
+            "Agent orchestration",
+            "Planning pipeline",
+            "Context window management",
+            "Module initialization",
+            "Package dependencies",
+            "Type hints and mypy compliance",
+            "Logging and error handling",
+            "Configuration management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.2",
+          "description": "Implement performance-critical components in Go language including high-throughput data processing, computation-intensive algorithms, concurrent operations, and low-latency services that require Go's performance characteristics",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "Go modules are organized under go/ directory with proper package structure",
+            "Performance-critical algorithms show measurable improvement (>2x) over Python equivalents",
+            "Concurrent operations use goroutines and channels correctly with no data races",
+            "Go code passes go vet, golint, and staticcheck without errors",
+            "Benchmark tests demonstrate performance targets are met",
+            "Memory profiling shows efficient memory usage with no significant leaks",
+            "Go components expose APIs (gRPC/HTTP/FFI) that Python can call",
+            "Error handling follows Go idioms with proper error wrapping and context",
+            "Unit tests achieve >80% code coverage",
+            "Go binaries are built with appropriate optimization flags",
+            "Cross-platform compatibility (Linux, macOS, Windows) is verified",
+            "Documentation includes performance characteristics and usage examples"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Go components are backend services with no direct UI"
+            ],
+            "backend": [
+              "High-throughput data processor service for handling large-scale data transformations",
+              "Computation engine for CPU-intensive algorithms (vector operations, matrix calculations)",
+              "Concurrent task executor using worker pool pattern with goroutines",
+              "Low-latency cache service using in-memory data structures (sync.Map, custom implementations)",
+              "Stream processor for real-time data pipeline processing",
+              "Compression/decompression service for efficient data storage",
+              "Cryptographic operations service for secure data handling",
+              "Graph traversal and search algorithms for complex relationship analysis",
+              "gRPC server or HTTP REST API for exposing Go services to Python",
+              "Message queue consumer for high-throughput event processing",
+              "Time-series data aggregation and analysis service",
+              "Connection pool manager for database or external service connections"
+            ],
+            "middleware": [
+              "Request validation middleware using struct tags and validation libraries",
+              "Authentication middleware for API endpoints (JWT validation, API keys)",
+              "Rate limiting middleware using token bucket or sliding window algorithms",
+              "Logging middleware with structured logging (logrus, zap)",
+              "Metrics collection middleware for Prometheus or similar",
+              "Recovery middleware to handle panics gracefully",
+              "Timeout middleware for long-running operations",
+              "CORS middleware if exposing HTTP endpoints"
+            ],
+            "shared": [
+              "Protocol buffer definitions for service contracts (.proto files)",
+              "Go structs for data models with JSON/protobuf tags",
+              "Error types and error handling utilities",
+              "Constants package for configuration values",
+              "Context propagation utilities for cancellation and deadlines",
+              "Sync primitives wrappers (mutexes, wait groups, once)",
+              "Memory pool utilities for reducing GC pressure",
+              "Benchmark utilities and test helpers",
+              "Configuration loader for environment variables and config files",
+              "Logging interface and logger factory",
+              "Retry utilities with exponential backoff",
+              "Circuit breaker implementation for resilience"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "go.performance.CriticalComponents",
+          "related_concepts": [
+            "Go package structure",
+            "Performance optimization",
+            "Concurrency with goroutines",
+            "Channel-based communication",
+            "CGO for Python-Go interop",
+            "Memory management",
+            "Benchmarking",
+            "Profiling",
+            "gRPC or HTTP APIs",
+            "Protocol buffers",
+            "Go build tags"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.3",
+          "description": "Manage Go module dependencies via go.mod and go.sum files, ensuring proper versioning, security updates, reproducible builds, and compatibility with the Python integration layer",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "go.mod file exists in project root with correct module path and Go version",
+            "go.sum file contains checksums for all dependencies and is committed to version control",
+            "All direct dependencies are explicitly listed in go.mod with specific versions",
+            "go mod verify passes successfully ensuring checksums are valid",
+            "go mod tidy has been run to remove unused dependencies",
+            "No dependencies have known critical security vulnerabilities (verified via go list -m -json all | govulncheck)",
+            "Dependency licenses are compatible with project license requirements",
+            "Build is reproducible across different machines with same go.mod/go.sum",
+            "Indirect dependencies are clearly separated in go.mod",
+            "Minimum Go version is specified and matches CI/CD environment",
+            "Module replacement directives (replace) are documented if used",
+            "Dependencies are periodically updated and tested for compatibility"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - Dependency management is development/build-time concern"
+            ],
+            "backend": [
+              "Dependency initialization script to set up go.mod with project module path",
+              "Automated dependency update checker (dependabot, renovate, or custom script)",
+              "Security vulnerability scanner integration in CI/CD pipeline",
+              "Build script that verifies go.sum integrity before building",
+              "Version pinning strategy for critical dependencies",
+              "Dependency audit log or change tracking system",
+              "Automated testing of dependency updates before merging",
+              "Build cache optimization for faster dependency downloads",
+              "Private module proxy configuration if using internal packages"
+            ],
+            "middleware": [
+              "Build-time validation middleware to check go.mod/go.sum integrity",
+              "Pre-commit hooks to run go mod tidy and go mod verify",
+              "CI/CD gates that fail builds on vulnerable dependencies"
+            ],
+            "shared": [
+              "Dependency documentation file listing all major dependencies and their purposes",
+              "Version constraint strategy documentation (exact versions vs. ranges)",
+              "Makefile or task runner targets for common dependency operations (update, verify, audit)",
+              "go.mod template or generator for new Go modules in the project",
+              "Dependency upgrade guidelines and testing checklist",
+              "License compliance report generation script",
+              "Dependency vulnerability report format and thresholds",
+              "Module proxy configuration for offline builds or private registries"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "go.dependencies.ModuleManagement",
+          "related_concepts": [
+            "go.mod file format",
+            "go.sum checksums",
+            "Semantic versioning",
+            "Dependency resolution",
+            "Module proxies",
+            "Vendor directory",
+            "go get command",
+            "go mod tidy",
+            "go mod verify",
+            "Dependency security scanning",
+            "License compliance"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_001.4",
+          "description": "Integrate BAML (Bayesian Approximate Machine Learning) source files and generated client code, managing the baml_src/ source definitions and baml_client/ generated Python client for ML model interactions and predictions",
+          "type": "sub_process",
+          "parent_id": "REQ_001",
+          "children": [],
+          "acceptance_criteria": [
+            "baml_src/ directory contains all BAML source files (.baml) with model definitions and prompts",
+            "baml_client/ directory contains generated Python client code that is not manually edited",
+            "Generated client code is type-safe with proper Python type hints",
+            "BAML compiler/generator can be run to regenerate client code from source",
+            "Generated client successfully connects to configured ML model endpoints",
+            "All BAML functions defined in source have corresponding client methods",
+            "Client supports both synchronous and asynchronous API calls",
+            "Streaming responses are supported for long-running model operations",
+            "Error handling captures model errors, timeout, and rate limiting",
+            "Client configuration supports multiple environments (dev, staging, production)",
+            "Model responses are validated against expected schemas",
+            "Generation process is integrated into build pipeline or documented for manual execution",
+            "Version compatibility between BAML source format and generator is verified",
+            "Client includes retry logic for transient failures"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - BAML client is backend library for ML model integration"
+            ],
+            "backend": [
+              "BAML source file management system for organizing model definitions",
+              "Code generation service/script to invoke BAML compiler and generate Python client",
+              "Model endpoint registry service for managing model URLs and API keys",
+              "Request builder service to construct BAML function calls with parameters",
+              "Response parser service to extract and validate model outputs",
+              "Streaming handler for real-time model outputs using async generators",
+              "Retry and fallback logic for model API calls",
+              "Caching layer for frequently requested model predictions",
+              "Model monitoring service to track usage, latency, and errors",
+              "Version management service for tracking BAML source and client versions",
+              "Integration adapter to bridge BAML client with core Python application",
+              "Model A/B testing framework for comparing model versions"
+            ],
+            "middleware": [
+              "Request validation middleware for BAML function parameters",
+              "Authentication middleware for model API credentials (API key injection)",
+              "Rate limiting middleware to respect model endpoint quotas",
+              "Timeout middleware for long-running model calls",
+              "Logging middleware to capture model requests and responses",
+              "Error normalization middleware to standardize model API errors",
+              "Response transformation middleware to adapt model outputs to application format"
+            ],
+            "shared": [
+              "BAML function signature types and parameter models",
+              "Model response data models with validation schemas",
+              "Configuration models for BAML client setup (endpoints, keys, timeouts)",
+              "Error types for BAML-specific errors (ModelError, TimeoutError, RateLimitError)",
+              "Constants for model names, versions, and endpoint URLs",
+              "Utility functions for BAML source file validation and linting",
+              "Code generation utilities and scripts (bash/python) to regenerate client",
+              "Mock BAML client for testing without hitting real model endpoints",
+              "Response streaming utilities and async helpers",
+              "Model performance metrics data structures",
+              "Version compatibility matrix documentation",
+              "BAML source template generators for common model patterns"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "baml.integration.ClientCodeGeneration",
+          "related_concepts": [
+            "BAML configuration and syntax",
+            "Code generation from BAML definitions",
+            "ML model inference",
+            "Type-safe ML client APIs",
+            "Model versioning",
+            "Prompt engineering",
+            "Schema validation",
+            "Client regeneration workflow",
+            "BAML compiler",
+            "Model endpoint configuration",
+            "Streaming responses",
+            "Error handling for ML calls"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_002",
+      "description": "The system must provide a CLI interface through the commands/ directory for command-line operations and interactions",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_002.1",
+          "description": "Implement CLI command handler infrastructure in commands/ directory to provide structured command execution for the orchestration system",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Commands directory contains Python modules (not just markdown) for each command type",
+            "Each command module implements a consistent interface with execute() method",
+            "Command handlers accept arguments via argparse.Namespace or dict",
+            "Command handlers return structured results with success/failure status",
+            "All commands validate input parameters before execution",
+            "Commands provide descriptive error messages on failure",
+            "Each command implements --help flag with usage examples",
+            "Command handlers are discoverable via directory scanning or registration",
+            "Commands support both interactive and non-interactive modes",
+            "Exit codes follow Unix conventions (0=success, 1-255=various failures)"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - CLI is terminal-based interface"
+            ],
+            "backend": [
+              "Create commands/__init__.py with command registration system",
+              "Create commands/base.py with BaseCommand abstract class defining interface",
+              "Implement commands/status.py for project status queries",
+              "Implement commands/next.py for next feature selection",
+              "Implement commands/verify.py for test/build verification",
+              "Implement commands/debug.py for debugging assistance",
+              "Implement commands/spec.py for spec retrieval",
+              "Implement commands/blockers.py for blocked features management",
+              "Implement commands/revert.py for rollback operations",
+              "Add argument parsing utilities in commands/args.py",
+              "Add output formatting utilities in commands/output.py",
+              "Create commands/registry.py for dynamic command loading"
+            ],
+            "middleware": [
+              "Implement command authentication/authorization if needed",
+              "Add command execution logging middleware",
+              "Add timing/profiling middleware for performance tracking",
+              "Implement dry-run mode for safe command testing"
+            ],
+            "shared": [
+              "Define CommandResult data model with success, message, data, exit_code",
+              "Define CommandContext data model with project_path, config, session_state",
+              "Create utility functions for colored terminal output (already exists in orchestrator.py Colors class)",
+              "Create utility functions for progress bars and status indicators",
+              "Define command metadata schema (name, description, arguments, examples)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.implement_command_handlers",
+          "related_concepts": [
+            "Command pattern design",
+            "CLI argument parsing",
+            "Error handling and validation",
+            "Command registration and discovery",
+            "Help system and documentation",
+            "Exit code management"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.2",
+          "description": "Provide unified command-line interface for system operations through a main entry point that routes to appropriate commands and orchestrators",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "Main CLI entry point script exists (e.g., cli.py or __main__.py)",
+            "CLI supports subcommand architecture (silmari <command> <args>)",
+            "CLI automatically discovers and registers commands from commands/ directory",
+            "CLI provides top-level --help showing all available commands",
+            "CLI supports global flags (--verbose, --debug, --project, --config)",
+            "CLI reads configuration from pyproject.toml [tool.silmari] section",
+            "CLI supports environment variables for configuration (SILMARI_*)",
+            "CLI provides version information (--version flag)",
+            "CLI handles keyboard interrupts gracefully (Ctrl+C)",
+            "CLI provides meaningful exit codes for scripting integration",
+            "CLI supports both short (-v) and long (--verbose) flags",
+            "CLI validates project structure before executing commands"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - CLI is terminal-based interface"
+            ],
+            "backend": [
+              "Create silmari_rlm_act/cli.py as main entry point",
+              "Implement main() function with argparse for command routing",
+              "Create config loader that reads from pyproject.toml, env vars, and CLI args",
+              "Implement command discovery mechanism scanning commands/ directory",
+              "Create dispatcher that routes commands to appropriate handlers",
+              "Add global exception handler for graceful error reporting",
+              "Implement signal handlers for SIGINT, SIGTERM",
+              "Add pre-flight checks (project validation, dependency checks)",
+              "Create help formatter for consistent documentation display",
+              "Implement command aliases (e.g., 's' for 'status')",
+              "Add shell completion generation (bash, zsh, fish)",
+              "Create logging configuration based on verbosity level"
+            ],
+            "middleware": [
+              "Add request context middleware to inject project_path, config into commands",
+              "Implement audit logging middleware for command execution tracking",
+              "Add performance profiling middleware with --profile flag",
+              "Create transaction middleware for rollback on failure"
+            ],
+            "shared": [
+              "Define CLIConfig data model with project settings",
+              "Define GlobalOptions data model for --verbose, --debug, etc.",
+              "Create constants for exit codes (SUCCESS=0, ERROR=1, INTERRUPTED=130)",
+              "Create utility for loading .env files",
+              "Define default configuration values",
+              "Create validation utilities for project structure checks"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.provide_command_line_interface",
+          "related_concepts": [
+            "CLI routing and dispatching",
+            "Subcommand architecture",
+            "Configuration management",
+            "Environment variable handling",
+            "Interactive vs batch mode",
+            "Shell integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.3",
+          "description": "Ensure CLI integrates with and supports orchestrator.py as the main orchestrator script for autonomous project building",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "orchestrator.py remains functional as standalone script",
+            "CLI provides 'silmari orchestrate' subcommand that wraps orchestrator.py functionality",
+            "CLI can invoke orchestrator.py with all original arguments preserved",
+            "Orchestrator output is captured and formatted by CLI when invoked through CLI",
+            "Session logs from orchestrator are accessible via CLI commands",
+            "Feature list management commands integrate with orchestrator's feature_list.json",
+            "CLI provides commands to query orchestrator session status",
+            "CLI can start, stop, and resume orchestrator sessions",
+            "MCP setup workflow is accessible through CLI",
+            "Orchestrator configuration can be set via CLI flags or config file"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - CLI is terminal-based interface"
+            ],
+            "backend": [
+              "Create commands/orchestrate.py wrapping orchestrator.py functionality",
+              "Implement subprocess wrapper to execute orchestrator.py with arguments",
+              "Create session manager to track running orchestrator sessions",
+              "Implement log parser to extract structured data from orchestrator output",
+              "Create feature_list.json reader/writer utilities",
+              "Implement status command to show orchestrator progress",
+              "Create resume command to continue interrupted sessions",
+              "Implement MCP setup command wrapper",
+              "Add orchestrator configuration management",
+              "Create integration tests ensuring orchestrator.py compatibility",
+              "Implement signal forwarding from CLI to orchestrator subprocess"
+            ],
+            "middleware": [
+              "Add orchestrator session tracking middleware",
+              "Implement orchestrator output streaming middleware",
+              "Add orchestrator process health check middleware"
+            ],
+            "shared": [
+              "Define OrchestratorSession data model with session_id, start_time, feature_id",
+              "Define FeatureStatus data model matching feature_list.json schema",
+              "Define OrchestratorConfig data model with model, max_sessions, timeout",
+              "Create utility functions to parse orchestrator log files",
+              "Create utility to check Claude CLI availability",
+              "Define constants for orchestrator session states"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.support_orchestrator_py",
+          "related_concepts": [
+            "Orchestration workflow",
+            "Session management",
+            "Feature tracking",
+            "Claude Code integration",
+            "MCP (Model Context Protocol) setup",
+            "Git integration"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.4",
+          "description": "Ensure CLI integrates with and supports loop-runner.py for continuous autonomous execution until all features are complete",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "loop-runner.py remains functional as standalone script",
+            "CLI provides 'silmari loop' subcommand that wraps loop-runner.py",
+            "CLI can start loop with all original arguments (--model, --max-sessions, --qa-mode)",
+            "Loop status is queryable through CLI while running",
+            "CLI can pause and resume loops",
+            "Blocked features are accessible via CLI commands",
+            "CLI can unblock features programmatically",
+            "Feature validation errors are reported through CLI",
+            "QA mode (full/lite) is configurable via CLI",
+            "Metrics reports are accessible via CLI after loop completion"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - CLI is terminal-based interface"
+            ],
+            "backend": [
+              "Create commands/loop.py wrapping loop-runner.py functionality",
+              "Implement loop process manager for background execution",
+              "Create feature validation command using loop-runner's validation logic",
+              "Implement blocked features viewer and unblocking commands",
+              "Create metrics report command wrapper",
+              "Implement loop pause/resume functionality",
+              "Add topological sort utilities for dependency visualization",
+              "Create QA mode configuration management",
+              "Implement circular dependency detection wrapper",
+              "Add loop health monitoring and auto-restart on failure"
+            ],
+            "middleware": [
+              "Add loop process monitoring middleware",
+              "Implement feature validation middleware for pre-flight checks",
+              "Add metrics collection middleware"
+            ],
+            "shared": [
+              "Define LoopStatus data model with session, progress, blocked_count",
+              "Define FeatureValidationResult with valid, errors, warnings",
+              "Define BlockedFeature data model matching loop-runner schema",
+              "Define LoopMetrics data model with completion rate, failure rate",
+              "Create utility for feature_list.json schema validation",
+              "Define constants for QA modes and complexity levels"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.support_loop_runner_py",
+          "related_concepts": [
+            "Autonomous loops",
+            "Feature validation",
+            "Dependency resolution",
+            "Complexity detection",
+            "QA automation",
+            "Metrics tracking"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_002.5",
+          "description": "Ensure CLI integrates with and supports planning_orchestrator.py for planning pipeline operations including research, decomposition, and beads integration",
+          "type": "sub_process",
+          "parent_id": "REQ_002",
+          "children": [],
+          "acceptance_criteria": [
+            "planning_orchestrator.py remains functional as standalone script",
+            "CLI provides 'silmari plan' subcommand wrapping planning_orchestrator",
+            "CLI supports interactive and non-interactive planning modes",
+            "Resume functionality is accessible via CLI with checkpoint auto-detection",
+            "Research file selection is streamlined through CLI",
+            "Plan file selection supports path resolution (full, relative, filename)",
+            "Checkpoint cleanup is manageable through CLI",
+            "Beads integration commands are exposed through CLI",
+            "Planning pipeline steps can be executed individually via CLI",
+            "Prerequisite checks (claude, bd CLIs) are performed before execution"
+          ],
+          "implementation": {
+            "frontend": [
+              "N/A - CLI is terminal-based interface"
+            ],
+            "backend": [
+              "Create commands/plan.py wrapping planning_orchestrator.py",
+              "Implement research prompt collection with multi-line support",
+              "Create checkpoint management commands (list, clean, resume)",
+              "Implement file discovery utilities for thoughts/ directory",
+              "Create resume workflow with auto-detection and manual selection",
+              "Implement prerequisite checker for external dependencies",
+              "Add step-by-step execution mode for planning pipeline",
+              "Create beads integration wrapper commands",
+              "Implement planning status viewer",
+              "Add validation for research and plan file formats"
+            ],
+            "middleware": [
+              "Add planning session tracking middleware",
+              "Implement checkpoint save/load middleware",
+              "Add prerequisite validation middleware"
+            ],
+            "shared": [
+              "Define PlanningCheckpoint data model matching checkpoint schema",
+              "Define PlanningStatus with phase, artifacts, timestamp",
+              "Define ResearchPrompt data model with text, ticket_id, auto_approve",
+              "Define PlanningConfig with resume_step, research_path, plan_path",
+              "Create utility for resolving file paths (full/relative/filename)",
+              "Create utility for thoughts/ directory file discovery",
+              "Define constants for planning steps and phases"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "CLI.support_planning_orchestrator_py",
+          "related_concepts": [
+            "Planning pipeline",
+            "Research phase",
+            "Requirement decomposition",
+            "Phase decomposition",
+            "Beads issue tracking",
+            "Checkpoint management"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_003",
+      "description": "The system must manage context window arrays and data structures through the context_window_array/ directory for context management utilities",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_003.1",
+          "description": "Implement comprehensive context window management in context_window_array/ directory",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "CentralContextStore provides add(), get(), contains(), get_all(), get_by_type() methods for context entry CRUD operations",
+            "Unique entry IDs are auto-generated in format 'ctx_XXXXXX' using sequential counter",
+            "ContextEntry dataclass validates all required fields (id, entry_type, source) and ensures at least content or summary exists",
+            "Eight EntryType enum values supported: FILE, COMMAND, COMMAND_RESULT, TASK, TASK_RESULT, SEARCH_RESULT, SUMMARY, CONTEXT_REQUEST",
+            "Entry compression removes content field while retaining summary, marked by compressed=True flag",
+            "compress() and compress_multiple() methods enable selective entry compression",
+            "TTL (time-to-live) system decrements on each conversation turn and auto-removes expired entries (ttl=0)",
+            "process_turn() method orchestrates TTL decrement and cleanup_expired() in single operation",
+            "Command/result separation pattern: add_command_result() can discard command while retaining result",
+            "Entry relationships tracked via parent_id and derived_from fields with validation",
+            "Entry references list maintained and validated as string array",
+            "Priority field (integer) enables entry ordering with higher values indicating greater importance",
+            "searchable flag controls whether entry is indexed for search (default: true)",
+            "ContextEntry.to_dict() serializes to JSON-compatible dictionary with ISO timestamp format",
+            "ContextEntry.from_dict() deserializes from dictionary with proper type parsing",
+            "Store maintains internal _id_counter for unique ID generation across session",
+            "Multiple entry removal via remove_multiple() returns count of actually removed entries",
+            "Entry validation prevents empty id, empty source, and negative TTL values",
+            "Store integrates with VectorSearchIndex for automatic indexing of searchable entries"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend data structure module"
+            ],
+            "backend": [
+              "CentralContextStore class with dictionary-based entry storage (_entries: dict[str, ContextEntry])",
+              "ContextEntry dataclass with validation in __post_init__ method",
+              "EntryType enum with from_string() class method for string-to-enum conversion",
+              "ID generation method _generate_id() maintaining sequential counter",
+              "TTL processing methods: decrement_ttl(), is_expired(), process_ttl(), cleanup_expired()",
+              "Entry compression methods: compress(), can_compress(), is_compressed()",
+              "Entry retrieval methods with filtering: get_by_type(), get_compressed(), get_uncompressed(), get_expired(), get_expiring_soon()",
+              "Bulk operations: remove_multiple(), compress_multiple()",
+              "Command-result pattern: add_command_result() with keep_command parameter",
+              "TTL extension: extend_ttl() to add additional turns to entry lifetime",
+              "Entry content access: get_content(), get_summary(), get_content_or_summary() with ContextCompressedError handling"
+            ],
+            "middleware": [
+              "Entry validation logic in ContextEntry dataclass validators",
+              "Exception handling: ContextCompressedError for accessing compressed content, ValueError for validation failures",
+              "Type conversion: datetime to/from ISO format, EntryType string to/from enum",
+              "Entry bounds checking in validation methods"
+            ],
+            "shared": [
+              "ContextEntry dataclass in models.py with all fields and validation",
+              "EntryType enum in models.py with 8 entry types",
+              "ContextCompressedError, ContextWindowArrayError custom exceptions in exceptions.py",
+              "Type hints using Optional, list, dict, datetime from typing and datetime modules",
+              "Dataclass field factories for mutable defaults (references, derived_from)",
+              "Timestamp utilities: datetime.now() and datetime.isoformat()/fromisoformat()"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ContextWindowArray.contextManagement",
+          "related_concepts": [
+            "Context entry lifecycle management",
+            "Entry compression and TTL",
+            "CRUD operations on context store",
+            "Entry ID generation and uniqueness",
+            "Entry type categorization (FILE, COMMAND, TASK, etc.)",
+            "Parent-child entry relationships",
+            "Entry reference tracking",
+            "Priority-based entry ordering"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.2",
+          "description": "Provide data structure utilities for context handling including search, working context views, and implementation context views",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "VectorSearchIndex implements TF-IDF-based vector search with cosine similarity scoring",
+            "Search tokenization uses regex pattern '\\b[a-zA-Z_][a-zA-Z0-9_]*\\b' for word extraction",
+            "Vocabulary dynamically updated when new entries added, triggering vector rebuild if needed",
+            "search() method returns results sorted by similarity score in descending order (guaranteed contract)",
+            "Search supports filtering by entry_types list and min_score threshold",
+            "Search results limited by max_results parameter (default: 10)",
+            "VectorSearchIndex maintains three mappings: _entry_texts, _entry_types, _vectors for efficient lookup",
+            "WorkingLLMContext.build() returns summary-only views (content always None) for orchestrator LLM",
+            "ImplementationLLMContext.build() returns full-content views for implementation LLM",
+            "Context views include all metadata: id, entry_type, source, references, parent_id, priority, compressed flag",
+            "Token estimation uses simple heuristic: text length divided by 4 characters per token",
+            "Working context filters non-searchable entries by default unless include_non_searchable=True",
+            "Working context sorts entries by priority descending before building views",
+            "Implementation context validates entry count against max_entries limit (default: 200)",
+            "SearchResultView and StoreSearchResult include similarity score field for ranking",
+            "ContextEntryView (working) has content: None type annotation enforcing no content exposure",
+            "ImplementationEntryView has content: Optional[str] allowing full content access",
+            "WorkingContext dataclass includes entries list, total_count, and summary_tokens fields",
+            "ImplementationContext dataclass includes entries list, entry_count, total_tokens, and entry_ids fields",
+            "Search integration: WorkingLLMContext.search() delegates to store's search with include_content=False"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend utility module"
+            ],
+            "backend": [
+              "VectorSearchIndex class with numpy-based vector operations",
+              "Tokenization method _tokenize() with regex word boundary detection",
+              "Vector computation: _compute_vector() with TF counting and L2 normalization",
+              "Vocabulary management: _rebuild_vocabulary() when new terms detected",
+              "Search method with cosine similarity: np.dot(query_vector, entry_vector)",
+              "WorkingLLMContext class wrapping CentralContextStore for summary views",
+              "ImplementationLLMContext class wrapping CentralContextStore for full content views",
+              "View transformation methods: _entry_to_view() converting ContextEntry to view types",
+              "Token estimation method: _estimate_tokens() with 4 chars/token heuristic",
+              "Context building methods: build() with filtering and sorting logic",
+              "Search delegation methods in both context classes calling store.search()",
+              "Entry filtering logic: by entry_types, by searchable flag, by priority"
+            ],
+            "middleware": [
+              "Bounds validation in ImplementationLLMContext.validate_bounds()",
+              "EntryBoundsError exception raised when entry count exceeds max_entries",
+              "Empty query handling: return empty list for None or whitespace-only queries",
+              "None-safe entry lookup with continue on missing entries",
+              "Vector normalization before storage to ensure unit length for cosine similarity"
+            ],
+            "shared": [
+              "SearchResult dataclass with entry_id, score, entry_type fields",
+              "StoreSearchResult dataclass with full metadata plus score",
+              "ContextEntryView dataclass with content: None annotation",
+              "ImplementationEntryView dataclass with content: Optional[str] annotation",
+              "WorkingContext dataclass with summary view aggregation",
+              "ImplementationContext dataclass with full content aggregation",
+              "SearchResultView dataclass for working context search results",
+              "numpy dependency for vector operations (np.ndarray, np.zeros, np.dot, np.linalg.norm)",
+              "Counter from collections for term frequency counting",
+              "re module for regex tokenization"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ContextWindowArray.dataStructureUtilities",
+          "related_concepts": [
+            "Vector search with TF-IDF similarity",
+            "Working LLM summary-only context views",
+            "Implementation LLM full-content context views",
+            "Token estimation for context sizing",
+            "Entry view transformations",
+            "Context filtering by type and searchability",
+            "Search result ranking by similarity score",
+            "Context snapshot generation"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_003.3",
+          "description": "Support context window array operations including batching, batch execution, context request/release lifecycle management",
+          "type": "sub_process",
+          "parent_id": "REQ_003",
+          "children": [],
+          "acceptance_criteria": [
+            "TaskBatcher groups tasks into batches where total unique entries stays within max_entries_per_batch (default: 200)",
+            "create_batches() processes tasks sequentially, starting new batch when adding task would exceed limit",
+            "Batches support optional sort_by_priority to process high-priority tasks first",
+            "TaskSpec dataclass defines task with id, description, required_entry_ids list, and priority",
+            "TaskBatch dataclass includes batch_id, tasks list, unique_entry_ids set, and exceeds_limit flag",
+            "Single task exceeding entry limit creates individual batch with exceeds_limit=True flag",
+            "Batch IDs generated in format 'batch_XXXX' using sequential counter",
+            "ImplementationLLMContext.request() context manager acquires and auto-releases entries",
+            "Context manager guarantees release_context() called in finally block even on exceptions",
+            "Active entry tracking: _active_entries set maintains currently in-use entry IDs",
+            "request_context() marks entries as in-use and increments _total_requests counter",
+            "release_context() removes entries from active set and increments _total_releases counter",
+            "get_usage_stats() returns dictionary with active_count, total_requests, total_releases",
+            "is_in_use() checks if specific entry ID currently in active set",
+            "get_active_entries() returns copy of active set to prevent external modification",
+            "split_into_batches() divides entry ID list into valid batches respecting max_entries limit",
+            "BatchExecutor wraps ImplementationLLMContext for executing task batches with proper lifecycle",
+            "execute_batch() method acquires context, calls handler, collects results, releases context",
+            "BatchResult dataclass captures batch_id, task_results dict, success flag, error, duration_ms, entry_count, total_tokens",
+            "execute_all() processes multiple batches with continue_on_error parameter controlling failure handling",
+            "BatchHandler type alias defines signature: Callable[[ImplementationContext, list[TaskSpec]], dict[str, Any]]",
+            "Timing captured using time.perf_counter() for millisecond precision",
+            "get_all_task_results() aggregates results from multiple batch executions into single dictionary"
+          ],
+          "implementation": {
+            "frontend": [
+              "Not applicable - backend operation module"
+            ],
+            "backend": [
+              "TaskBatcher class with create_batches() batching algorithm",
+              "Batching algorithm: iterate tasks, track current_entries set, start new batch when combined_entries exceeds limit",
+              "_calculate_batch_entries() helper computing union of current entries and task entries",
+              "_generate_batch_id() for unique batch identifier generation",
+              "ImplementationLLMContext lifecycle methods: request_context(), release_context()",
+              "Context manager implementation using @contextmanager decorator and yield",
+              "Active entry tracking with set operations: add(), discard(), clear()",
+              "Usage counters: _total_requests, _total_releases incremented on operations",
+              "BatchExecutor class wrapping store and ImplementationLLMContext",
+              "execute_batch() orchestrating: context acquisition -> handler call -> result collection -> timing",
+              "execute_all() loop with error handling based on continue_on_error flag",
+              "get_all_task_results() aggregating task_results from BatchResult list",
+              "Try-except-finally structure ensuring context release even on handler exceptions",
+              "with statement support via context manager protocol (__enter__/__exit__ via contextmanager)"
+            ],
+            "middleware": [
+              "Bounds validation before context acquisition: validate_bounds() check",
+              "EntryBoundsError exception handling in batch execution",
+              "Generic exception catching in execute_batch() with result.error capture",
+              "Continue-on-error logic: break loop or continue based on parameter",
+              "Skip validation option: skip_validation parameter bypassing bounds check"
+            ],
+            "shared": [
+              "TaskSpec dataclass with id, description, required_entry_ids, priority fields",
+              "TaskBatch dataclass with batch_id, tasks, unique_entry_ids, exceeds_limit, entry_count property",
+              "BatchResult dataclass with execution metadata and results",
+              "BatchHandler type alias: Callable[[ImplementationContext, list[TaskSpec]], dict[str, Any]]",
+              "contextlib.contextmanager decorator for context manager implementation",
+              "typing.Generator for context manager yield type annotation",
+              "time module for performance timing with perf_counter()",
+              "DEFAULT_MAX_ENTRIES constant set to 200",
+              "EntryBoundsError exception from exceptions.py",
+              "ImplementationContext and ImplementationEntryView from implementation_context.py"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "ContextWindowArray.arrayOperations",
+          "related_concepts": [
+            "Task batching with entry limits",
+            "Implementation context lifecycle",
+            "Context request and release tracking",
+            "Active entry management",
+            "Batch execution with context manager",
+            "Task specification and priority",
+            "Entry deduplication across tasks",
+            "Batch size validation and splitting"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_004",
+      "description": "The system must maintain separate directories for build artifacts (dist/), runtime output (output/), and development resources (tests/, docs/, thoughts/) to isolate different types of project files",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_004.1",
+          "description": "Store distribution builds and compiled packages in dist/ directory with proper organization and cleanup mechanisms",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "dist/ directory exists at project root and is gitignored except for .gitkeep",
+            "Build process automatically outputs compiled Python packages (.whl, .tar.gz) to dist/",
+            "Build process outputs compiled Go binaries to dist/bin/ subdirectory",
+            "BAML compiled artifacts are stored in dist/baml/ subdirectory",
+            "Each build includes version number in artifact filename (e.g., silmari-1.0.0.whl)",
+            "Build script includes clean command to remove all dist/ contents except .gitkeep",
+            "dist/ directory structure includes subdirectories: bin/, packages/, baml/",
+            "Build metadata file (build-info.json) is generated in dist/ with timestamp, version, commit hash",
+            "Symbolic link 'latest' points to most recent build artifacts",
+            "Build process validates artifacts before placing in dist/ (checksums, integrity)",
+            "Documentation exists explaining dist/ structure and artifact types",
+            "Build logs are stored in dist/logs/ for troubleshooting"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Build orchestration script that creates dist/ directory structure",
+              "Python package build command using poetry build or setuptools",
+              "Go build command with output targeting dist/bin/",
+              "BAML compilation step with output to dist/baml/",
+              "Artifact versioning logic reading from pyproject.toml or git tags",
+              "Build metadata generation service creating build-info.json",
+              "Checksum validation service for artifact integrity",
+              "Cleanup service to remove old builds (optional retention policy)"
+            ],
+            "middleware": [
+              "Build pipeline validation ensuring artifacts are complete",
+              "Permission checks ensuring dist/ is writable",
+              "Pre-build hooks to clean dist/ if requested"
+            ],
+            "shared": [
+              "BuildArtifact data model (filename, version, type, checksum, timestamp)",
+              "BuildMetadata data model (version, commit_hash, branch, timestamp, builder)",
+              "Path constants for dist/ subdirectories",
+              "Utility function to generate artifact filenames with versions",
+              "Utility function to create symbolic links to latest builds",
+              "File integrity utilities (checksum calculation and verification)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "BuildSystem.configureDist",
+          "related_concepts": [
+            "build artifacts",
+            "package distribution",
+            "build automation",
+            "artifact versioning",
+            "build cleanup",
+            "CI/CD pipeline",
+            "deployment packages"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.2",
+          "description": "Store generated output files and runtime artifacts in output/ directory with organized subdirectories for different output types and automatic cleanup",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "output/ directory exists at project root and is gitignored except for .gitkeep",
+            "output/ directory structure includes subdirectories: logs/, planning/, contexts/, agents/, temp/",
+            "Pipeline execution results are stored in output/planning/ with timestamped subdirectories",
+            "Agent execution logs and results are stored in output/agents/ organized by agent name",
+            "Context window arrays are written to output/contexts/ with unique identifiers",
+            "Application logs are written to output/logs/ with daily rotation (YYYY-MM-DD.log)",
+            "Temporary runtime files are stored in output/temp/ and cleaned up after execution",
+            "Each output file includes metadata header (timestamp, execution_id, component)",
+            "Output retention policy automatically removes files older than 30 days (configurable)",
+            "Output directory size is monitored and warnings issued if exceeds threshold (1GB default)",
+            "README.md in output/ directory explains subdirectory purposes",
+            "Utility commands exist to clean output directory: clean-all, clean-logs, clean-temp",
+            "Output files use consistent naming convention: {component}_{timestamp}_{id}.{ext}"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Output directory initialization service creating subdirectory structure",
+              "Logging service configured to write to output/logs/ with rotation",
+              "Pipeline output writer service storing planning results in output/planning/",
+              "Agent output writer service storing agent results in output/agents/",
+              "Context window serialization service writing to output/contexts/",
+              "Temporary file manager for output/temp/ with automatic cleanup",
+              "Output retention service with scheduled cleanup of old files",
+              "Directory size monitoring service with configurable thresholds",
+              "Output metadata generator adding headers to output files",
+              "Cleanup command implementations (clean-all, clean-logs, clean-temp)"
+            ],
+            "middleware": [
+              "Output path validation ensuring writes go to correct subdirectories",
+              "Permission checks ensuring output/ is writable",
+              "File size limits to prevent individual files from growing too large",
+              "Output interception middleware to capture and redirect all output"
+            ],
+            "shared": [
+              "OutputFile data model (path, component, timestamp, execution_id, metadata)",
+              "OutputMetadata data model (timestamp, execution_id, component, type, size)",
+              "Path constants for output/ subdirectories",
+              "Utility function to generate timestamped output filenames",
+              "Utility function to create subdirectories with proper permissions",
+              "File rotation utilities for log management",
+              "Retention policy configuration (max_age_days, max_size_gb)",
+              "Output stream wrapper for consistent formatting"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "RuntimeOutput.manageOutputDirectory",
+          "related_concepts": [
+            "runtime artifacts",
+            "log management",
+            "execution results",
+            "pipeline output",
+            "context windows",
+            "agent execution records",
+            "temporary files",
+            "output retention"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.3",
+          "description": "Maintain comprehensive test suite and test files in tests/ directory with organized structure for unit, integration, and end-to-end tests",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "tests/ directory exists at project root with subdirectories: unit/, integration/, e2e/, fixtures/",
+            "tests/ directory structure mirrors silmari_rlm_act/ package structure for unit tests",
+            "Each test file follows naming convention: test_{module_name}.py",
+            "Test fixtures are stored in tests/fixtures/ with subdirectories by data type",
+            "conftest.py files exist at each level providing shared fixtures and configuration",
+            "Unit tests in tests/unit/ have >80% code coverage for core modules",
+            "Integration tests in tests/integration/ validate cross-component interactions",
+            "End-to-end tests in tests/e2e/ validate complete pipeline execution",
+            "Test data files (JSON, YAML, sample contexts) are stored in tests/fixtures/data/",
+            "Mock configurations are stored in tests/fixtures/mocks/",
+            "pytest.ini at root configures test discovery, markers, and coverage",
+            "README.md in tests/ directory explains test organization and running instructions",
+            "Each test module includes docstring explaining what component it tests",
+            "Test helpers and utilities are in tests/helpers/ for reuse",
+            "Performance benchmarks are in tests/benchmarks/ for performance-critical code"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Test directory initialization script creating standard structure",
+              "Unit test templates for common test patterns",
+              "Integration test framework setup with test database/services",
+              "End-to-end test orchestrator running full pipeline scenarios",
+              "Fixture factory services generating test data programmatically",
+              "Mock service generator creating consistent mocks for external dependencies",
+              "Test coverage reporting service integrated with pytest-cov",
+              "Test discovery and organization validation script",
+              "Test documentation generator creating test inventories"
+            ],
+            "middleware": [
+              "Test isolation middleware ensuring tests don't affect each other",
+              "Test database setup/teardown for integration tests",
+              "Mock service router for redirecting external calls during tests"
+            ],
+            "shared": [
+              "TestFixture data model defining fixture structure and loading",
+              "MockConfiguration data model for consistent mock definitions",
+              "Test utility functions (create_test_context, create_test_agent, etc.)",
+              "Assertion helpers for common validation patterns",
+              "Test data builders for creating complex test objects",
+              "Path constants for test directory structure",
+              "Test markers definitions (unit, integration, e2e, slow, etc.)",
+              "Common pytest fixtures (sample contexts, agents, configurations)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "TestSuite.maintainTestDirectory",
+          "related_concepts": [
+            "test organization",
+            "unit testing",
+            "integration testing",
+            "test fixtures",
+            "test data",
+            "test coverage",
+            "pytest framework",
+            "test configuration",
+            "mocking and stubbing"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.4",
+          "description": "Maintain comprehensive project documentation in docs/ directory with organized structure for different documentation types and automated generation where possible",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "docs/ directory exists at project root with subdirectories: api/, architecture/, guides/, tutorials/, reference/",
+            "API documentation in docs/api/ is auto-generated from docstrings using Sphinx or similar",
+            "Architecture documentation in docs/architecture/ includes system diagrams and design decisions",
+            "User guides in docs/guides/ cover installation, configuration, and usage",
+            "Developer guides in docs/guides/development/ cover contributing, testing, and development setup",
+            "Tutorial documentation in docs/tutorials/ provides step-by-step learning paths",
+            "Reference documentation in docs/reference/ includes configuration options and CLI commands",
+            "docs/index.md serves as main entry point with navigation to all sections",
+            "Each documentation section includes README.md explaining its contents",
+            "Documentation follows consistent markdown formatting with frontmatter metadata",
+            "Code examples in documentation are tested and validated",
+            "Documentation build process generates static site (optional: MkDocs, Docusaurus)",
+            "Documentation includes search functionality for easy navigation",
+            "Changelog.md in docs/ tracks version history and changes",
+            "Documentation versioning strategy matches software versioning (if multiple versions supported)"
+          ],
+          "implementation": {
+            "frontend": [
+              "Documentation website static site generation configuration",
+              "Navigation structure for documentation sections",
+              "Search functionality for documentation content",
+              "Syntax highlighting for code examples",
+              "Responsive layout for documentation viewing"
+            ],
+            "backend": [
+              "Documentation generation script for API docs from docstrings",
+              "Documentation build pipeline (Sphinx, MkDocs, or similar)",
+              "Code example validation service testing embedded code",
+              "Documentation link checker validating internal and external links",
+              "Documentation versioning service managing multiple doc versions",
+              "Changelog generator from git history and commit messages",
+              "Documentation search indexer for full-text search",
+              "Diagram generation service for architecture diagrams (Mermaid, PlantUML)"
+            ],
+            "middleware": [
+              "Documentation request router for versioned docs",
+              "Documentation access logging for usage analytics"
+            ],
+            "shared": [
+              "DocumentationPage data model (title, path, section, version, metadata)",
+              "DocumentationSection data model defining doc structure",
+              "Path constants for documentation subdirectories",
+              "Markdown formatting utilities and validators",
+              "Code example extractor and runner for validation",
+              "Documentation template generators for consistent formatting",
+              "Frontmatter parser for documentation metadata",
+              "Cross-reference resolver for internal documentation links",
+              "Documentation configuration (theme, plugins, navigation structure)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "Documentation.maintainDocsDirectory",
+          "related_concepts": [
+            "documentation organization",
+            "API documentation",
+            "architecture documentation",
+            "user guides",
+            "developer guides",
+            "documentation generation",
+            "markdown formatting",
+            "documentation versioning",
+            "documentation search"
+          ],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_004.5",
+          "description": "Maintain research documents, notes, and knowledge base in thoughts/ directory with structured organization for different research topics and decision records",
+          "type": "sub_process",
+          "parent_id": "REQ_004",
+          "children": [],
+          "acceptance_criteria": [
+            "thoughts/ directory exists at project root with subdirectories: research/, decisions/, investigations/, notes/",
+            "Research documents follow standardized template with frontmatter (date, researcher, topic, status)",
+            "Decision records follow ADR format (context, decision, consequences) in thoughts/decisions/",
+            "Investigation notes in thoughts/investigations/ document bug research and problem-solving",
+            "General notes in thoughts/notes/ capture miscellaneous ideas and observations",
+            "Each document includes metadata: date, author, tags, status (draft/in-progress/complete)",
+            "Index file (INDEX.md) in thoughts/ lists all documents with summaries and links",
+            "Documents use consistent naming: YYYY-MM-DD-topic-name.md or sequential ADR numbering",
+            "Tag-based organization allows cross-referencing related documents",
+            "Research documents include 'Research Question', 'Summary', and 'Findings' sections",
+            "Decision records are immutable once finalized (status: accepted/rejected/superseded)",
+            "thoughts/ directory includes README.md explaining organization and templates",
+            "Templates directory (thoughts/templates/) provides document templates for each type",
+            "Search and indexing capability allows finding documents by topic or tag",
+            "Git commit references link thoughts to corresponding code changes where applicable"
+          ],
+          "implementation": {
+            "frontend": [],
+            "backend": [
+              "Knowledge base indexing service scanning thoughts/ for metadata",
+              "Document template generator creating new documents from templates",
+              "Index generator service creating/updating INDEX.md automatically",
+              "Tag extraction service parsing frontmatter and building tag index",
+              "Search service for full-text search across knowledge base",
+              "Cross-reference validator ensuring links between documents are valid",
+              "Document status tracker monitoring draft/in-progress/complete lifecycle",
+              "ADR numbering service for sequential decision record numbering",
+              "Git integration service linking documents to relevant commits"
+            ],
+            "middleware": [
+              "Document validation middleware ensuring proper frontmatter format",
+              "Template enforcement for specific document types"
+            ],
+            "shared": [
+              "ThoughtDocument data model (path, title, date, author, tags, status, type)",
+              "ResearchDocument data model extending ThoughtDocument with research-specific fields",
+              "DecisionRecord data model (ADR structure with context, decision, consequences)",
+              "InvestigationNote data model for bug research documentation",
+              "DocumentMetadata data model (frontmatter structure)",
+              "Path constants for thoughts/ subdirectories",
+              "Template definitions for each document type",
+              "Frontmatter parser and validator",
+              "Tag management utilities (extract, validate, index)",
+              "Document naming convention utilities",
+              "Cross-reference link resolver",
+              "Status transition rules (draft -> in-progress -> complete)"
+            ]
+          },
+          "testable_properties": [],
+          "function_id": "KnowledgeBase.maintainThoughtsDirectory",
+          "related_concepts": [
+            "knowledge management",
+            "decision records",
+            "research documentation",
+            "architectural decision records (ADR)",
+            "investigation notes",
+            "knowledge organization",
+            "metadata tagging",
+            "research history",
+            "collaborative knowledge"
+          ],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_005",
+      "description": "The system must integrate BAML (Bayesian Approximate Machine Learning) through dedicated source (baml_src/) and client (baml_client/) directories for BAML services interaction",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_005.1",
+          "description": "Maintain BAML configuration and source files in baml_src/",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.maintain",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.2",
+          "description": "Generate and maintain BAML client code in baml_client/",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.generate",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_005.3",
+          "description": "Provide BAML client interface for service interactions",
+          "type": "sub_process",
+          "parent_id": "REQ_005",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.provide",
+          "related_concepts": [],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    },
+    {
+      "id": "REQ_006",
+      "description": "The system must support planning and pipeline orchestration through the planning_pipeline/ directory and silmari-messenger-plans/ directory for messenger-specific planning configurations",
+      "type": "parent",
+      "parent_id": null,
+      "children": [
+        {
+          "id": "REQ_006.1",
+          "description": "Implement planning logic in planning_pipeline/ directory",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.implement",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.2",
+          "description": "Implement pipeline orchestration functionality",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.implement",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.3",
+          "description": "Maintain messenger-specific planning files in silmari-messenger-plans/",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.maintain",
+          "related_concepts": [],
+          "category": "functional"
+        },
+        {
+          "id": "REQ_006.4",
+          "description": "Support resume_pipeline.py for pipeline resume functionality",
+          "type": "sub_process",
+          "parent_id": "REQ_006",
+          "children": [],
+          "acceptance_criteria": [],
+          "implementation": null,
+          "testable_properties": [],
+          "function_id": "Service.support",
+          "related_concepts": [],
+          "category": "functional"
+        }
+      ],
+      "acceptance_criteria": [],
+      "implementation": null,
+      "testable_properties": [],
+      "function_id": null,
+      "related_concepts": [],
+      "category": "functional"
+    }
+  ],
+  "metadata": {
+    "source": "agent_sdk_decomposition",
+    "research_length": 7005,
+    "decomposition_stats": {
+      "requirements_found": 7,
+      "subprocesses_expanded": 29,
+      "total_nodes": 36,
+      "extraction_time_ms": 16928,
+      "expansion_time_ms": 529239
+    },
+    "source_research": "thoughts/searchable/research/2026-01-14-project-structure.md",
+    "decomposed_at": "2026-01-14T14:34:18.187678"
+  }
+}

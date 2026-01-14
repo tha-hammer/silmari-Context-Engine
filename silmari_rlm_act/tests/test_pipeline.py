@@ -3201,3 +3201,300 @@ class TestPhaseResultReturnValues:
         assert decomp_result is not None
         # Key should not exist (not set to null)
         assert "decomposition_stats" not in decomp_result.metadata
+
+
+@pytest.fixture
+def temp_markdown_plan(tmp_path: Path) -> Path:
+    """Create a temporary Markdown plan document."""
+    doc = tmp_path / "plan-overview.md"
+    doc.write_text(
+        """# TDD Implementation Plan
+
+## Phase 1: Setup
+
+### Behavior 1.1: Project initializes successfully
+- Test passes
+
+## Phase 2: Core Features
+
+### Behavior 2.1: Feature works correctly
+- Test passes
+"""
+    )
+    return doc
+
+
+class TestMarkdownPlanSupport:
+    """Tests for Markdown plan support in --plan-path."""
+
+    def test_is_markdown_plan_by_md_extension(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Files with .md extension are detected as Markdown."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        md_file = tmp_path / "plan.md"
+        md_file.write_text("# Test Plan")
+
+        assert pipeline._is_markdown_plan(str(md_file)) is True
+
+    def test_is_markdown_plan_by_markdown_extension(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Files with .markdown extension are detected as Markdown."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        md_file = tmp_path / "plan.markdown"
+        md_file.write_text("# Test Plan")
+
+        assert pipeline._is_markdown_plan(str(md_file)) is True
+
+    def test_is_markdown_plan_json_extension_returns_false(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Files with .json extension are not Markdown."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        json_file = tmp_path / "hierarchy.json"
+        json_file.write_text('{"requirements": []}')
+
+        assert pipeline._is_markdown_plan(str(json_file)) is False
+
+    def test_is_markdown_plan_by_content_valid_json(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Files with valid JSON content are not Markdown (regardless of extension)."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        # File without extension but valid JSON content
+        unknown_file = tmp_path / "plan"
+        unknown_file.write_text('{"requirements": []}')
+
+        assert pipeline._is_markdown_plan(str(unknown_file)) is False
+
+    def test_is_markdown_plan_by_content_invalid_json(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """Files with invalid JSON content are Markdown."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        # File without extension but Markdown content
+        unknown_file = tmp_path / "plan"
+        unknown_file.write_text("# This is a plan\n\nSome text here.")
+
+        assert pipeline._is_markdown_plan(str(unknown_file)) is True
+
+    def test_markdown_plan_skips_all_phases_except_implementation(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_markdown_plan: Path,
+    ) -> None:
+        """Markdown plan skips RESEARCH, DECOMPOSITION, TDD_PLANNING, MULTI_DOC, BEADS_SYNC."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute) as mock_exec:
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_markdown_plan),
+            )
+
+            # Only IMPLEMENTATION should be called
+            calls = [call[0][0] for call in mock_exec.call_args_list]
+            assert PhaseType.RESEARCH not in calls
+            assert PhaseType.DECOMPOSITION not in calls
+            assert PhaseType.TDD_PLANNING not in calls
+            assert PhaseType.MULTI_DOC not in calls
+            assert PhaseType.BEADS_SYNC not in calls
+            assert PhaseType.IMPLEMENTATION in calls
+
+    def test_markdown_plan_creates_synthetic_results_for_skipped_phases(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_markdown_plan: Path,
+    ) -> None:
+        """Markdown plan creates synthetic COMPLETE results for all skipped phases."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_markdown_plan),
+            )
+
+        # Check all skipped phases have synthetic results
+        skipped_phases = [
+            PhaseType.RESEARCH,
+            PhaseType.DECOMPOSITION,
+            PhaseType.TDD_PLANNING,
+            PhaseType.MULTI_DOC,
+            PhaseType.BEADS_SYNC,
+        ]
+        for phase_type in skipped_phases:
+            result = pipeline.state.get_phase_result(phase_type)
+            assert result is not None, f"{phase_type} should have a result"
+            assert result.status == PhaseStatus.COMPLETE
+            assert result.metadata.get("skipped") is True
+            assert result.metadata.get("reason") == "markdown_plan provided"
+
+    def test_markdown_plan_passes_path_to_implementation_phase(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_markdown_plan: Path,
+    ) -> None:
+        """Markdown plan path is passed to IMPLEMENTATION phase as phase_paths."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        captured_kwargs: dict[str, Any] = {}
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            if phase_type == PhaseType.IMPLEMENTATION:
+                captured_kwargs.update(kwargs)
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_markdown_plan),
+            )
+
+        assert "phase_paths" in captured_kwargs
+        assert str(temp_markdown_plan) in captured_kwargs["phase_paths"]
+
+    def test_json_plan_still_works_normally(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """JSON plan files still work with existing behavior (skip RESEARCH, DECOMPOSITION only)."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute) as mock_exec:
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+            # JSON plan should call TDD_PLANNING, MULTI_DOC, BEADS_SYNC (and IMPLEMENTATION)
+            calls = [call[0][0] for call in mock_exec.call_args_list]
+            assert PhaseType.RESEARCH not in calls  # Skipped
+            assert PhaseType.DECOMPOSITION not in calls  # Skipped
+            assert PhaseType.TDD_PLANNING in calls  # Called
+            assert PhaseType.MULTI_DOC in calls  # Called
+            assert PhaseType.BEADS_SYNC in calls  # Called
+            assert PhaseType.IMPLEMENTATION in calls  # Called
