@@ -330,6 +330,95 @@ class TestRequirementNodeProperties:
                 type="parent",
             )
 
+    def test_whitespace_only_description_raises_error(self):
+        """REQ_002.5: Whitespace-only description should raise ValueError."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="description"):
+            RequirementNode(
+                id="REQ_001",
+                description="   \t\n   ",
+                type="parent",
+            )
+
+    def test_type_validation_case_sensitive(self):
+        """REQ_002.3: Type validation is case-sensitive."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="Invalid type"):
+            RequirementNode(
+                id="REQ_001",
+                description="Test",
+                type="Parent",  # Wrong case
+            )
+
+    def test_type_validation_rejects_empty_string(self):
+        """REQ_002.3: Empty string type is rejected."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="Invalid type"):
+            RequirementNode(
+                id="REQ_001",
+                description="Test",
+                type="",
+            )
+
+    def test_category_validation_case_sensitive(self):
+        """REQ_002.4: Category validation is case-sensitive."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError, match="Invalid category"):
+            RequirementNode(
+                id="REQ_001",
+                description="Test",
+                type="parent",
+                category="Functional",  # Wrong case
+            )
+
+    def test_type_error_message_lists_valid_options(self):
+        """REQ_002.3: Type error message lists all valid options."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError) as exc_info:
+            RequirementNode(
+                id="REQ_001",
+                description="Test",
+                type="invalid",
+            )
+
+        error_msg = str(exc_info.value)
+        # Should list at least parent, sub_process, implementation
+        assert "parent" in error_msg or "sub_process" in error_msg or "implementation" in error_msg
+
+    def test_category_error_message_lists_valid_options_sorted(self):
+        """REQ_002.4: Category error message lists valid options (sorted)."""
+        from planning_pipeline.models import RequirementNode
+
+        with pytest.raises(ValueError) as exc_info:
+            RequirementNode(
+                id="REQ_001",
+                description="Test",
+                type="parent",
+                category="invalid",
+            )
+
+        error_msg = str(exc_info.value)
+        # Should list valid categories
+        assert "functional" in error_msg or "security" in error_msg
+
+    def test_description_not_modified_after_validation(self):
+        """REQ_002.5: Valid descriptions preserved without modification."""
+        from planning_pipeline.models import RequirementNode
+
+        # Description with whitespace at ends should be preserved
+        desc = "  Test description  "
+        node = RequirementNode(
+            id="REQ_001",
+            description=desc,
+            type="parent",
+        )
+        assert node.description == desc  # Not trimmed
+
 
 # =============================================================================
 # Property-based tests for RequirementHierarchy

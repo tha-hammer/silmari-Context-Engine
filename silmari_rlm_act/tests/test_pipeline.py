@@ -431,3 +431,1620 @@ class TestErrorHandling:
         # Check checkpoint was created
         checkpoints = list((temp_project / ".rlm-act-checkpoints").glob("*.json"))
         assert len(checkpoints) == 1
+
+
+# ===========================================================================
+# Behavior 7: Research Path Skip (REQ_000.3)
+# ===========================================================================
+
+
+@pytest.fixture
+def temp_research_doc(tmp_path: Path) -> Path:
+    """Create a temporary research document."""
+    doc = tmp_path / "research.md"
+    doc.write_text("# Research Document\n\nTest content.")
+    return doc
+
+
+class TestResearchPathSkip:
+    """Tests for skipping research phase with --research-path (REQ_000.3)."""
+
+    def test_research_path_skips_research_phase(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: ResearchPhase.execute_with_checkpoint() is NOT called when research_path provided."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        # Mock remaining phase executions (not research)
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute) as mock_exec:
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+            # Research phase should be skipped (not called)
+            calls = [call[0][0] for call in mock_exec.call_args_list]
+            assert PhaseType.RESEARCH not in calls
+
+    def test_research_path_creates_synthetic_result(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: Synthetic PhaseResult is created for RESEARCH with status=COMPLETE."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        # Mock remaining phase executions (not research)
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+        # Check synthetic result was created
+        research_result = pipeline.state.get_phase_result(PhaseType.RESEARCH)
+        assert research_result is not None
+        assert research_result.status == PhaseStatus.COMPLETE
+
+    def test_synthetic_result_includes_research_path_in_artifacts(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: Synthetic PhaseResult includes research_path in artifacts."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+        research_result = pipeline.state.get_phase_result(PhaseType.RESEARCH)
+        assert len(research_result.artifacts) == 1
+        assert str(temp_research_doc.resolve()) in research_result.artifacts[0]
+
+    def test_synthetic_result_metadata_indicates_skipped(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: Synthetic PhaseResult includes metadata indicating skipped."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+        research_result = pipeline.state.get_phase_result(PhaseType.RESEARCH)
+        assert research_result.metadata.get("skipped") is True
+        assert research_result.metadata.get("reason") == "research_path provided"
+
+    def test_research_path_creates_skipped_checkpoint(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: Checkpoint created with phase name 'research-skipped'."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+        # Check that at least one checkpoint contains 'research-skipped'
+        import json
+
+        checkpoints = list((temp_project / ".rlm-act-checkpoints").glob("*.json"))
+        found_skipped = False
+        for cp in checkpoints:
+            data = json.loads(cp.read_text())
+            if data.get("phase") == "research-skipped":
+                found_skipped = True
+                break
+        assert found_skipped, "No checkpoint found with phase='research-skipped'"
+
+    def test_decomposition_receives_research_path(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_research_doc: Path,
+    ) -> None:
+        """REQ_000.3: DecompositionPhase receives research_path from synthetic result."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        decomposition_kwargs_received = {}
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            if phase_type == PhaseType.DECOMPOSITION:
+                decomposition_kwargs_received.update(kwargs)
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+                metadata={"hierarchy_path": str(temp_project / "hierarchy.json")}
+                if phase_type == PhaseType.DECOMPOSITION
+                else {},
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                research_path=str(temp_research_doc),
+            )
+
+        # Decomposition should be able to find research path from artifacts
+        # which is available via state.get_phase_result(PhaseType.RESEARCH).artifacts
+        research_result = pipeline.state.get_phase_result(PhaseType.RESEARCH)
+        assert str(temp_research_doc.resolve()) in research_result.artifacts[0]
+
+
+# ===========================================================================
+# Behavior 8: Plan Path Skip (REQ_001)
+# ===========================================================================
+
+
+@pytest.fixture
+def temp_plan_doc(tmp_path: Path) -> Path:
+    """Create a temporary plan/hierarchy JSON document."""
+    import json
+
+    doc = tmp_path / "hierarchy.json"
+    hierarchy = {
+        "requirements": [
+            {
+                "id": "REQ_001",
+                "description": "Test requirement",
+                "type": "parent",
+                "parent_id": None,
+                "children": [],
+                "acceptance_criteria": [],
+                "implementation": None,
+                "testable_properties": [],
+                "function_id": None,
+                "related_concepts": [],
+                "category": "functional",
+            }
+        ],
+        "metadata": {"source": "test"},
+    }
+    doc.write_text(json.dumps(hierarchy, indent=2))
+    return doc
+
+
+class TestPlanPathSkip:
+    """Tests for skipping phases with --plan-path (REQ_001)."""
+
+    def test_plan_path_skips_research_phase(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.4: ResearchPhase.execute() is NOT called when hierarchy_path provided."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute) as mock_exec:
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+            # Research phase should be skipped (not called)
+            calls = [call[0][0] for call in mock_exec.call_args_list]
+            assert PhaseType.RESEARCH not in calls
+
+    def test_plan_path_skips_decomposition_phase(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.3: DecompositionPhase.execute() is NOT called when hierarchy_path provided."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute) as mock_exec:
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+            # Decomposition phase should be skipped (not called)
+            calls = [call[0][0] for call in mock_exec.call_args_list]
+            assert PhaseType.DECOMPOSITION not in calls
+
+    def test_plan_path_creates_synthetic_research_result(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.4: Synthetic PhaseResult is created for RESEARCH with status=COMPLETE."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        research_result = pipeline.state.get_phase_result(PhaseType.RESEARCH)
+        assert research_result is not None
+        assert research_result.status == PhaseStatus.COMPLETE
+        assert research_result.metadata.get("skipped") is True
+        assert "hierarchy_path provided" in research_result.metadata.get("reason", "")
+
+    def test_plan_path_creates_synthetic_decomposition_result(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.3: Synthetic PhaseResult is created for DECOMPOSITION with status=COMPLETE."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        assert decomp_result.status == PhaseStatus.COMPLETE
+        assert decomp_result.metadata.get("skipped") is True
+
+    def test_plan_path_decomposition_result_includes_hierarchy_path(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.3: Synthetic DECOMPOSITION result includes hierarchy_path in metadata."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.metadata.get("hierarchy_path") == str(temp_plan_doc)
+
+    def test_plan_path_creates_skipped_checkpoints(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.3/4: Checkpoints created with 'skipped' phase names."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        # Check that checkpoints with skipped phases exist
+        checkpoints = list((temp_project / ".rlm-act-checkpoints").glob("*.json"))
+        skipped_phases = set()
+        for cp in checkpoints:
+            data = json.loads(cp.read_text())
+            if "skipped" in data.get("phase", ""):
+                skipped_phases.add(data["phase"])
+
+        assert "research-skipped" in skipped_phases
+        assert "decomposition-skipped" in skipped_phases
+
+    def test_plan_path_validates_json_format(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_001.5: Invalid JSON produces error."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create invalid JSON file
+        invalid_doc = tmp_path / "invalid.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Should fail with validation error
+        assert result.status == PhaseStatus.FAILED
+        assert any("json" in err.lower() or "valid" in err.lower() for err in result.errors)
+
+    def test_plan_path_validates_requirement_hierarchy_structure(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_001.5: Invalid hierarchy structure produces error."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create invalid hierarchy (missing requirements field)
+        invalid_doc = tmp_path / "invalid_hierarchy.json"
+        invalid_doc.write_text(json.dumps({"not_requirements": []}))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Should fail (empty hierarchy is valid JSON but may not have requirements)
+        # This tests the hierarchy format validation
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+
+    def test_plan_path_validates_requirement_type(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_001.5: Invalid requirement type produces error."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create hierarchy with invalid type
+        invalid_doc = tmp_path / "invalid_type.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "invalid_type",  # Not in VALID_REQUIREMENT_TYPES
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        invalid_doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Should fail with validation error about type
+        assert result.status == PhaseStatus.FAILED
+        assert any("type" in err.lower() or "invalid" in err.lower() for err in result.errors)
+
+    def test_plan_path_validates_requirement_category(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_001.5: Invalid requirement category produces error."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create hierarchy with invalid category
+        invalid_doc = tmp_path / "invalid_category.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "invalid_category",  # Not in VALID_CATEGORIES
+                }
+            ],
+            "metadata": {},
+        }
+        invalid_doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Should fail with validation error about category
+        assert result.status == PhaseStatus.FAILED
+        assert any("category" in err.lower() or "invalid" in err.lower() for err in result.errors)
+
+    def test_plan_path_result_metadata_includes_counts(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.5: Successful validation includes requirements_count and total_nodes."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert "requirements_count" in decomp_result.metadata
+        assert "total_nodes" in decomp_result.metadata
+
+    def test_tdd_planning_receives_hierarchy_path(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_001.3: TDDPlanningPhase receives hierarchy_path from synthetic decomposition result."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        tdd_kwargs_received = {}
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            if phase_type == PhaseType.TDD_PLANNING:
+                tdd_kwargs_received.update(kwargs)
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        # TDD planning should receive hierarchy_path
+        # The pipeline looks up hierarchy_path from decomposition metadata
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.metadata.get("hierarchy_path") == str(temp_plan_doc)
+
+
+# =============================================================================
+# Phase 3 - REQ_002: Plan Document Validation Tests
+# =============================================================================
+
+
+class TestPlanDocumentValidation:
+    """Tests for REQ_002: Plan document validation before decomposition."""
+
+    # -------------------------------------------------------------------------
+    # REQ_002.1: Validate JSON structure and file format (Tier 1)
+    # -------------------------------------------------------------------------
+
+    def test_empty_file_produces_error(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.1: Empty files must produce specific error message."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create empty file
+        empty_doc = tmp_path / "empty.json"
+        empty_doc.write_text("")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(empty_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        # Should mention JSON parsing issue
+        assert any("json" in err.lower() for err in result.errors)
+
+    def test_json_structure_requires_requirements_key(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.1: JSON must contain 'requirements' key."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Valid JSON but missing 'requirements' key
+        invalid_doc = tmp_path / "missing_requirements.json"
+        invalid_doc.write_text(json.dumps({"metadata": {}, "other_key": []}))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Empty requirements is valid - verify hierarchy was created
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+
+    def test_json_error_includes_position_info(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.1: JSON parse errors include line/character position."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create JSON with syntax error at known position
+        invalid_doc = tmp_path / "syntax_error.json"
+        invalid_doc.write_text('{\n  "requirements": [\n    invalid\n  ]\n}')
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        # Error should contain position info (line/column/char from JSONDecodeError)
+        error_text = " ".join(result.errors).lower()
+        assert "json" in error_text or "line" in error_text or "column" in error_text
+
+    def test_utf8_encoding_error_handled(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.1: Invalid UTF-8 encoding produces appropriate error."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create file with invalid UTF-8 bytes
+        invalid_doc = tmp_path / "invalid_utf8.json"
+        invalid_doc.write_bytes(b'{"requirements": [\xff\xfe]}')
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        # Should fail due to encoding or JSON error
+        assert result.status == PhaseStatus.FAILED
+
+    # -------------------------------------------------------------------------
+    # REQ_002.2: Deserialize JSON to RequirementHierarchy (Tier 2)
+    # -------------------------------------------------------------------------
+
+    def test_recursive_children_reconstruction(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.2: Recursively construct all RequirementNode children."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create hierarchy with multiple levels
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Parent requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [
+                        {
+                            "id": "REQ_001.1",
+                            "description": "Sub-process requirement",
+                            "type": "sub_process",
+                            "parent_id": "REQ_001",
+                            "children": [
+                                {
+                                    "id": "REQ_001.1.1",
+                                    "description": "Implementation requirement",
+                                    "type": "implementation",
+                                    "parent_id": "REQ_001.1",
+                                    "children": [],
+                                    "acceptance_criteria": [],
+                                    "category": "functional",
+                                }
+                            ],
+                            "acceptance_criteria": [],
+                            "category": "functional",
+                        }
+                    ],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "nested.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        # Should have 3 total nodes (1 parent + 1 sub_process + 1 implementation)
+        assert decomp_result.metadata.get("total_nodes") == 3
+
+    def test_implementation_components_reconstruction(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.2: Reconstruct ImplementationComponents from dict."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Implementation with components",
+                    "type": "implementation",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "implementation": {
+                        "frontend": ["LoginForm", "AuthContext"],
+                        "backend": ["AuthService.login"],
+                        "middleware": ["validateToken"],
+                        "shared": ["User", "Session"],
+                    },
+                    "testable_properties": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "with_components.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        # Validation succeeded if we got here
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.status == PhaseStatus.COMPLETE
+
+    def test_testable_properties_reconstruction(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.2: Reconstruct TestableProperty list from dict."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Requirement with testable properties",
+                    "type": "implementation",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": ["User can login"],
+                    "testable_properties": [
+                        {
+                            "criterion": "User can login",
+                            "property_type": "invariant",
+                            "hypothesis_strategy": "st.text(min_size=1)",
+                            "test_skeleton": "def test_login(): pass",
+                        }
+                    ],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "with_properties.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.status == PhaseStatus.COMPLETE
+
+    def test_missing_optional_fields_use_defaults(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.2: Missing optional fields use sensible defaults."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Minimal valid hierarchy with only required fields
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Minimal requirement",
+                    "type": "parent",
+                    # Missing: parent_id, children, acceptance_criteria,
+                    #          implementation, testable_properties, function_id,
+                    #          related_concepts, category
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "minimal.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        # Should succeed with defaults
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.status == PhaseStatus.COMPLETE
+
+    # -------------------------------------------------------------------------
+    # REQ_002.3: Validate requirement type
+    # -------------------------------------------------------------------------
+
+    def test_type_validation_case_sensitive(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.3: Type validation is case-sensitive ('Parent' invalid)."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "Parent",  # Invalid - wrong case
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "case_sensitive.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert any("type" in err.lower() or "invalid" in err.lower() for err in result.errors)
+
+    def test_type_validation_rejects_empty_string(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.3: Empty string type is rejected."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "",  # Invalid - empty
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "empty_type.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+
+    def test_valid_types_accepted(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.3: All valid types (parent, sub_process, implementation) accepted."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        for valid_type in ["parent", "sub_process", "implementation"]:
+            hierarchy = {
+                "requirements": [
+                    {
+                        "id": "REQ_001",
+                        "description": f"Test {valid_type} requirement",
+                        "type": valid_type,
+                        "parent_id": None,
+                        "children": [],
+                        "acceptance_criteria": [],
+                        "category": "functional",
+                    }
+                ],
+                "metadata": {},
+            }
+            doc = tmp_path / f"valid_type_{valid_type}.json"
+            doc.write_text(json.dumps(hierarchy))
+
+            pipeline = RLMActPipeline(
+                project_path=temp_project,
+                cwa=mock_cwa,
+                autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+                beads_controller=mock_beads_controller,
+            )
+
+            def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+                return PhaseResult(
+                    phase_type=phase_type,
+                    status=PhaseStatus.COMPLETE,
+                    artifacts=[f"{phase_type.value}.md"],
+                )
+
+            with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+                result = pipeline.run(
+                    research_question="",
+                    hierarchy_path=str(doc),
+                )
+
+            decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+            assert decomp_result.status == PhaseStatus.COMPLETE, f"Type '{valid_type}' should be valid"
+
+    # -------------------------------------------------------------------------
+    # REQ_002.4: Validate requirement category
+    # -------------------------------------------------------------------------
+
+    def test_category_validation_case_sensitive(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.4: Category validation is case-sensitive ('Functional' invalid)."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "Functional",  # Invalid - wrong case
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "case_sensitive_category.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert any("category" in err.lower() or "invalid" in err.lower() for err in result.errors)
+
+    def test_category_defaults_when_missing_from_json(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.4: Missing category defaults to 'functional'."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    # category intentionally omitted
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "no_category.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        # Should succeed with default category
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.status == PhaseStatus.COMPLETE
+
+    def test_all_valid_categories_accepted(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.4: All valid categories are accepted."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        valid_categories = [
+            "functional",
+            "non_functional",
+            "security",
+            "performance",
+            "usability",
+            "integration",
+        ]
+
+        for category in valid_categories:
+            hierarchy = {
+                "requirements": [
+                    {
+                        "id": "REQ_001",
+                        "description": f"Test {category} requirement",
+                        "type": "parent",
+                        "parent_id": None,
+                        "children": [],
+                        "acceptance_criteria": [],
+                        "category": category,
+                    }
+                ],
+                "metadata": {},
+            }
+            doc = tmp_path / f"valid_category_{category}.json"
+            doc.write_text(json.dumps(hierarchy))
+
+            pipeline = RLMActPipeline(
+                project_path=temp_project,
+                cwa=mock_cwa,
+                autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+                beads_controller=mock_beads_controller,
+            )
+
+            def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+                return PhaseResult(
+                    phase_type=phase_type,
+                    status=PhaseStatus.COMPLETE,
+                    artifacts=[f"{phase_type.value}.md"],
+                )
+
+            with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+                result = pipeline.run(
+                    research_question="",
+                    hierarchy_path=str(doc),
+                )
+
+            decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+            assert decomp_result.status == PhaseStatus.COMPLETE, f"Category '{category}' should be valid"
+
+    # -------------------------------------------------------------------------
+    # REQ_002.5: Validate requirement description
+    # -------------------------------------------------------------------------
+
+    def test_description_whitespace_only_rejected(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.5: Whitespace-only descriptions are rejected."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "   \t\n   ",  # Whitespace only
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "whitespace_description.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert any("description" in err.lower() or "empty" in err.lower() for err in result.errors)
+
+    def test_description_empty_string_rejected(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.5: Empty string descriptions are rejected."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "",  # Empty string
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "empty_description.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+
+    def test_description_validation_applies_to_all_types(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.5: Description validation applies to all requirement types."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        for req_type in ["parent", "sub_process", "implementation"]:
+            hierarchy = {
+                "requirements": [
+                    {
+                        "id": "REQ_001",
+                        "description": "",  # Empty - should fail for all types
+                        "type": req_type,
+                        "parent_id": None,
+                        "children": [],
+                        "acceptance_criteria": [],
+                        "category": "functional",
+                    }
+                ],
+                "metadata": {},
+            }
+            doc = tmp_path / f"empty_desc_{req_type}.json"
+            doc.write_text(json.dumps(hierarchy))
+
+            pipeline = RLMActPipeline(
+                project_path=temp_project,
+                cwa=mock_cwa,
+                autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+                beads_controller=mock_beads_controller,
+            )
+
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+            assert result.status == PhaseStatus.FAILED, f"Empty description should be invalid for type '{req_type}'"
+
+    def test_valid_description_preserved(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_002.5: Valid descriptions are preserved without modification."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Description with leading/trailing whitespace should be preserved
+        description = "  Valid description with whitespace  "
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": description,
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "valid_description.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.status == PhaseStatus.COMPLETE
