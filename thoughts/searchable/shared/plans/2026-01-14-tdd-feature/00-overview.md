@@ -13,8 +13,8 @@ This plan contains 38 requirements in 7 phases.
 | 03 | The system must validate plan documents ... | REQ_002 | Complete |
 | 04 | The system must support BAML-level valid... | REQ_003 | Complete |
 | 05 | The pipeline must support kwargs passthr... | REQ_004 | Complete |
-| 06 | The CLI argument validation must follow ... | REQ_005 | Pending |
-| 07 | The system must return appropriate Phase... | REQ_006 | Pending |
+| 06 | The CLI argument validation must follow ... | REQ_005 | Complete |
+| 07 | The system must return appropriate Phase... | REQ_006 | Complete |
 
 ## Requirements Summary
 
@@ -48,16 +48,16 @@ This plan contains 38 requirements in 7 phases.
 | REQ_004.2 | Pipeline must pass hierarchy_path kwarg ... | Complete |
 | REQ_004.3 | Return PhaseResult with status=COMPLETE ... | Complete |
 | REQ_004.4 | Return PhaseResult with status=FAILED an... | Complete |
-| REQ_005 | The CLI argument validation must follow ... | Pending |
-| REQ_005.1 | Implement 'required unless' pattern for ... | Pending |
-| REQ_005.2 | Implement click.Path validation for --re... | Pending |
-| REQ_005.3 | Support default values for optional argu... | Pending |
-| REQ_005.4 | Follow existing flag argument patterns u... | Pending |
-| REQ_006 | The system must return appropriate Phase... | Pending |
-| REQ_006.1 | Include validated=True in metadata for s... | Pending |
-| REQ_006.2 | Include requirements_count for number of... | Pending |
-| REQ_006.3 | Include total_nodes count for all requir... | Pending |
-| REQ_006.4 | Handle json.JSONDecodeError, ValueError,... | Pending |
+| REQ_005 | The CLI argument validation must follow ... | Complete |
+| REQ_005.1 | Implement 'required unless' pattern for ... | Complete |
+| REQ_005.2 | Implement click.Path validation for --re... | Complete |
+| REQ_005.3 | Support default values for optional argu... | Complete |
+| REQ_005.4 | Follow existing flag argument patterns u... | Complete |
+| REQ_006 | The system must return appropriate Phase... | Complete |
+| REQ_006.1 | Include validated=True in metadata for s... | Complete |
+| REQ_006.2 | Include requirements_count for number of... | Complete |
+| REQ_006.3 | Include total_nodes count for all requir... | Complete |
+| REQ_006.4 | Handle json.JSONDecodeError, ValueError,... | Complete |
 
 ## Phase Documents
 
