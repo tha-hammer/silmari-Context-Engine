@@ -1,27 +1,48 @@
 """Claude Code SDK wrapper for deterministic pipeline control.
 
-Supports two streaming modes:
+Supports two invocation modes:
 1. SDK-native (default): Uses claude_agent_sdk AsyncIterator for streaming
-2. stream-json: Emits JSON events compatible with `npx repomirror visualize`
+2. CLI subprocess: Uses subprocess with PTY wrapping for exact CLI compatibility
+
+Streaming formats:
+- text: Human-readable terminal output
+- stream-json: JSON events compatible with `npx repomirror visualize`
+
+Authentication:
+- Uses OAuth tokens from ~/.claude/.credentials.json
+- Automatically refreshes expired tokens using the refresh token
+- Proactively refreshes tokens that expire within 5 minutes
 
 Usage:
+    # Unified interface (recommended) - auto-selects mode
+    result = invoke_claude(prompt, invocation_mode="auto")
+
     # SDK-native streaming (default)
+    result = invoke_claude(prompt, invocation_mode="sdk")
+
+    # CLI subprocess for exact CLI compatibility
+    result = invoke_claude(prompt, invocation_mode="cli")
+
+    # Legacy functions (still supported)
     result = run_claude_sync(prompt, stream=True)
-
-    # JSON streaming for repomirror
-    result = run_claude_sync(prompt, stream=True, output_format="stream-json")
-
-    # Subprocess fallback for exact CLI compatibility
     result = run_claude_subprocess(prompt, stream_json=True)
+
+Configuration:
+    invocation_mode can be set via:
+    1. Function parameter (highest priority)
+    2. Environment variable: CLAUDE_INVOCATION_MODE
+    3. Default: 'auto' (prefers SDK, falls back to CLI)
 """
 from pathlib import Path
 import asyncio
 import json
 import os
+import requests
+import shutil
 import subprocess
 import sys
 import time
-from typing import Any, Literal, Optional
+from typing import Any, Literal, Optional, TypedDict
 
 # Optional import - claude_agent_sdk may not be installed
 try:
@@ -46,8 +67,262 @@ except ImportError:
     ToolUseBlock = None  # type: ignore
     ToolResultBlock = None  # type: ignore
 
-# Type alias for output formats
+# Type aliases
 OutputFormat = Literal["text", "stream-json"]
+InvocationMode = Literal["cli", "sdk", "auto"]
+PermissionMode = Literal["default", "acceptEdits", "plan", "bypassPermissions"]
+
+# Output truncation limit (as per REQ_000.1.18)
+MAX_OUTPUT_CHARS = 30000
+
+# OAuth configuration for Claude CLI
+CLAUDE_OAUTH_CLIENT_ID = "9d1c250a-e61b-44d9-88ed-5944d1962f5e"
+
+
+class ClaudeResult(TypedDict):
+    """Standardized result type for Claude invocations."""
+
+    success: bool
+    output: str
+    error: str
+    elapsed: float
+    session_id: str  # Empty for CLI mode, session ID for SDK mode
+    invocation_mode: str  # 'cli' or 'sdk'
+
+
+def _get_invocation_mode() -> InvocationMode:
+    """Get the configured invocation mode from environment.
+
+    Returns:
+        InvocationMode: 'cli', 'sdk', or 'auto' (default)
+    """
+    mode = os.environ.get("CLAUDE_INVOCATION_MODE", "auto").lower()
+    if mode in ("cli", "sdk", "auto"):
+        return mode  # type: ignore
+    return "auto"
+
+
+def _select_invocation_mode(
+    mode: InvocationMode,
+    output_format: OutputFormat = "text",
+    has_hooks: bool = False,
+    has_custom_tools: bool = False,
+    needs_interrupt: bool = False,
+    needs_multi_turn: bool = False,
+    verbose: bool = False,
+) -> Literal["cli", "sdk"]:
+    """Select the actual invocation mode based on configuration and features.
+
+    Args:
+        mode: Requested mode ('cli', 'sdk', or 'auto')
+        output_format: Output format - stream-json may prefer CLI
+        has_hooks: Whether hooks are configured (SDK-only feature)
+        has_custom_tools: Whether custom tools are configured (SDK-only feature)
+        needs_interrupt: Whether interrupt capability is needed (SDK-only feature)
+        needs_multi_turn: Whether multi-turn context is needed (SDK-only feature)
+        verbose: Whether to log decision rationale
+
+    Returns:
+        Literal["cli", "sdk"]: The selected invocation mode
+    """
+    # If explicit mode requested, use it (unless SDK unavailable)
+    if mode == "cli":
+        if verbose:
+            print("[DEBUG] Using CLI mode (explicitly requested)", file=sys.stderr)
+        return "cli"
+
+    if mode == "sdk":
+        if not HAS_CLAUDE_SDK:
+            if verbose:
+                print("[DEBUG] SDK requested but unavailable, falling back to CLI", file=sys.stderr)
+            return "cli"
+        if verbose:
+            print("[DEBUG] Using SDK mode (explicitly requested)", file=sys.stderr)
+        return "sdk"
+
+    # Auto mode: select based on features and availability
+    # SDK-only features that force SDK mode
+    sdk_required_features = []
+    if has_hooks:
+        sdk_required_features.append("hooks")
+    if has_custom_tools:
+        sdk_required_features.append("custom_tools")
+    if needs_interrupt:
+        sdk_required_features.append("interrupt")
+    if needs_multi_turn:
+        sdk_required_features.append("multi_turn")
+
+    if sdk_required_features:
+        if not HAS_CLAUDE_SDK:
+            features_str = ", ".join(sdk_required_features)
+            if verbose:
+                print(f"[DEBUG] SDK required for {features_str} but unavailable, falling back to CLI", file=sys.stderr)
+            return "cli"
+        if verbose:
+            features_str = ", ".join(sdk_required_features)
+            print(f"[DEBUG] Using SDK mode (required for: {features_str})", file=sys.stderr)
+        return "sdk"
+
+    # For stream-json output, CLI is preferred for exact compatibility
+    if output_format == "stream-json":
+        if verbose:
+            print("[DEBUG] Using CLI mode (stream-json format)", file=sys.stderr)
+        return "cli"
+
+    # Default: prefer SDK if available
+    if HAS_CLAUDE_SDK:
+        if verbose:
+            print("[DEBUG] Using SDK mode (auto-selected, SDK available)", file=sys.stderr)
+        return "sdk"
+
+    if verbose:
+        print("[DEBUG] Using CLI mode (auto-selected, SDK unavailable)", file=sys.stderr)
+    return "cli"
+
+
+def _truncate_output(output: str, max_chars: int = MAX_OUTPUT_CHARS) -> str:
+    """Truncate output if it exceeds the maximum character limit.
+
+    Args:
+        output: The output string to truncate
+        max_chars: Maximum number of characters allowed
+
+    Returns:
+        Truncated output with truncation notice if needed
+    """
+    if len(output) <= max_chars:
+        return output
+    truncated = output[:max_chars]
+    return f"{truncated}\n\n[OUTPUT TRUNCATED - exceeded {max_chars} characters]"
+CLAUDE_OAUTH_ENDPOINT = "https://console.anthropic.com/api/oauth/token"
+
+
+def get_credentials_path() -> Path:
+    """Get the path to the Claude credentials file."""
+    return Path.home() / ".claude" / ".credentials.json"
+
+
+def read_credentials() -> dict[str, Any]:
+    """Read the Claude OAuth credentials from disk.
+
+    Returns:
+        Credentials dictionary with claudeAiOauth key
+
+    Raises:
+        FileNotFoundError: If credentials file doesn't exist
+        json.JSONDecodeError: If credentials file is invalid JSON
+    """
+    path = get_credentials_path()
+    with open(path, 'r') as f:
+        return json.load(f)
+
+
+def save_credentials(creds: dict[str, Any]) -> None:
+    """Save updated OAuth credentials to disk.
+
+    Creates a backup before writing.
+
+    Args:
+        creds: Credentials dictionary to save
+    """
+    path = get_credentials_path()
+
+    # Create backup before writing
+    backup_path = path.with_suffix('.json.bak')
+    if path.exists():
+        shutil.copy2(path, backup_path)
+
+    with open(path, 'w') as f:
+        json.dump(creds, f, indent=2)
+
+
+def refresh_oauth_token() -> None:
+    """Refresh the OAuth access token using the refresh token.
+
+    Reads credentials from disk, calls the OAuth refresh endpoint,
+    and saves the new tokens back to disk.
+
+    Raises:
+        FileNotFoundError: If credentials file doesn't exist
+        ValueError: If no refresh token is available
+        requests.HTTPError: If the refresh request fails
+    """
+    creds = read_credentials()
+
+    oauth = creds.get('claudeAiOauth')
+    if not oauth or not oauth.get('refreshToken'):
+        raise ValueError("No refresh token available")
+
+    print("[DEBUG] Refreshing OAuth token...", file=sys.stderr)
+
+    # Build refresh request
+    req_body = {
+        'grant_type': 'refresh_token',
+        'refresh_token': oauth['refreshToken'],
+        'client_id': CLAUDE_OAUTH_CLIENT_ID,
+    }
+
+    # Make HTTP request
+    response = requests.post(
+        CLAUDE_OAUTH_ENDPOINT,
+        json=req_body,
+        timeout=30,
+    )
+    response.raise_for_status()
+
+    data = response.json()
+
+    # Update credentials
+    oauth['accessToken'] = data['access_token']
+    oauth['refreshToken'] = data['refresh_token']
+    oauth['expiresAt'] = int(time.time() * 1000) + (data['expires_in'] * 1000)
+
+    # Parse scopes
+    if data.get('scope'):
+        oauth['scopes'] = data['scope'].split(' ')
+
+    # Save updated credentials
+    save_credentials(creds)
+
+    from datetime import datetime
+    expires_at = datetime.fromtimestamp(oauth['expiresAt'] / 1000)
+    print(f"[DEBUG] OAuth token refreshed successfully, expires at {expires_at.isoformat()}", file=sys.stderr)
+
+
+def is_oauth_expired_error(output: str) -> bool:
+    """Check if the error indicates an expired OAuth token.
+
+    Args:
+        output: Combined stdout/stderr output from Claude CLI
+
+    Returns:
+        True if the output indicates OAuth token expiration
+    """
+    return ('authentication_error' in output and
+            ('OAuth token has expired' in output or '401' in output))
+
+
+def ensure_oauth_token_fresh() -> None:
+    """Proactively refresh OAuth token if it expires within 5 minutes.
+
+    This is called before running Claude to avoid mid-execution failures.
+    """
+    try:
+        creds = read_credentials()
+        oauth = creds.get('claudeAiOauth')
+        if oauth and oauth.get('expiresAt'):
+            expires_at_ms = oauth['expiresAt']
+            now_ms = int(time.time() * 1000)
+            time_until_expiry_ms = expires_at_ms - now_ms
+
+            # Refresh if expires within 5 minutes (300000 ms)
+            if time_until_expiry_ms < 300000:
+                minutes_left = time_until_expiry_ms / 60000
+                print(f"[DEBUG] OAuth token expires soon ({minutes_left:.1f} min), proactively refreshing...",
+                      file=sys.stderr)
+                refresh_oauth_token()
+    except Exception as e:
+        print(f"[DEBUG] Proactive OAuth refresh check failed: {e}", file=sys.stderr)
 
 
 # ANSI color codes for terminal output
@@ -238,6 +513,9 @@ async def _run_claude_async(
                 # Use the result text, or join collected text chunks
                 output = message.result if message.result else "".join(text_chunks)
 
+                # Apply output truncation (REQ_000.1.18)
+                output = _truncate_output(output)
+
                 if stream:
                     if use_stream_json:
                         _emit_result(output, message.is_error)
@@ -271,9 +549,11 @@ async def _run_claude_async(
         return result_data
 
     elapsed = time.time() - start_time
+    # Apply output truncation (REQ_000.1.18)
+    output = _truncate_output("".join(text_chunks))
     return {
         "success": False if error_msg else True,
-        "output": "".join(text_chunks),
+        "output": output,
         "error": error_msg,
         "elapsed": elapsed,
     }
@@ -322,12 +602,17 @@ def run_claude_subprocess(
     prompt: str,
     timeout: int = 300,
     stream_json: bool = True,
-    cwd: Optional[str] = None
+    cwd: Optional[str] = None,
+    _allow_retry: bool = True,
 ) -> dict[str, Any]:
     """Run Claude Code via subprocess for exact CLI compatibility.
 
     Uses the 'script' command to wrap the process in a PTY, enabling
     real-time streaming output from the claude CLI.
+
+    Authentication:
+    - Uses OAuth tokens from ~/.claude/.credentials.json
+    - Automatically refreshes expired tokens and retries on 401 errors
 
     Usage:
         # Pipe to repomirror visualize
@@ -338,6 +623,7 @@ def run_claude_subprocess(
         timeout: Maximum time in seconds to wait for response
         stream_json: If True, emit raw JSON lines to stdout for piping
         cwd: Working directory for the command
+        _allow_retry: Internal flag to prevent infinite retry loops
 
     Returns:
         Dictionary with keys:
@@ -347,6 +633,9 @@ def run_claude_subprocess(
         - elapsed: time in seconds
     """
     import shlex
+
+    # Proactively refresh OAuth token if it's about to expire
+    ensure_oauth_token_fresh()
 
     start_time = time.time()
 
@@ -485,6 +774,24 @@ def run_claude_subprocess(
         elapsed = time.time() - start_time
         output = final_result if final_result else "".join(text_chunks)
 
+        # Apply output truncation (REQ_000.1.18)
+        output = _truncate_output(output)
+
+        # Check for OAuth expiration and retry if allowed
+        if is_oauth_expired_error(output) and _allow_retry:
+            print("[DEBUG] OAuth token expired, refreshing and retrying...", file=sys.stderr)
+            try:
+                refresh_oauth_token()
+                print("[DEBUG] OAuth token refreshed, retrying Claude invocation...", file=sys.stderr)
+                return run_claude_subprocess(prompt, timeout, stream_json, cwd, _allow_retry=False)
+            except Exception as refresh_err:
+                return {
+                    "success": False,
+                    "output": output,
+                    "error": f"OAuth token expired and refresh failed: {refresh_err}",
+                    "elapsed": elapsed
+                }
+
         return {
             "success": process.returncode == 0,
             "output": output,
@@ -506,3 +813,140 @@ def run_claude_subprocess(
             "error": str(e),
             "elapsed": time.time() - start_time
         }
+
+
+def invoke_claude(
+    prompt: str,
+    invocation_mode: Optional[InvocationMode] = None,
+    tools: Optional[list[str]] = None,
+    timeout: int = 300,
+    stream: bool = True,
+    output_format: OutputFormat = "text",
+    permission_mode: PermissionMode = "bypassPermissions",
+    cwd: Optional[Path] = None,
+    verbose: bool = False,
+    has_hooks: bool = False,
+    has_custom_tools: bool = False,
+    needs_interrupt: bool = False,
+    needs_multi_turn: bool = False,
+) -> ClaudeResult:
+    """Unified interface for invoking Claude Code.
+
+    This function abstracts over the CLI subprocess and SDK approaches,
+    automatically selecting the best mode based on configuration and
+    feature requirements.
+
+    Args:
+        prompt: The prompt to send to Claude
+        invocation_mode: 'cli', 'sdk', or 'auto' (default from env or 'auto')
+        tools: Optional list of tools to enable (SDK-only)
+        timeout: Maximum time in seconds to wait for response
+        stream: If True, pipe output to terminal in real-time
+        output_format: Output format - "text" or "stream-json"
+        permission_mode: Permission mode - 'default', 'acceptEdits', 'plan', 'bypassPermissions'
+        cwd: Working directory for Claude Code
+        verbose: If True, log mode selection rationale
+        has_hooks: Hint that hooks are configured (forces SDK if available)
+        has_custom_tools: Hint that custom tools are configured (forces SDK if available)
+        needs_interrupt: Hint that interrupt capability is needed (forces SDK if available)
+        needs_multi_turn: Hint that multi-turn context is needed (forces SDK if available)
+
+    Returns:
+        ClaudeResult with keys:
+        - success: bool indicating if command completed successfully
+        - output: text output from Claude
+        - error: error message if any
+        - elapsed: time in seconds
+        - session_id: empty for CLI, session ID for SDK
+        - invocation_mode: 'cli' or 'sdk' (which mode was actually used)
+
+    Example:
+        # Auto-select mode (recommended)
+        result = invoke_claude("What is 2 + 2?")
+
+        # Force CLI mode
+        result = invoke_claude("What is 2 + 2?", invocation_mode="cli")
+
+        # Force SDK mode
+        result = invoke_claude("What is 2 + 2?", invocation_mode="sdk")
+    """
+    # Determine invocation mode
+    if invocation_mode is None:
+        invocation_mode = _get_invocation_mode()
+
+    selected_mode = _select_invocation_mode(
+        mode=invocation_mode,
+        output_format=output_format,
+        has_hooks=has_hooks,
+        has_custom_tools=has_custom_tools,
+        needs_interrupt=needs_interrupt,
+        needs_multi_turn=needs_multi_turn,
+        verbose=verbose,
+    )
+
+    # Invoke using the selected mode
+    if selected_mode == "cli":
+        # CLI subprocess mode
+        result = run_claude_subprocess(
+            prompt=prompt,
+            timeout=timeout,
+            stream_json=(output_format == "stream-json" and stream),
+            cwd=str(cwd) if cwd else None,
+        )
+        return ClaudeResult(
+            success=result["success"],
+            output=result["output"],
+            error=result.get("error", ""),
+            elapsed=result["elapsed"],
+            session_id="",  # CLI mode has no session ID
+            invocation_mode="cli",
+        )
+    else:
+        # SDK mode
+        result = run_claude_sync(
+            prompt=prompt,
+            tools=tools,
+            timeout=timeout,
+            stream=stream,
+            output_format=output_format,
+            cwd=cwd,
+        )
+        return ClaudeResult(
+            success=result["success"],
+            output=result["output"],
+            error=result.get("error", ""),
+            elapsed=result["elapsed"],
+            session_id=result.get("session_id", ""),  # May be set by SDK
+            invocation_mode="sdk",
+        )
+
+
+# Export public API
+__all__ = [
+    # Main unified interface
+    "invoke_claude",
+    # Legacy functions
+    "run_claude_sync",
+    "run_claude_subprocess",
+    # OAuth utilities
+    "read_credentials",
+    "save_credentials",
+    "refresh_oauth_token",
+    "ensure_oauth_token_fresh",
+    "is_oauth_expired_error",
+    # Configuration helpers
+    "_get_invocation_mode",
+    "_select_invocation_mode",
+    "_truncate_output",
+    # Types
+    "ClaudeResult",
+    "OutputFormat",
+    "InvocationMode",
+    "PermissionMode",
+    # Constants
+    "HAS_CLAUDE_SDK",
+    "MAX_OUTPUT_CHARS",
+    # Formatting helpers
+    "Colors",
+    "_format_tool_call",
+]
