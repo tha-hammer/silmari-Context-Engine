@@ -333,6 +333,7 @@ class RLMActPipeline:
                 "requirements_count": len(hierarchy.requirements),
                 "total_nodes": total_nodes,
                 "validated": True,
+                "validation_timestamp": datetime.now().isoformat(),  # REQ_004.3.6
             }
 
             return hierarchy, None, metadata
@@ -510,15 +511,21 @@ class RLMActPipeline:
             )
 
             if error:
-                # Validation failed
+                # Validation failed - REQ_004.4
+                completed_at = datetime.now()
                 return PhaseResult(
                     phase_type=PhaseType.DECOMPOSITION,
                     status=PhaseStatus.FAILED,
                     errors=[error],
                     started_at=started_at,
-                    completed_at=datetime.now(),
-                    duration_seconds=(datetime.now() - started_at).total_seconds(),
-                    metadata={"validation_failed": True},
+                    completed_at=completed_at,
+                    duration_seconds=(completed_at - started_at).total_seconds(),
+                    metadata={
+                        "validation_failed": True,
+                        "validated": False,  # REQ_004.4.9
+                        "error_count": 1,  # REQ_004.4.10
+                        "hierarchy_path": hierarchy_path,
+                    },
                 )
 
             # REQ_003.3: Perform semantic validation if --validate-full is enabled

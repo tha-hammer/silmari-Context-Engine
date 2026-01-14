@@ -2048,3 +2048,349 @@ class TestPlanDocumentValidation:
 
         decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
         assert decomp_result.status == PhaseStatus.COMPLETE
+
+
+# =============================================================================
+# Phase 5 - REQ_004: Pipeline Kwargs Passthrough Tests
+# =============================================================================
+
+
+class TestKwargsPassthrough:
+    """Tests for REQ_004: Pipeline kwargs passthrough for phase skipping."""
+
+    # -------------------------------------------------------------------------
+    # REQ_004.3: PhaseResult with COMPLETE status and metadata
+    # -------------------------------------------------------------------------
+
+    def test_validation_timestamp_in_metadata(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_004.3.6: PhaseResult.metadata contains validation_timestamp."""
+        import re
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert "validation_timestamp" in decomp_result.metadata
+        # Verify ISO format (YYYY-MM-DDTHH:MM:SS.ffffff pattern)
+        timestamp = decomp_result.metadata["validation_timestamp"]
+        iso_pattern = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}"
+        assert re.match(iso_pattern, timestamp), f"Timestamp '{timestamp}' not in ISO format"
+
+    def test_artifacts_contains_hierarchy_path_first(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_004.3.7: PhaseResult.artifacts list contains hierarchy_path as first element."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert len(decomp_result.artifacts) >= 1
+        assert decomp_result.artifacts[0] == str(temp_plan_doc)
+
+    def test_validated_true_on_success(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_004.3.2: PhaseResult.metadata contains validated=True on success."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_plan_doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result.metadata.get("validated") is True
+
+    # -------------------------------------------------------------------------
+    # REQ_004.4: PhaseResult with FAILED status and errors array
+    # -------------------------------------------------------------------------
+
+    def test_validated_false_on_failure(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.9: PhaseResult.metadata contains validated=False on failure."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create invalid JSON
+        invalid_doc = tmp_path / "invalid.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert result.metadata.get("validated") is False
+
+    def test_error_count_in_failed_metadata(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.10: PhaseResult.metadata contains error_count on failure."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        # Create invalid JSON
+        invalid_doc = tmp_path / "invalid.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert "error_count" in result.metadata
+        assert result.metadata["error_count"] >= 1
+
+    def test_json_error_message_format(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.3: JSON parsing errors produce 'Plan validation failed: Invalid JSON - {error}'."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        invalid_doc = tmp_path / "invalid.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert len(result.errors) >= 1
+        assert "Plan validation failed: Invalid JSON" in result.errors[0]
+
+    def test_file_not_found_error_message_format(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.4: Missing file errors produce 'Plan validation failed: File not found - {path}'."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        nonexistent_path = str(tmp_path / "nonexistent.json")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=nonexistent_path,
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert len(result.errors) >= 1
+        assert "Plan validation failed: File not found" in result.errors[0]
+        assert nonexistent_path in result.errors[0]
+
+    def test_hierarchy_path_in_failed_metadata(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4: PhaseResult.metadata contains hierarchy_path on failure."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        invalid_doc = tmp_path / "invalid.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(invalid_doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        assert result.metadata.get("hierarchy_path") == str(invalid_doc)
+
+    def test_type_validation_error_includes_details(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.5: Type validation errors include invalid type and valid options."""
+        import json
+
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "invalid_type",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},
+        }
+        doc = tmp_path / "invalid_type_details.json"
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        result = pipeline.run(
+            research_question="",
+            hierarchy_path=str(doc),
+        )
+
+        assert result.status == PhaseStatus.FAILED
+        # Error should mention the invalid type
+        error_text = " ".join(result.errors).lower()
+        assert "type" in error_text or "invalid" in error_text
+
+    def test_pipeline_halts_gracefully_on_validation_failure(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_004.4.11: Pipeline execution halts gracefully after returning FAILED PhaseResult."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        invalid_doc = tmp_path / "invalid_halt.json"
+        invalid_doc.write_text("not valid json {{{")
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        # Mock to ensure later phases are NOT executed
+        with patch.object(pipeline, "_execute_phase") as mock_exec:
+            result = pipeline.run(
+                research_question="",
+                hierarchy_path=str(invalid_doc),
+            )
+
+            # Verify no phases were executed (validation failed before any phase execution)
+            mock_exec.assert_not_called()
+
+        assert result.status == PhaseStatus.FAILED

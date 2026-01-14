@@ -12,7 +12,7 @@ This plan contains 38 requirements in 7 phases.
 | 02 | The CLI must support a --plan-path optio... | REQ_001 | Complete |
 | 03 | The system must validate plan documents ... | REQ_002 | Complete |
 | 04 | The system must support BAML-level valid... | REQ_003 | Complete |
-| 05 | The pipeline must support kwargs passthr... | REQ_004 | Pending |
+| 05 | The pipeline must support kwargs passthr... | REQ_004 | Complete |
 | 06 | The CLI argument validation must follow ... | REQ_005 | Pending |
 | 07 | The system must return appropriate Phase... | REQ_006 | Pending |
 
@@ -43,11 +43,11 @@ This plan contains 38 requirements in 7 phases.
 | REQ_003.2 | Construct and return a ValidationResult ... | Complete |
 | REQ_003.3 | Add optional --validate-full flag to CLI... | Complete |
 | REQ_003.4 | Handle validation latency from LLM calls... | Complete |
-| REQ_004 | The pipeline must support kwargs passthr... | Pending |
-| REQ_004.1 | Pipeline must pass research_path kwarg t... | Pending |
-| REQ_004.2 | Pipeline must pass hierarchy_path kwarg ... | Pending |
-| REQ_004.3 | Return PhaseResult with status=COMPLETE ... | Pending |
-| REQ_004.4 | Return PhaseResult with status=FAILED an... | Pending |
+| REQ_004 | The pipeline must support kwargs passthr... | Complete |
+| REQ_004.1 | Pipeline must pass research_path kwarg t... | Complete |
+| REQ_004.2 | Pipeline must pass hierarchy_path kwarg ... | Complete |
+| REQ_004.3 | Return PhaseResult with status=COMPLETE ... | Complete |
+| REQ_004.4 | Return PhaseResult with status=FAILED an... | Complete |
 | REQ_005 | The CLI argument validation must follow ... | Pending |
 | REQ_005.1 | Implement 'required unless' pattern for ... | Pending |
 | REQ_005.2 | Implement click.Path validation for --re... | Pending |
