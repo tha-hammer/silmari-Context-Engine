@@ -336,6 +336,14 @@ class RLMActPipeline:
                 "validation_timestamp": datetime.now().isoformat(),  # REQ_004.3.6
             }
 
+            # REQ_006.3: Propagate source field from hierarchy metadata
+            if hierarchy.metadata.get("source"):
+                metadata["source"] = hierarchy.metadata["source"]
+
+            # REQ_006.4: Propagate decomposition_stats from hierarchy metadata
+            if hierarchy.metadata.get("decomposition_stats"):
+                metadata["decomposition_stats"] = hierarchy.metadata["decomposition_stats"]
+
             return hierarchy, None, metadata
 
         except json.JSONDecodeError as e:

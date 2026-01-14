@@ -2917,3 +2917,287 @@ class TestPhaseResultReturnValues:
 
         assert result.status == PhaseStatus.FAILED
         assert len(result.errors) > 0
+
+    # REQ_006.3: Source field propagation from hierarchy metadata
+
+    def test_source_field_propagated_from_hierarchy(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_006.3.1: source field from hierarchy metadata is propagated."""
+        import json
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        doc = tmp_path / "with_source.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {
+                "source": "agent_sdk_decomposition"
+            },
+        }
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        # Should have propagated source
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        assert decomp_result.metadata.get("source") == "agent_sdk_decomposition"
+
+    def test_source_field_test_value_propagated(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_006.3.2: source='test' is propagated correctly."""
+        import json
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        doc = tmp_path / "with_test_source.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {
+                "source": "test"
+            },
+        }
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        assert decomp_result.metadata.get("source") == "test"
+
+    def test_hierarchy_without_source_does_not_raise(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_006.3.3: Hierarchy without source field does not raise exception."""
+        import json
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        doc = tmp_path / "no_source.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},  # No source field
+        }
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        # Should not raise exception
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        assert decomp_result.status == PhaseStatus.COMPLETE
+        # source may be omitted (not required)
+        assert "source" not in decomp_result.metadata or decomp_result.metadata.get("source") is None or isinstance(decomp_result.metadata.get("source"), str)
+
+    # REQ_006.4: decomposition_stats propagation
+
+    def test_decomposition_stats_propagated_from_hierarchy(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_006.4.1: decomposition_stats from hierarchy metadata is propagated."""
+        import json
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        doc = tmp_path / "with_stats.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {
+                "decomposition_stats": {
+                    "requirements_found": 1,
+                    "subprocesses_expanded": 0,
+                    "total_nodes": 1,
+                    "extraction_time_ms": 100,
+                    "expansion_time_ms": 50,
+                }
+            },
+        }
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        assert "decomposition_stats" in decomp_result.metadata
+        stats = decomp_result.metadata["decomposition_stats"]
+        assert stats["requirements_found"] == 1
+        assert stats["extraction_time_ms"] == 100
+
+    def test_decomposition_stats_omitted_when_not_present(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        tmp_path: Path,
+    ) -> None:
+        """REQ_006.4.2: decomposition_stats is omitted (not null) when not in hierarchy."""
+        import json
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        doc = tmp_path / "no_stats.json"
+        hierarchy = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test requirement",
+                    "type": "parent",
+                    "parent_id": None,
+                    "children": [],
+                    "acceptance_criteria": [],
+                    "category": "functional",
+                }
+            ],
+            "metadata": {},  # No decomposition_stats
+        }
+        doc.write_text(json.dumps(hierarchy))
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(doc),
+            )
+
+        decomp_result = pipeline.state.get_phase_result(PhaseType.DECOMPOSITION)
+        assert decomp_result is not None
+        # Key should not exist (not set to null)
+        assert "decomposition_stats" not in decomp_result.metadata

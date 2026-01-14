@@ -1,9 +1,13 @@
 """Helper functions for planning pipeline."""
 
+import json
+import logging
 import re
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Union
+
+logger = logging.getLogger(__name__)
 
 
 def extract_file_path(output: str, file_type: str) -> Optional[str]:
@@ -86,7 +90,7 @@ def resolve_file_path(
     Args:
         project_path: Root project directory
         path_input: User-provided path string
-        file_type: "research" or "plans"
+        file_type: "research", "plans", or "hierarchy" (REQ_005.4)
 
     Returns:
         Resolved absolute Path or None if not found
@@ -107,6 +111,41 @@ def resolve_file_path(
 
     # Case 3: Just a filename - search in thoughts directories
     thoughts_dir = project_path / "thoughts"
+
+    # For hierarchy files, search in plans directories for .json files
+    if file_type == "hierarchy":
+        search_dirs = [
+            thoughts_dir / "searchable" / "shared" / "plans",
+            thoughts_dir / "shared" / "plans",
+        ]
+
+        filename = input_path.name
+
+        for search_dir in search_dirs:
+            if not search_dir.exists():
+                continue
+
+            # Search for hierarchy files in plan subdirectories
+            for plan_subdir in search_dir.iterdir():
+                if not plan_subdir.is_dir():
+                    continue
+
+                # Check if the path contains this subdirectory name
+                if str(input_path).startswith(plan_subdir.name) or \
+                   plan_subdir.name in str(input_path):
+                    # Look for the hierarchy file in this subdirectory
+                    hierarchy_path = plan_subdir / filename
+                    if hierarchy_path.exists():
+                        return hierarchy_path.resolve()
+
+                # Also search for exact filename match in subdirectories
+                exact_match = plan_subdir / filename
+                if exact_match.exists():
+                    return exact_match.resolve()
+
+        return None
+
+    # Original behavior for research/plans
     search_dirs = [
         thoughts_dir / "searchable" / "shared" / file_type,
         thoughts_dir / "shared" / file_type,
@@ -182,3 +221,132 @@ def discover_thoughts_files(
 
     # Sort alphabetically by filename
     return sorted(files, key=lambda f: f.name)
+
+
+# ==============================================================================
+# REQ_005: Auto-detection and file resolution functions
+# ==============================================================================
+
+# Hierarchy file names to search for, in priority order
+HIERARCHY_FILE_NAMES = [
+    "requirement_hierarchy.json",
+    "requirements_hierarchy.json",
+    "hierarchy.json",
+]
+
+
+def detect_file_type(path: Union[Path, str]) -> str:
+    """Detect the type of a file based on its extension.
+
+    REQ_005.1: Returns file type based on extension.
+
+    Args:
+        path: Path to the file (Path object or string)
+
+    Returns:
+        'markdown' for .md files (case-insensitive)
+        'json' for .json files (case-insensitive)
+        'unknown' for other extensions
+
+    Raises:
+        FileNotFoundError: If the file does not exist
+    """
+    file_path = Path(path)
+
+    # Validate file existence
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Get extension and normalize to lowercase
+    extension = file_path.suffix.lower()
+
+    if extension == ".md":
+        return "markdown"
+    elif extension == ".json":
+        return "json"
+    else:
+        return "unknown"
+
+
+def _is_valid_hierarchy_json(file_path: Path) -> bool:
+    """Check if a JSON file is a valid RequirementHierarchy structure.
+
+    Args:
+        file_path: Path to the JSON file
+
+    Returns:
+        True if the JSON is valid and has a 'requirements' field, False otherwise
+    """
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        # Check for required 'requirements' field
+        return isinstance(data, dict) and "requirements" in data
+    except (json.JSONDecodeError, IOError, OSError):
+        return False
+
+
+def find_sibling_hierarchy(plan_path: Path) -> Optional[Path]:
+    """Find a sibling hierarchy JSON file for a given markdown plan file.
+
+    REQ_005.2: Search for hierarchy JSON files in the same directory.
+
+    Searches for these files in order of preference:
+    - requirement_hierarchy.json
+    - requirements_hierarchy.json
+    - hierarchy.json
+
+    Args:
+        plan_path: Path to a markdown plan file (e.g., 00-overview.md)
+
+    Returns:
+        Absolute Path to the hierarchy JSON file, or None if not found
+    """
+    plan_dir = plan_path.parent
+
+    for hierarchy_name in HIERARCHY_FILE_NAMES:
+        hierarchy_path = plan_dir / hierarchy_name
+
+        if hierarchy_path.exists():
+            logger.debug(f"Found hierarchy file candidate: {hierarchy_path}")
+
+            # Validate the JSON structure
+            if _is_valid_hierarchy_json(hierarchy_path):
+                logger.info(f"Valid hierarchy file found: {hierarchy_path}")
+                return hierarchy_path.resolve()
+            else:
+                logger.debug(f"Invalid hierarchy structure in: {hierarchy_path}")
+
+    logger.debug(f"No valid hierarchy file found in: {plan_dir}")
+    return None
+
+
+def is_sibling_pair_valid(dir_path: Path) -> bool:
+    """Check if a directory contains a valid sibling pair of overview and hierarchy.
+
+    REQ_005.5: Validates that both requirement_hierarchy.json and 00-overview.md
+    exist in the directory.
+
+    Args:
+        dir_path: Path to the directory to check
+
+    Returns:
+        True if both files exist and are valid, False otherwise
+    """
+    # Check directory exists
+    if not dir_path.exists() or not dir_path.is_dir():
+        return False
+
+    # Check for 00-overview.md
+    overview_path = dir_path / "00-overview.md"
+    if not overview_path.exists():
+        return False
+
+    # Check for any valid hierarchy file
+    for hierarchy_name in HIERARCHY_FILE_NAMES:
+        hierarchy_path = dir_path / hierarchy_name
+        if hierarchy_path.exists():
+            if _is_valid_hierarchy_json(hierarchy_path):
+                return True
+
+    return False
