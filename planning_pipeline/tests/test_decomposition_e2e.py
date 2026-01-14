@@ -22,7 +22,8 @@ class TestDecompositionE2E:
     def test_full_flow_with_mock_research(self, tmp_path):
         """Test full flow with a mock research file (no API calls)."""
         # Create a research directory and file
-        research_dir = tmp_path / "thoughts" / "shared" / "research"
+        # Note: step_decomposition resolves thoughts/searchable/X -> thoughts/searchable/shared/X
+        research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
         research_dir.mkdir(parents=True)
 
         research_content = """# Research: User Authentication Feature
@@ -190,8 +191,9 @@ class TestDecompositionOutputStructure:
         from unittest.mock import patch
         from planning_pipeline.models import RequirementHierarchy, RequirementNode
 
-        # Set up research file
-        research_dir = tmp_path / "thoughts" / "shared" / "research"
+        # Set up research file - must match the path resolution logic in step_decomposition
+        # thoughts/searchable/X -> thoughts/searchable/shared/X
+        research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
         research_dir.mkdir(parents=True)
         (research_dir / "test.md").write_text("# Test Research")
 
@@ -235,7 +237,9 @@ class TestDecompositionOutputStructure:
             ImplementationComponents,
         )
 
-        research_dir = tmp_path / "thoughts" / "shared" / "research"
+        # Set up research file - must match the path resolution logic in step_decomposition
+        # thoughts/searchable/X -> thoughts/searchable/shared/X
+        research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
         research_dir.mkdir(parents=True)
         (research_dir / "test.md").write_text("# Test Research")
 
@@ -303,7 +307,9 @@ class TestDecompositionOutputStructure:
         from unittest.mock import patch
         from planning_pipeline.models import RequirementHierarchy, RequirementNode
 
-        research_dir = tmp_path / "thoughts" / "shared" / "research"
+        # Set up research file - must match the path resolution logic in step_decomposition
+        # thoughts/searchable/X -> thoughts/searchable/shared/X
+        research_dir = tmp_path / "thoughts" / "searchable" / "shared" / "research"
         research_dir.mkdir(parents=True)
         (research_dir / "test.md").write_text("# Test Research")
 
