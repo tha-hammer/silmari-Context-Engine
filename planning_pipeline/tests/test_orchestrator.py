@@ -657,3 +657,133 @@ class TestResumeFlowWithNewSteps:
         # Research step should never be called by execute_from_step
         # (it's only in the full pipeline run)
         assert "research" not in steps_called
+
+
+# ===========================================================================
+# Behavior: Help Text Documentation (REQ_003.3, REQ_003.4)
+# ===========================================================================
+
+
+class TestPlanningOrchestratorHelpText:
+    """Tests for REQ_003.3, REQ_003.4: Help text documentation consistency."""
+
+    def test_plan_path_option_accepts_md_files(self):
+        """REQ_003.3.1: --plan-path option must accept Markdown .md files."""
+        from planning_orchestrator import parse_args
+
+        # Should not raise any errors for .md files
+        args = parse_args(["--plan-path", "/path/to/plan.md"])
+        assert args.plan_path == "/path/to/plan.md"
+
+    def test_plan_path_underscore_alias_works(self):
+        """REQ_003.3.2: --plan_path alias must work identically to --plan-path."""
+        from planning_orchestrator import parse_args
+
+        args = parse_args(["--plan_path", "/path/to/plan.md"])
+        assert args.plan_path == "/path/to/plan.md"
+
+    def test_plan_path_dest_is_plan_path(self):
+        """REQ_003.3.3: dest parameter must be set to 'plan_path' for internal variable naming."""
+        import argparse
+        from planning_orchestrator import parse_args
+
+        # Parse args and check the attribute name
+        args = parse_args(["--plan-path", "/path/to/plan.md"])
+        assert hasattr(args, "plan_path")
+        assert not hasattr(args, "plan-path")  # hyphenated version shouldn't be attr
+
+    def test_plan_path_metavar_is_file(self):
+        """REQ_003.3.4: metavar must be set to 'FILE' for help text clarity."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "planning_orchestrator.py", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        # Check help output contains FILE metavar for plan-path
+        assert "--plan-path FILE" in result.stdout or "--plan_path FILE" in result.stdout
+
+    def test_plan_path_help_mentions_md_and_auto_resolve(self):
+        """REQ_003.3.5: Help text must mention .md and auto-resolution."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "planning_orchestrator.py", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        help_lower = result.stdout.lower()
+        assert ".md" in help_lower or "md file" in help_lower
+        assert "auto" in help_lower or "resolved" in help_lower
+
+
+class TestResumePipelineHelpText:
+    """Tests for REQ_003.2, REQ_003.4: resume_pipeline.py help text."""
+
+    def test_plan_path_mentions_markdown(self):
+        """REQ_003.2.1, REQ_003.4.3: Help text must mention Markdown (.md)."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "resume_pipeline.py", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        help_lower = result.stdout.lower()
+        assert "markdown" in help_lower or ".md" in help_lower
+
+    def test_plan_path_mentions_decomposition(self):
+        """REQ_003.2.4: Help text must state plan-path is for decomposition step."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "resume_pipeline.py", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        help_lower = result.stdout.lower()
+        assert "decomposition" in help_lower
+
+    def test_plan_path_alias_works(self):
+        """REQ_003.2.2: --plan_path alias must work."""
+        import subprocess
+        import sys
+
+        # Run with --plan_path (underscore)
+        result = subprocess.run(
+            [sys.executable, "resume_pipeline.py", "decomposition", "--plan_path", "/fake/path.md"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        # Should fail because file doesn't exist, but shouldn't fail on argument parsing
+        assert "unrecognized arguments" not in result.stderr.lower()
+
+    def test_example_usage_shows_md_extension(self):
+        """REQ_003.2.7: Example usage in help must show .md extension."""
+        import subprocess
+        import sys
+
+        result = subprocess.run(
+            [sys.executable, "resume_pipeline.py", "--help"],
+            capture_output=True,
+            text=True,
+            cwd="/home/maceo/Dev/silmari-Context-Engine",
+        )
+
+        # Example should show .md file extension
+        assert ".md" in result.stdout

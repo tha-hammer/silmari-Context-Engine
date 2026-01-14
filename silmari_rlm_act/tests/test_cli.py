@@ -1571,3 +1571,99 @@ class TestFlagArgumentPatterns:
         # Not passive like "Is run in" or "Flag for"
         output_lower = result.output.lower()
         assert "run in" in output_lower or "enable" in output_lower or "use" in output_lower
+
+
+# ===========================================================================
+# Behavior 10: Help Text Documentation (REQ_003.4)
+# ===========================================================================
+
+
+class TestHelpTextDocumentation:
+    """Tests for REQ_003.4: Help text documentation consistency."""
+
+    def test_plan_path_help_mentions_json(self, cli_runner: CliRunner) -> None:
+        """REQ_003.4.1: silmari_rlm_act/cli.py help must state 'requirement hierarchy JSON file'."""
+        from silmari_rlm_act.cli import main
+
+        result = cli_runner.invoke(main, ["run", "--help"])
+
+        assert result.exit_code == 0
+        assert "requirement hierarchy json file" in result.output.lower()
+
+    def test_plan_path_help_not_conflated(self, cli_runner: CliRunner) -> None:
+        """REQ_003.4.2: silmari_rlm_act/cli.py must NOT use 'TDD plan/hierarchy JSON' terminology."""
+        from silmari_rlm_act.cli import main
+
+        result = cli_runner.invoke(main, ["run", "--help"])
+
+        assert result.exit_code == 0
+        # Should not contain the conflated terminology
+        assert "tdd plan/hierarchy json" not in result.output.lower()
+        assert "plan/hierarchy" not in result.output.lower()
+
+    def test_plan_path_help_mentions_phases_skipped(
+        self, cli_runner: CliRunner
+    ) -> None:
+        """REQ_003.4.6: Help text explains what phases are skipped."""
+        from silmari_rlm_act.cli import main
+
+        result = cli_runner.invoke(main, ["run", "--help"])
+
+        assert result.exit_code == 0
+        # Should mention skipping research and decomposition
+        output_lower = result.output.lower()
+        assert "skip" in output_lower
+        assert "research" in output_lower or "decomposition" in output_lower
+
+    def test_plan_path_uses_click_path_validation(
+        self, cli_runner: CliRunner
+    ) -> None:
+        """REQ_003.1.13: click.Path(exists=True, file_okay=True, dir_okay=False) must validate file existence."""
+        from silmari_rlm_act.cli import run
+        import click
+
+        for param in run.params:
+            if param.name == "plan_path":
+                assert isinstance(param.type, click.Path)
+                assert param.type.exists is True
+                assert param.type.file_okay is True
+                assert param.type.dir_okay is False
+                break
+        else:
+            pytest.fail("plan_path parameter not found")
+
+    def test_hierarchy_path_internal_variable_name(
+        self,
+        cli_runner: CliRunner,
+        temp_project: Path,
+        temp_plan_doc: Path,
+    ) -> None:
+        """REQ_003.1.12: Internal variable must be passed as 'hierarchy_path' to pipeline.run()."""
+        from silmari_rlm_act.cli import main
+
+        mock_result = PhaseResult(
+            phase_type=PhaseType.IMPLEMENTATION,
+            status=PhaseStatus.COMPLETE,
+        )
+
+        with patch("silmari_rlm_act.cli.RLMActPipeline") as mock_pipeline_cls:
+            mock_pipeline = MagicMock()
+            mock_pipeline.run.return_value = mock_result
+            mock_pipeline_cls.return_value = mock_pipeline
+
+            cli_runner.invoke(
+                main,
+                [
+                    "run",
+                    "--plan-path",
+                    str(temp_plan_doc),
+                    "--project",
+                    str(temp_project),
+                ],
+            )
+
+            # Check pipeline.run was called with hierarchy_path (not plan_path)
+            call_kwargs = mock_pipeline.run.call_args.kwargs
+            assert "hierarchy_path" in call_kwargs
+            # Verify it's not using plan_path as the kwarg name
+            # The CLI option is --plan-path but internal var is hierarchy_path

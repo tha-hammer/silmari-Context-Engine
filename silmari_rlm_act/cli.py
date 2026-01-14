@@ -11,6 +11,7 @@ from typing import Optional
 
 import click
 
+from silmari_rlm_act import __version__
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import AutonomyMode
 from silmari_rlm_act.pipeline import RLMActPipeline
@@ -18,7 +19,7 @@ from planning_pipeline.beads_controller import BeadsController
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="silmari-rlm-act")
+@click.version_option(version=__version__, prog_name="silmari-rlm-act")
 def main() -> None:
     """silmari-rlm-act: Autonomous TDD Pipeline.
 
@@ -79,7 +80,7 @@ def main() -> None:
     "--plan-path",
     type=click.Path(exists=True, file_okay=True, dir_okay=False),
     default=None,
-    help="Path to existing TDD plan/hierarchy JSON (skips research and decomposition phases)",
+    help="Path to existing requirement hierarchy JSON file (skips research and decomposition phases)",
 )
 @click.option(
     "--validate-full",
@@ -197,7 +198,7 @@ def run(
         click.echo("Starting RLM-Act pipeline...")
         click.echo(f"  Project: {project_path}")
         if plan_path:
-            click.echo(f"  Plan/hierarchy document: {plan_path}")
+            click.echo(f"  Requirement hierarchy JSON: {plan_path}")
             click.echo("  (Research and decomposition phases will be skipped)")
         elif research_path:
             click.echo(f"  Research document: {research_path}")

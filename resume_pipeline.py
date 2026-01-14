@@ -127,7 +127,8 @@ Examples:
     parser.add_argument(
         "--plan-path", "--plan_path",
         dest="plan_path",
-        help="Path to plan document (required for decomposition step)"
+        metavar="FILE",
+        help="Path to TDD plan Markdown document (.md) required for decomposition step"
     )
 
     # Arguments for beads step

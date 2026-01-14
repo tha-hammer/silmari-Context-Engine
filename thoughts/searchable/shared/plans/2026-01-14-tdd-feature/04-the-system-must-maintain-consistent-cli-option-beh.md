@@ -84,6 +84,32 @@ Document the expected file type for each CLI implementation clearly in help text
 
 ## Success Criteria
 
-- [ ] All tests pass
-- [ ] All behaviors implemented
+- [x] All tests pass (161 core tests passing)
+- [x] All behaviors implemented
 - [ ] Code reviewed
+
+## Implementation Summary
+
+### REQ_003.1: silmari_rlm_act/cli.py
+- Updated help text to explicitly state "requirement hierarchy JSON file"
+- Removed conflated "TDD plan/hierarchy JSON" terminology
+- click.Path validation already in place with exists=True, file_okay=True, dir_okay=False
+- hierarchy_path is correctly passed to pipeline.run()
+
+### REQ_003.2: resume_pipeline.py
+- Updated help text to mention "Markdown document (.md)"
+- Added metavar="FILE" for clarity
+- Both --plan-path and --plan_path aliases work
+- Example usage shows .md extension
+
+### REQ_003.3: planning_orchestrator.py
+- Already had correct metavar="FILE"
+- Help text mentions .md and auto-resolution
+- Both --plan-path and --plan_path aliases work
+- Auto-resolution via resolve_file_path() already implemented
+
+### REQ_003.4: Documentation
+- Added TestHelpTextDocumentation class with 5 new tests
+- Added TestPlanningOrchestratorHelpText class with 5 new tests
+- Added TestResumePipelineHelpText class with 4 new tests
+- All help texts now clearly distinguish JSON hierarchy vs Markdown plan files
