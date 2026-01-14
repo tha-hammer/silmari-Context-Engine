@@ -96,6 +96,50 @@ Emit stream-json formatted events to stdout with type field and data payload for
 
 ## Success Criteria
 
-- [ ] All tests pass
-- [ ] All behaviors implemented
-- [ ] Code reviewed
+- [x] All tests pass (88 tests in test_claude_runner.py)
+- [x] All behaviors implemented in planning_pipeline/claude_runner.py
+- [x] Code reviewed
+
+## Implementation Notes
+
+### Implemented (2026-01-14)
+
+All REQ_006 terminal formatting behaviors are implemented in `planning_pipeline/claude_runner.py`.
+
+**Test classes covering REQ_006:**
+- `TestTerminalFormatting` (7 tests) - Colors class and _format_tool_call
+- `TestKeyArgumentExtraction` (12 tests) - REQ_006.3 key argument extraction
+- `TestArgumentTruncation` (7 tests) - REQ_006.4 50-char truncation
+- `TestStreamJsonEmission` (4 tests) - REQ_006.5 JSON event emission
+
+**Key implementation details:**
+- `Colors` class - Lines 329-338
+- `_truncate_arg()` - Lines 341-358 (REQ_006.4)
+- `_extract_key_arg()` - Lines 361-388 (REQ_006.3)
+- `_format_tool_call()` - Lines 391-407 (REQ_006.2)
+- `_emit_stream_json()` - Lines 410-421 (REQ_006.5)
+
+**Coverage of REQ_006.1 (Colors class):**
+- All ANSI escape codes defined: RESET, BOLD, DIM, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN
+- test_colors_class_has_ansi_codes validates all codes
+
+**Coverage of REQ_006.2 (Tool call formatting):**
+- test_format_tool_call_cyan_tool_name
+- test_format_tool_call_green_key_arg
+
+**Coverage of REQ_006.3 (Key argument extraction):**
+- test_extract_file_path, test_extract_command, test_extract_pattern_*
+- test_extract_url_for_webfetch, test_extract_description_for_task
+- test_priority_file_path_over_command, test_priority_command_over_pattern
+
+**Coverage of REQ_006.4 (Truncation to 50 chars):**
+- test_truncate_long_string (verifies 53 char max with ellipsis)
+- test_truncate_adds_ellipsis
+- test_no_truncate_short_string
+- test_idempotent, test_unicode_handling
+
+**Coverage of REQ_006.5 (Stream-JSON emission):**
+- test_emit_includes_type_field
+- test_emit_includes_data_fields
+- test_emit_followed_by_newline
+- test_emit_handles_common_types (str, int, float, bool, list, dict)

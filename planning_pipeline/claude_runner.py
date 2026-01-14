@@ -338,26 +338,75 @@ class Colors:
     CYAN = '\033[36m'
 
 
+def _truncate_arg(value: str, max_len: int = 50) -> str:
+    """Truncate a string to max_len characters with ellipsis suffix.
+
+    REQ_006.4: Truncate long arguments to 50 characters for terminal readability.
+
+    Args:
+        value: The string to truncate
+        max_len: Maximum length before truncation (default 50)
+
+    Returns:
+        Truncated string with '...' if needed, original otherwise
+    """
+    if not value:
+        return value
+    if len(value) <= max_len:
+        return value
+    return value[:max_len] + "..."
+
+
+def _extract_key_arg(tool_input: dict) -> str | None:
+    """Extract the most relevant key argument from tool input.
+
+    REQ_006.3: Extract key argument based on tool-specific patterns.
+    Priority order: file_path > path > command > pattern > query > url > description
+
+    Args:
+        tool_input: Dictionary of tool input parameters
+
+    Returns:
+        The extracted key argument string, or None if not found
+    """
+    if not tool_input:
+        return None
+
+    # Priority order per REQ_006.3
+    if tool_input.get("file_path"):
+        return tool_input["file_path"]
+    if tool_input.get("path"):
+        return tool_input["path"]
+    if tool_input.get("command"):
+        return _truncate_arg(tool_input["command"])
+    if tool_input.get("pattern"):
+        return f'"{tool_input["pattern"]}"'
+    if tool_input.get("query"):
+        q = tool_input["query"]
+        return f'"{_truncate_arg(q, 30)}"' if len(q) > 30 else f'"{q}"'
+    if tool_input.get("url"):
+        return _truncate_arg(tool_input["url"])
+    if tool_input.get("description"):
+        return _truncate_arg(tool_input["description"])
+
+    return None
+
+
 def _format_tool_call(tool_name: str, tool_input: dict) -> str:
-    """Format a tool call for display."""
+    """Format a tool call for display with colored output.
+
+    REQ_006.2: Format tool call with tool name in CYAN and key argument in GREEN.
+
+    Args:
+        tool_name: Name of the tool being invoked
+        tool_input: Dictionary of tool input parameters
+
+    Returns:
+        Formatted string suitable for terminal display
+    """
     display = f"{Colors.CYAN}{tool_name}{Colors.RESET}"
 
-    # Extract the most relevant argument
-    key_arg = None
-    if tool_input:
-        if tool_input.get("file_path"):
-            key_arg = tool_input["file_path"]
-        elif tool_input.get("path"):
-            key_arg = tool_input["path"]
-        elif tool_input.get("pattern"):
-            key_arg = f'"{tool_input["pattern"]}"'
-        elif tool_input.get("command"):
-            cmd = tool_input["command"]
-            key_arg = cmd[:50] + "..." if len(cmd) > 50 else cmd
-        elif tool_input.get("query"):
-            q = tool_input["query"]
-            key_arg = f'"{q[:30]}..."' if len(q) > 30 else f'"{q}"'
-
+    key_arg = _extract_key_arg(tool_input)
     if key_arg:
         display += f"({Colors.GREEN}{key_arg}{Colors.RESET})"
 

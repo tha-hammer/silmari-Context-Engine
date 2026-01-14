@@ -43,6 +43,8 @@ from planning_pipeline.claude_runner import (
     Colors,
     _format_tool_call,
     _emit_stream_json,
+    _truncate_arg,
+    _extract_key_arg,
     # Types and constants
     HAS_CLAUDE_SDK,
     MAX_OUTPUT_CHARS,
@@ -578,6 +580,155 @@ class TestTerminalFormatting:
         captured = capsys.readouterr()
         event = json.loads(captured.out.strip())
         assert event["type"] == "assistant"
+
+
+class TestKeyArgumentExtraction:
+    """REQ_006.3: Extract most relevant key argument from tool input."""
+
+    def test_extract_file_path(self):
+        """REQ_006.3.1: For tools with 'file_path' input, extract file_path value."""
+        result = _extract_key_arg({"file_path": "/test.py"})
+        assert result == "/test.py"
+
+    def test_extract_command(self):
+        """REQ_006.3.2: For Bash tool with 'command' input, extract command value."""
+        result = _extract_key_arg({"command": "ls -la"})
+        assert result == "ls -la"
+
+    def test_extract_pattern_for_grep(self):
+        """REQ_006.3.3: For Grep tool with 'pattern' input, extract pattern value."""
+        result = _extract_key_arg({"pattern": "def.*foo"})
+        assert '"def.*foo"' in result
+
+    def test_extract_pattern_for_glob(self):
+        """REQ_006.3.4: For Glob tool with 'pattern' input, extract pattern value."""
+        result = _extract_key_arg({"pattern": "**/*.py"})
+        assert '"**/*.py"' in result
+
+    def test_extract_url_for_webfetch(self):
+        """REQ_006.3.5: For WebFetch tool with 'url' input, extract url value."""
+        result = _extract_key_arg({"url": "https://example.com"})
+        assert result == "https://example.com"
+
+    def test_extract_query_for_websearch(self):
+        """REQ_006.3.6: For WebSearch tool with 'query' input, extract query value."""
+        result = _extract_key_arg({"query": "search term"})
+        assert '"search term"' in result
+
+    def test_extract_description_for_task(self):
+        """REQ_006.3.7: For Task tool, extract 'description' field as key argument."""
+        result = _extract_key_arg({"description": "Find files"})
+        assert result == "Find files"
+
+    def test_empty_dict_returns_none(self):
+        """REQ_006.3.8: Return None when no recognized key field is present."""
+        result = _extract_key_arg({})
+        assert result is None
+
+    def test_none_input_returns_none(self):
+        """REQ_006.3.8: Function handles empty dict input returning None."""
+        result = _extract_key_arg(None)
+        assert result is None
+
+    def test_priority_file_path_over_command(self):
+        """REQ_006.3.10: Priority order - file_path > command."""
+        result = _extract_key_arg({"file_path": "/test.py", "command": "cat"})
+        assert result == "/test.py"
+
+    def test_priority_command_over_pattern(self):
+        """REQ_006.3.10: Priority order - command > pattern."""
+        result = _extract_key_arg({"command": "ls", "pattern": "*.py"})
+        assert result == "ls"
+
+
+class TestArgumentTruncation:
+    """REQ_006.4: Truncate long arguments to 50 characters with ellipsis."""
+
+    def test_truncate_long_string(self):
+        """REQ_006.4.1: Arguments longer than 50 characters are truncated."""
+        long_str = "x" * 100
+        result = _truncate_arg(long_str)
+        assert len(result) == 53  # 50 + len("...")
+
+    def test_truncate_adds_ellipsis(self):
+        """REQ_006.4.2: Truncated arguments end with '...' ellipsis suffix."""
+        long_str = "x" * 100
+        result = _truncate_arg(long_str)
+        assert result.endswith("...")
+
+    def test_no_truncate_short_string(self):
+        """REQ_006.4.4: Arguments 50 characters or shorter are returned unchanged."""
+        short_str = "x" * 50
+        result = _truncate_arg(short_str)
+        assert result == short_str
+        assert "..." not in result
+
+    def test_empty_string_returns_empty(self):
+        """REQ_006.4.5: Empty string input returns empty string."""
+        result = _truncate_arg("")
+        assert result == ""
+
+    def test_none_returns_none(self):
+        """REQ_006.4.6: None input returns None."""
+        result = _truncate_arg(None)
+        assert result is None
+
+    def test_idempotent(self):
+        """REQ_006.4.8: Truncating already truncated string produces same result."""
+        long_str = "x" * 100
+        first = _truncate_arg(long_str)
+        second = _truncate_arg(first)
+        assert first == second
+
+    def test_unicode_handling(self):
+        """REQ_006.4.9: Works correctly with Unicode characters."""
+        unicode_str = "\u4e2d\u6587" * 30  # Chinese chars
+        result = _truncate_arg(unicode_str)
+        assert len(result) == 53
+
+
+class TestStreamJsonEmission:
+    """REQ_006.5: Stream-JSON event emission."""
+
+    def test_emit_includes_type_field(self, capsys):
+        """REQ_006.5.2-3: Output JSON contains 'type' field set to event_type value."""
+        _emit_stream_json("test_event", {"key": "value"})
+        captured = capsys.readouterr()
+        event = json.loads(captured.out.strip())
+        assert event["type"] == "test_event"
+
+    def test_emit_includes_data_fields(self, capsys):
+        """REQ_006.5.4: Output JSON contains all key-value pairs from data dict."""
+        _emit_stream_json("test", {"field1": "a", "field2": 123})
+        captured = capsys.readouterr()
+        event = json.loads(captured.out.strip())
+        assert event["field1"] == "a"
+        assert event["field2"] == 123
+
+    def test_emit_followed_by_newline(self, capsys):
+        """REQ_006.5.5: Each event is followed by newline character."""
+        _emit_stream_json("test", {})
+        captured = capsys.readouterr()
+        assert captured.out.endswith("\n")
+
+    def test_emit_handles_common_types(self, capsys):
+        """REQ_006.5.7: JSON serialization handles common Python types."""
+        _emit_stream_json("test", {
+            "str": "text",
+            "int": 42,
+            "float": 3.14,
+            "bool": True,
+            "list": [1, 2, 3],
+            "dict": {"nested": "value"}
+        })
+        captured = capsys.readouterr()
+        event = json.loads(captured.out.strip())
+        assert event["str"] == "text"
+        assert event["int"] == 42
+        assert event["float"] == 3.14
+        assert event["bool"] is True
+        assert event["list"] == [1, 2, 3]
+        assert event["dict"]["nested"] == "value"
 
 
 class TestTimeoutHandling:
