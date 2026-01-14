@@ -11,7 +11,7 @@ This plan contains 38 requirements in 7 phases.
 | 01 | The CLI must support a --research-path o... | REQ_000 | Complete |
 | 02 | The CLI must support a --plan-path optio... | REQ_001 | Complete |
 | 03 | The system must validate plan documents ... | REQ_002 | Complete |
-| 04 | The system must support BAML-level valid... | REQ_003 | Pending |
+| 04 | The system must support BAML-level valid... | REQ_003 | Complete |
 | 05 | The pipeline must support kwargs passthr... | REQ_004 | Pending |
 | 06 | The CLI argument validation must follow ... | REQ_005 | Pending |
 | 07 | The system must return appropriate Phase... | REQ_006 | Pending |
@@ -38,11 +38,11 @@ This plan contains 38 requirements in 7 phases.
 | REQ_002.3 | Validate requirement type is in VALID_RE... | Complete |
 | REQ_002.4 | Validate requirement category is in VALI... | Complete |
 | REQ_002.5 | Validate requirement description is not ... | Complete |
-| REQ_003 | The system must support BAML-level valid... | Pending |
-| REQ_003.1 | Invoke ProcessGate1RequirementValidation... | Pending |
-| REQ_003.2 | Construct and return a ValidationResult ... | Pending |
-| REQ_003.3 | Add optional --validate-full flag to CLI... | Pending |
-| REQ_003.4 | Handle validation latency from LLM calls... | Pending |
+| REQ_003 | The system must support BAML-level valid... | Complete |
+| REQ_003.1 | Invoke ProcessGate1RequirementValidation... | Complete |
+| REQ_003.2 | Construct and return a ValidationResult ... | Complete |
+| REQ_003.3 | Add optional --validate-full flag to CLI... | Complete |
+| REQ_003.4 | Handle validation latency from LLM calls... | Complete |
 | REQ_004 | The pipeline must support kwargs passthr... | Pending |
 | REQ_004.1 | Pipeline must pass research_path kwarg t... | Pending |
 | REQ_004.2 | Pipeline must pass hierarchy_path kwarg ... | Pending |

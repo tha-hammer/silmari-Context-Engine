@@ -4,6 +4,7 @@ This module provides the main pipeline orchestrator that coordinates
 all phases of the RLM-Act pipeline from research through implementation.
 """
 
+import json
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Protocol
@@ -23,6 +24,7 @@ from silmari_rlm_act.phases.implementation import ImplementationPhase
 from silmari_rlm_act.phases.multi_doc import MultiDocPhase
 from silmari_rlm_act.phases.research import ResearchPhase
 from silmari_rlm_act.phases.tdd_planning import TDDPlanningPhase
+from planning_pipeline.models import RequirementHierarchy
 
 
 class BeadsControllerProtocol(Protocol):
@@ -295,6 +297,140 @@ class RLMActPipeline:
             for entry_id in result.metadata["cwa_entry_ids"]:
                 self.state.track_context_entry(phase_type, entry_id)
 
+    def _validate_hierarchy_path(
+        self, hierarchy_path: str
+    ) -> tuple[Optional[RequirementHierarchy], Optional[str], dict[str, Any]]:
+        """Validate and load a hierarchy JSON file.
+
+        Args:
+            hierarchy_path: Path to the hierarchy JSON file
+
+        Returns:
+            Tuple of (hierarchy, error_message, metadata)
+            If validation succeeds: (hierarchy, None, metadata)
+            If validation fails: (None, error_message, {})
+        """
+        path = Path(hierarchy_path)
+
+        try:
+            # Load JSON
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            # Deserialize to RequirementHierarchy (triggers __post_init__ validation)
+            hierarchy = RequirementHierarchy.from_dict(data)
+
+            # Count nodes for metadata
+            total_nodes = 0
+            for req in hierarchy.requirements:
+                total_nodes += 1  # Parent
+                total_nodes += len(req.children)
+                for child in req.children:
+                    total_nodes += len(child.children)
+
+            metadata = {
+                "hierarchy_path": str(path),
+                "requirements_count": len(hierarchy.requirements),
+                "total_nodes": total_nodes,
+                "validated": True,
+            }
+
+            return hierarchy, None, metadata
+
+        except json.JSONDecodeError as e:
+            return None, f"Plan validation failed: Invalid JSON - {e}", {}
+        except ValueError as e:
+            return None, f"Plan validation failed: {e}", {}
+        except FileNotFoundError:
+            return None, f"Plan validation failed: File not found - {hierarchy_path}", {}
+        except Exception as e:
+            return None, f"Plan validation failed: {e}", {}
+
+    def _perform_semantic_validation(
+        self,
+        hierarchy_path: str,
+        research_path: Optional[str] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Perform BAML-level semantic validation of requirements.
+
+        REQ_003.1: Invoke ProcessGate1RequirementValidationPrompt function to
+        perform semantic validation of requirements against the research scope.
+
+        REQ_003.4: Handle validation latency appropriately with warning-only mode.
+
+        Args:
+            hierarchy_path: Path to the hierarchy JSON file
+            research_path: Optional path to research document for scope context
+
+        Returns:
+            Dictionary with validation results and metadata, or None if validation fails
+        """
+        import logging
+
+        logger = logging.getLogger(__name__)
+
+        try:
+            from silmari_rlm_act.validation import (
+                SemanticValidationService,
+                ValidationConfig,
+                ValidationError,
+            )
+
+            # Load scope text from research path if available
+            scope_text = ""
+            if research_path:
+                try:
+                    with open(research_path, "r", encoding="utf-8") as f:
+                        scope_text = f.read()
+                except Exception as e:
+                    logger.warning(f"Could not read research document: {e}")
+                    scope_text = "No research scope available"
+            else:
+                scope_text = "Validating requirements without research scope context"
+
+            # Configure validation with warning-only mode (don't block pipeline)
+            config = ValidationConfig(
+                timeout_seconds=60,
+                max_retries=3,
+                warning_only=True,  # Don't fail the pipeline on validation errors
+                show_progress=True,
+            )
+
+            service = SemanticValidationService(config=config)
+
+            try:
+                summary = service.validate_with_timeout(
+                    scope_text=scope_text,
+                    hierarchy_path=Path(hierarchy_path),
+                )
+
+                return {
+                    "total_requirements": summary.total_requirements,
+                    "valid_count": summary.valid_count,
+                    "invalid_count": summary.invalid_count,
+                    "all_valid": summary.all_valid,
+                    "validity_rate": summary.validity_rate,
+                    "processing_time_ms": summary.processing_time_ms,
+                    "llm_model": summary.llm_model,
+                }
+
+            except ValidationError as e:
+                logger.warning(f"Semantic validation failed: {e}")
+                return {
+                    "error": str(e),
+                    "validation_skipped": True,
+                }
+
+            finally:
+                service.close()
+
+        except ImportError as e:
+            logger.warning(f"Validation module not available: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Semantic validation error: {e}")
+            return None
+
     def run_single_phase(
         self,
         phase_type: PhaseType,
@@ -357,12 +493,114 @@ class RLMActPipeline:
         all_artifacts: list[str] = []
         all_errors: list[str] = []
 
+        # Check if hierarchy_path is provided (skip research AND decomposition phases)
+        hierarchy_path = kwargs.get("hierarchy_path")
+
+        # Check if research_path is provided (skip research phase only)
+        research_path = kwargs.get("research_path")
+
+        # Check if semantic validation is requested
+        validate_full = kwargs.get("validate_full", False)
+
+        # If hierarchy_path is provided, validate and create synthetic results for both phases
+        if hierarchy_path:
+            # Validate the hierarchy JSON (structural validation)
+            hierarchy, error, validation_metadata = self._validate_hierarchy_path(
+                hierarchy_path
+            )
+
+            if error:
+                # Validation failed
+                return PhaseResult(
+                    phase_type=PhaseType.DECOMPOSITION,
+                    status=PhaseStatus.FAILED,
+                    errors=[error],
+                    started_at=started_at,
+                    completed_at=datetime.now(),
+                    duration_seconds=(datetime.now() - started_at).total_seconds(),
+                    metadata={"validation_failed": True},
+                )
+
+            # REQ_003.3: Perform semantic validation if --validate-full is enabled
+            if validate_full:
+                semantic_result = self._perform_semantic_validation(
+                    hierarchy_path=hierarchy_path,
+                    research_path=research_path,
+                )
+                if semantic_result:
+                    validation_metadata["semantic_validation"] = semantic_result
+
+            # Create synthetic RESEARCH result
+            synthetic_research = PhaseResult(
+                phase_type=PhaseType.RESEARCH,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[],
+                started_at=started_at,
+                completed_at=datetime.now(),
+                metadata={
+                    "skipped": True,
+                    "reason": "hierarchy_path provided",
+                },
+            )
+            self.state.set_phase_result(PhaseType.RESEARCH, synthetic_research)
+
+            # Create checkpoint for skipped research phase
+            self.checkpoint_manager.write_checkpoint(
+                state=self.state,
+                phase="research-skipped",
+            )
+
+            # Create synthetic DECOMPOSITION result
+            synthetic_decomp = PhaseResult(
+                phase_type=PhaseType.DECOMPOSITION,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[hierarchy_path],
+                started_at=started_at,
+                completed_at=datetime.now(),
+                metadata={
+                    "skipped": True,
+                    "reason": "hierarchy_path provided",
+                    **validation_metadata,
+                },
+            )
+            self.state.set_phase_result(PhaseType.DECOMPOSITION, synthetic_decomp)
+            all_artifacts.append(hierarchy_path)
+
+            # Create checkpoint for skipped decomposition phase
+            self.checkpoint_manager.write_checkpoint(
+                state=self.state,
+                phase="decomposition-skipped",
+            )
+
+        # If only research_path is provided (no hierarchy_path), create synthetic research result
+        elif research_path:
+            research_path_obj = Path(research_path).resolve()
+            synthetic_result = PhaseResult(
+                phase_type=PhaseType.RESEARCH,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[str(research_path_obj)],
+                started_at=started_at,
+                completed_at=datetime.now(),
+                metadata={
+                    "skipped": True,
+                    "reason": "research_path provided",
+                },
+            )
+            self.state.set_phase_result(PhaseType.RESEARCH, synthetic_result)
+            all_artifacts.append(str(research_path_obj))
+
+            # Create checkpoint for skipped research phase
+            self.checkpoint_manager.write_checkpoint(
+                state=self.state,
+                phase="research-skipped",
+            )
+
         # Prepare kwargs for each phase
         phase_kwargs = {
             PhaseType.RESEARCH: {"research_question": research_question},
-            PhaseType.DECOMPOSITION: {},
-            PhaseType.TDD_PLANNING: {"plan_name": plan_name},
-            PhaseType.MULTI_DOC: {},
+            PhaseType.DECOMPOSITION: {"research_path": research_path} if research_path else {},
+            PhaseType.TDD_PLANNING: {"plan_name": plan_name, "hierarchy_path": hierarchy_path} if hierarchy_path else {"plan_name": plan_name},
+            PhaseType.MULTI_DOC: {"hierarchy_path": hierarchy_path} if hierarchy_path else {},
             PhaseType.BEADS_SYNC: {"plan_name": plan_name},
             PhaseType.IMPLEMENTATION: {},
         }

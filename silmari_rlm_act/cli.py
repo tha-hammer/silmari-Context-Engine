@@ -69,6 +69,25 @@ def main() -> None:
     default=False,
     help="Resume from last checkpoint instead of starting fresh",
 )
+@click.option(
+    "--research-path",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    default=None,
+    help="Path to existing research document (skips research phase)",
+)
+@click.option(
+    "--plan-path",
+    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    default=None,
+    help="Path to existing TDD plan/hierarchy JSON (skips research and decomposition phases)",
+)
+@click.option(
+    "--validate-full",
+    "-vf",
+    is_flag=True,
+    default=False,
+    help="Enable comprehensive LLM-based semantic validation (slower but more thorough)",
+)
 def run(
     question: Optional[str],
     project: str,
@@ -76,6 +95,9 @@ def run(
     autonomous: bool,
     batch: bool,
     resume: bool,
+    research_path: Optional[str],
+    plan_path: Optional[str],
+    validate_full: bool,
 ) -> None:
     """Run the full RLM-Act pipeline.
 
@@ -84,9 +106,51 @@ def run(
     """
     project_path = Path(project).resolve()
 
-    # Validate: question is required unless resuming
-    if not resume and not question:
-        raise click.UsageError("--question is required unless using --resume")
+    # Validate: question is required unless resuming, using research_path, or using plan_path
+    if not resume and not question and not research_path and not plan_path:
+        raise click.UsageError(
+            "--question is required unless using --resume, --research-path, or --plan-path"
+        )
+
+    # Warn if both question and research_path are provided
+    if question and research_path:
+        click.echo(
+            "Warning: Both --question and --research-path provided. "
+            "Research phase will be skipped, --question will be ignored.",
+            err=True,
+        )
+
+    # Warn if both question and plan_path are provided
+    if question and plan_path:
+        click.echo(
+            "Warning: Both --question and --plan-path provided. "
+            "Research and decomposition phases will be skipped, --question will be ignored.",
+            err=True,
+        )
+
+    # Warn if both research_path and plan_path are provided
+    if research_path and plan_path:
+        click.echo(
+            "Warning: Both --research-path and --plan-path provided. "
+            "--plan-path takes precedence, --research-path will be ignored.",
+            err=True,
+        )
+
+    # REQ_003.3: Warn if --validate-full used without --plan-path
+    if validate_full and not plan_path:
+        click.echo(
+            "Warning: --validate-full has no effect without --plan-path. "
+            "Semantic validation only applies to imported plan documents.",
+            err=True,
+        )
+
+    # Log validation mode for audit
+    if validate_full and plan_path:
+        import logging
+
+        logging.getLogger("silmari_rlm_act.cli").info(
+            f"Semantic validation enabled for plan: {plan_path}"
+        )
 
     # Determine autonomy mode
     if autonomous:
@@ -132,13 +196,23 @@ def run(
     else:
         click.echo("Starting RLM-Act pipeline...")
         click.echo(f"  Project: {project_path}")
-        click.echo(f"  Question: {question}")
+        if plan_path:
+            click.echo(f"  Plan/hierarchy document: {plan_path}")
+            click.echo("  (Research and decomposition phases will be skipped)")
+        elif research_path:
+            click.echo(f"  Research document: {research_path}")
+            click.echo("  (Research phase will be skipped)")
+        else:
+            click.echo(f"  Question: {question}")
         click.echo(f"  Mode: {mode.value}")
         click.echo()
 
         result = pipeline.run(
-            research_question=question,  # type: ignore[arg-type]
+            research_question=question or "",
             plan_name=plan_name,
+            research_path=research_path,
+            hierarchy_path=plan_path,
+            validate_full=validate_full,
         )
 
     # Report result
