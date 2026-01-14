@@ -338,7 +338,7 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
 
             # Call LLM for each requirement to get implementation details
             expansion_prompt = f"""You are an expert software analyst. Expand each requirement into specific implementation requirements.
-The software developer needs to know what detailed requirements are needed to implement this requirement for this project.
+The software developer needs to know what detailed requirements are needed to implement this requirement for this project. It helps to imagine you are the user of the system and you are trying to implement the requirement. Think about the user's problem and how to solve it.
 For each implementation requirement:
 
 
@@ -365,7 +365,7 @@ SUB-PROCESSES TO EXPAND:
     - backend: API endpoints, services, data processing, business logic
     - middleware: authentication, authorization, request/response processing
     - shared: data models, utilities, constants, interfaces
-Assume sub-processes exist even if not stated. Propose granular steps.
+Assume sub-processes exist even if not stated. Propose granular steps. Imagine you are the user of the system and you are trying to implement the requirement. Think about the user's problem and how to solve it.
 
 Return ONLY valid JSON in this exact format:
 {{
@@ -403,6 +403,9 @@ Generate one implementation_detail for each sub-process. If no sub-processes pro
                     try:
                         expansion_data = json.loads(expansion_json)
                         impl_details = expansion_data.get("implementation_details", [])
+
+                        # Limit implementation details to max_sub_processes
+                        impl_details = impl_details[: config.max_sub_processes]
 
                         # Create child nodes from implementation details
                         for impl_idx, detail in enumerate(impl_details):
@@ -941,3 +944,222 @@ def _convert_json_to_hierarchy(
         hierarchy.add_requirement(parent_node)
 
     return hierarchy
+
+
+# ============================================================================
+# TDD Plan Generation from Requirement Hierarchy
+# ============================================================================
+
+
+def _serialize_hierarchy_for_prompt(hierarchy: RequirementHierarchy) -> str:
+    """Serialize hierarchy to JSON string for Claude prompt insertion.
+
+    Converts the RequirementHierarchy to a complete JSON representation
+    that preserves all requirement data including acceptance criteria,
+    implementation details, and nested children.
+
+    Args:
+        hierarchy: RequirementHierarchy to serialize
+
+    Returns:
+        JSON string representation of the hierarchy
+    """
+    return json.dumps(hierarchy.to_dict(), indent=2)
+
+
+def _build_tdd_plan_prompt(
+    instruction_content: str,
+    hierarchy: RequirementHierarchy,
+    plan_name: str,
+    additional_context: str = "",
+) -> str:
+    """Build the full prompt for TDD plan generation.
+
+    Combines the instruction template with hierarchy context and
+    any additional context provided.
+
+    Args:
+        instruction_content: Content from create_tdd_plan.md
+        hierarchy: RequirementHierarchy to include
+        plan_name: Name for the plan
+        additional_context: Optional additional context
+
+    Returns:
+        Complete prompt string for Claude
+    """
+    from datetime import datetime
+
+    hierarchy_json = _serialize_hierarchy_for_prompt(hierarchy)
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    # Build the hierarchy section to insert
+    hierarchy_section = f"""
+
+## Requirement Hierarchy
+
+The following JSON contains the complete requirement hierarchy with all acceptance criteria.
+Each requirement's `acceptance_criteria` array contains the conditions that TDD tests must verify.
+
+```json
+{hierarchy_json}
+```
+
+For each requirement with acceptance criteria:
+1. Create test cases for EACH acceptance criterion
+2. Use the `implementation` object to determine test file locations
+3. Use the `function_id` to name test functions appropriately
+
+Plan Name: {plan_name}
+Date: {current_date}
+
+"""
+
+    # Add additional context if provided
+    if additional_context:
+        hierarchy_section += f"\n## Additional Context\n\n{additional_context}\n"
+
+    # Remove "Initial Response" section if present (for non-interactive use)
+    cleaned_instructions = instruction_content
+    if "## Initial Response" in instruction_content:
+        # Find and remove the Initial Response section
+        start = instruction_content.find("## Initial Response")
+        end = instruction_content.find("##", start + 2)
+        if end == -1:
+            end = len(instruction_content)
+        cleaned_instructions = instruction_content[:start] + instruction_content[end:]
+
+    # Combine instruction with hierarchy context
+    return cleaned_instructions + hierarchy_section
+
+
+def _extract_plan_paths(output: str) -> list[str]:
+    """Extract plan file paths from Claude output.
+
+    Looks for paths matching the pattern for TDD plan files:
+    - thoughts/searchable/shared/plans/*.md
+    - thoughts/searchable/plans/*.md
+
+    Args:
+        output: Claude output text
+
+    Returns:
+        List of extracted file paths
+    """
+    import re
+
+    paths: list[str] = []
+
+    # Match various plan path patterns
+    patterns = [
+        r'thoughts/searchable/shared/plans/[^\s\"\'\)]+\.md',
+        r'thoughts/searchable/plans/[^\s\"\'\)]+\.md',
+    ]
+
+    for pattern in patterns:
+        matches = re.findall(pattern, output)
+        for match in matches:
+            # Clean up the path
+            clean_path = match.strip()
+            if clean_path and clean_path not in paths:
+                paths.append(clean_path)
+
+    return paths
+
+
+def create_tdd_plan_from_hierarchy(
+    project_path: Any,
+    hierarchy: RequirementHierarchy,
+    plan_name: str = "feature",
+    additional_context: str = "",
+) -> dict[str, Any]:
+    """Create TDD plan documents from a requirement hierarchy.
+
+    Invokes the create_tdd_plan skill with the serialized requirement
+    hierarchy to generate TDD plan documents.
+
+    Args:
+        project_path: Root path of the project
+        hierarchy: RequirementHierarchy from decompose_requirements()
+        plan_name: Name for the plan (used in filenames)
+        additional_context: Optional additional context for Claude
+
+    Returns:
+        Dictionary with keys:
+        - success: bool
+        - plan_paths: list of created plan file paths
+        - output: raw Claude output
+        - error: error message (if success=False)
+
+    Example:
+        >>> hierarchy = decompose_requirements(research)
+        >>> if isinstance(hierarchy, RequirementHierarchy):
+        ...     result = create_tdd_plan_from_hierarchy(
+        ...         project_path=Path("."),
+        ...         hierarchy=hierarchy,
+        ...         plan_name="auth-feature",
+        ...     )
+        ...     if result["success"]:
+        ...         print(f"Created: {result['plan_paths']}")
+    """
+    from pathlib import Path
+
+    # Ensure project_path is a Path object
+    if not isinstance(project_path, Path):
+        project_path = Path(project_path)
+
+    # Behavior 3.1: Load TDD Plan Instructions
+    instruction_file = project_path / ".claude" / "commands" / "create_tdd_plan.md"
+    if not instruction_file.exists():
+        return {
+            "success": False,
+            "plan_paths": [],
+            "output": "",
+            "error": f"Instruction file not found: {instruction_file}. "
+                     "Expected .claude/commands/create_tdd_plan.md in project root.",
+        }
+
+    try:
+        instruction_content = instruction_file.read_text()
+    except Exception as e:
+        return {
+            "success": False,
+            "plan_paths": [],
+            "output": "",
+            "error": f"Failed to read instruction file: {e}",
+        }
+
+    # Behavior 3.2: Process Instructions with Hierarchy Context
+    prompt = _build_tdd_plan_prompt(
+        instruction_content=instruction_content,
+        hierarchy=hierarchy,
+        plan_name=plan_name,
+        additional_context=additional_context,
+    )
+
+    # Behavior 3.3: Invoke Claude with Processed Prompt
+    result = run_claude_sync(
+        prompt=prompt,
+        timeout=1200,  # 20 minutes for complex plans
+        stream=True,
+        cwd=str(project_path),
+    )
+
+    if not result["success"]:
+        return {
+            "success": False,
+            "plan_paths": [],
+            "output": result.get("output", ""),
+            "error": result.get("error", "Claude invocation failed"),
+        }
+
+    output = result["output"]
+
+    # Behavior 3.4: Extract Plan File Paths from Output
+    plan_paths = _extract_plan_paths(output)
+
+    # Behavior 3.5: Return Structured Result
+    return {
+        "success": True,
+        "plan_paths": plan_paths,
+        "output": output,
+    }
