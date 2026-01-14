@@ -45,8 +45,6 @@ class ResearchPhase:
     # Patterns to match research file paths
     RESEARCH_PATH_PATTERNS = [
         r"thoughts/searchable/shared/research/[\w\-\.]+\.md",
-        r"thoughts/searchable/research/[\w\-\.]+\.md",
-        r"thoughts/searchable/research/[\w\-\.]+\.md",
         r"/[\w/\-\.]+/thoughts/[\w/\-\.]+research[\w/\-\.]+\.md",
     ]
 
@@ -221,7 +219,7 @@ Include:
     def _find_recent_research_file(self, started_at: datetime) -> Optional[Path]:
         """Find recently created research file as fallback.
 
-        Searches thoughts/searchable/research/ for files created after started_at.
+        Searches thoughts/searchable/shared/research/ for files created after started_at.
 
         Args:
             started_at: Time when research started
@@ -230,7 +228,6 @@ Include:
             Path to most recent research file, or None if not found
         """
         research_dirs = [
-            self.project_path / "thoughts" / "searchable" / "research",
             self.project_path / "thoughts" / "searchable" / "shared" / "research",
         ]
 

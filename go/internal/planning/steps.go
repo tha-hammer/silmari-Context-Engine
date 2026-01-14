@@ -16,8 +16,8 @@ type StepResult struct {
 	Error         string                 `json:"error,omitempty"`
 	Output        string                 `json:"output,omitempty"`
 	ResearchPath  string                 `json:"research_path,omitempty"`
-	PlanPath      string                 `json:"plan_path,omitempty"`       // Single plan path (first found, for backward compatibility)
-	PlanPaths     []string               `json:"plan_paths,omitempty"`      // All plan paths when multiple files are created
+	PlanPath      string                 `json:"plan_path,omitempty"`  // Single plan path (first found, for backward compatibility)
+	PlanPaths     []string               `json:"plan_paths,omitempty"` // All plan paths when multiple files are created
 	PhaseFiles    []string               `json:"phase_files,omitempty"`
 	OpenQuestions []string               `json:"open_questions,omitempty"`
 	Data          map[string]interface{} `json:"data,omitempty"`
@@ -94,8 +94,8 @@ func StepResearch(projectPath, researchPrompt string) *StepResult {
 	// Replace date placeholder
 	instructions = strings.Join(finalLines, "\n")
 	instructions = strings.Replace(instructions,
-		"Filename: `thoughts/searchable/research/YYYY-MM-DD-description.md`",
-		fmt.Sprintf("Filename: `thoughts/searchable/research/%s-pipeline-research.md`", dateStr),
+		"Filename: `thoughts/searchable/shared/research/YYYY-MM-DD-description.md`",
+		fmt.Sprintf("Filename: `thoughts/searchable/shared/research/%s-pipeline-research.md`", dateStr),
 		1,
 	)
 
@@ -307,7 +307,7 @@ func StepPhaseDecompositionMulti(projectPath string, planPaths []string) *StepRe
 Create distinct phase files based on the plan(s). Each phase should end with 1 human-testable function.
 
 ## Output Structure
-Create files at: %s/
+Create files at: %s/YYYY-MM-DD-tdd-description/
 Append YYYY-MM-DD-tdd-description to the filename of each file.
 - YYYY-MM-DD-tdd-description-00-overview.md (links to all phases)
 - YYYY-MM-DD-tdd-description-01-phase-1.md

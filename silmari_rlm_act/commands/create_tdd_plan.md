@@ -192,7 +192,7 @@ describe('[Behavior]', () => {
 
 ## References
 - Ticket: `thoughts/{user_name}/tickets/eng_XXXX.md`
-- Research: `thoughts/searchable/research/[relevant].md`
+- Research: `thoughts/shared/research/[relevant].md`
 - Patterns: `[file:line]`
 ````
 

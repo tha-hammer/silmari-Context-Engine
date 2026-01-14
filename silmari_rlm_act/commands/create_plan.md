@@ -265,7 +265,7 @@ After structure approval:
 ## References
 
 - Original ticket: `thoughts/maceo/tickets/eng_XXXX.md`
-- Related research: `thoughts/searchable/research/[relevant].md`
+- Related research: `thoughts/shared/research/[relevant].md`
 - Similar implementation: `[file:line]`
 ````
 
@@ -310,7 +310,7 @@ After writing the plan file:
      
      - GitHub Issue: #{number} - {issue_url}
      - Original ticket: `thoughts/maceo/tickets/eng_{number}.md`
-     - Related research: `thoughts/searchable/research/[relevant].md`
+     - Related research: `thoughts/shared/research/[relevant].md`
      ```
 
 3. **Error Handling**:

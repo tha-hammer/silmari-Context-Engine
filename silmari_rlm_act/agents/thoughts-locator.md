@@ -56,7 +56,7 @@ thoughts/
 
 ### Path Correction
 **CRITICAL**: If you find files in thoughts/searchable/, report the actual path:
-- `thoughts/searchable/shared/research/api.md` → `thoughts/searchable/research/api.md`
+- `thoughts/searchable/shared/research/api.md` → `thoughts/shared/research/api.md`
 - `thoughts/searchable/maceo/tickets/eng_123.md` → `thoughts/maceo/tickets/eng_123.md`
 - `thoughts/searchable/global/patterns.md` → `thoughts/global/patterns.md`
 
@@ -74,8 +74,8 @@ Structure your findings like this:
 - `thoughts/searchable/tickets/eng_1235.md` - Rate limit configuration design
 
 ### Research Documents
-- `thoughts/searchable/research/2024-01-15_rate_limiting_approaches.md` - Research on different rate limiting strategies
-- `thoughts/searchable/research/api_performance.md` - Contains section on rate limiting impact
+- `thoughts/shared/research/2024-01-15_rate_limiting_approaches.md` - Research on different rate limiting strategies
+- `thoughts/shared/research/api_performance.md` - Contains section on rate limiting impact
 
 ### Implementation Plans
 - `thoughts/searchable/plans/api-rate-limiting.md` - Detailed implementation plan for rate limits

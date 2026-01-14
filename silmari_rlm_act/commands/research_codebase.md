@@ -94,7 +94,7 @@ After completing research:
 
 5. **Gather metadata for the research document:**
    - Run the `silmari-oracle metadata` script to generate all relevant metadata
-   - Filename: `{project_path}/thoughts/searchable/research/YYYY-MM-DD-HH-MM-description.md`
+   - Filename: `{project_path}/thoughts/searchable/shared/research/YYYY-MM-DD-HH-MM-description.md`
      - Format: `YYYY-MM-DD-HH-MM-ENG-XXXX-description.md` where:
        - YYYY-MM-DD is today's date
        - description is a brief kebab-case description of the research topic
@@ -157,7 +157,7 @@ After completing research:
      Note: Paths exclude "searchable/" even if found there
 
      ## Related Research
-     [Links to other research documents in thoughts/searchable/research/]
+     [Links to other research documents in thoughts/searchable/shared/research/]
 
      ## Open Questions
      [Any areas that need further investigation]
@@ -174,7 +174,7 @@ After completing research:
 
    - **CRITICAL**: After saving the research document, you MUST output the file path in this exact format:
      ```
-     Research saved to: thoughts/searchable/research/YYYY-MM-DD-topic.md
+     Research saved to: thoughts/searchable/shared/research/YYYY-MM-DD-topic.md
      ```
    - This path is required for the pipeline to continue. Do not skip this step.
    - Present a concise summary of findings to the user
