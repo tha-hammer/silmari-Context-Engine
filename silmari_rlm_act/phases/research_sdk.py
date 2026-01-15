@@ -12,9 +12,10 @@ Following plan: 2026-01-14-tdd-sdk-replacement-silmari-rlm-act
 
 import asyncio
 import re
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, TextIO
 
 from claude_agent_sdk import (
     AssistantMessage,
@@ -30,6 +31,7 @@ from claude_agent_sdk import (
 
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
+from silmari_rlm_act.phases.formatters import OutputFormatter
 
 
 class ResearchPhaseSDK:
@@ -87,6 +89,9 @@ class ResearchPhaseSDK:
         project_path: Path,
         cwa: CWAIntegration,
         permission_mode: str = "acceptEdits",
+        output_stream: Optional[TextIO] = None,
+        show_tool_details: bool = True,
+        quiet: bool = False,
     ) -> None:
         """Initialize research phase.
 
@@ -94,11 +99,19 @@ class ResearchPhaseSDK:
             project_path: Root directory of the project
             cwa: Context Window Array integration instance
             permission_mode: SDK permission mode (default: acceptEdits)
+            output_stream: Stream for formatted output (default: stdout)
+            show_tool_details: Whether to show tool input details
+            quiet: If True, suppress real-time output (still captured in buffer)
         """
         self.project_path = Path(project_path)
         self.cwa = cwa
         self.permission_mode = permission_mode
         self._output_buffer: list[str] = []
+        self._quiet = quiet
+        self._formatter = OutputFormatter(
+            output_stream=output_stream or sys.stdout,
+            show_tool_details=show_tool_details,
+        )
 
     # =========================================================================
     # Phase 01: SDK Client Initialization
@@ -201,6 +214,10 @@ class ResearchPhaseSDK:
 
         client = self._create_client()
 
+        # Print header
+        if not self._quiet:
+            self._formatter.format_header("RESEARCH PHASE")
+
         try:
             # Connect to SDK session
             await client.connect()
@@ -214,17 +231,31 @@ class ResearchPhaseSDK:
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
+                            # Store in buffer
                             self._output_buffer.append(block.text)
+                            # Print formatted output in real-time
+                            if not self._quiet:
+                                self._formatter.format_text(block.text)
                         elif isinstance(block, ToolUseBlock):
                             tool_uses.append({
                                 "id": block.id,
                                 "name": block.name,
                                 "input": block.input,
                             })
+                            # Print formatted tool use in real-time
+                            if not self._quiet:
+                                self._formatter.format_tool_use(block.name, block.input)
 
         except Exception as e:
             completed_at = datetime.now()
             duration = (completed_at - started_at).total_seconds()
+            # Print failure summary
+            if not self._quiet:
+                self._formatter.format_summary(
+                    tool_count=len(tool_uses),
+                    duration_seconds=duration,
+                    status=f"FAILED: {e}",
+                )
             return PhaseResult(
                 phase_type=PhaseType.RESEARCH,
                 status=PhaseStatus.FAILED,
@@ -253,6 +284,13 @@ class ResearchPhaseSDK:
             research_path = self._find_recent_research_file(started_at)
 
         if not research_path:
+            # Print failure summary
+            if not self._quiet:
+                self._formatter.format_summary(
+                    tool_count=len(tool_uses),
+                    duration_seconds=duration,
+                    status="FAILED: No research document found",
+                )
             return PhaseResult(
                 phase_type=PhaseType.RESEARCH,
                 status=PhaseStatus.FAILED,
@@ -264,6 +302,13 @@ class ResearchPhaseSDK:
             )
 
         if not research_path.exists():
+            # Print failure summary
+            if not self._quiet:
+                self._formatter.format_summary(
+                    tool_count=len(tool_uses),
+                    duration_seconds=duration,
+                    status=f"FAILED: File not found: {research_path}",
+                )
             return PhaseResult(
                 phase_type=PhaseType.RESEARCH,
                 status=PhaseStatus.FAILED,
@@ -275,6 +320,14 @@ class ResearchPhaseSDK:
 
         # Store in CWA
         entry_id = self._store_research_in_cwa(research_path)
+
+        # Print success summary
+        if not self._quiet:
+            self._formatter.format_summary(
+                tool_count=len(tool_uses),
+                duration_seconds=duration,
+                status=f"COMPLETE: {research_path.name}",
+            )
 
         return PhaseResult(
             phase_type=PhaseType.RESEARCH,
