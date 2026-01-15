@@ -1582,13 +1582,15 @@ class TestHelpTextDocumentation:
     """Tests for REQ_003.4: Help text documentation consistency."""
 
     def test_plan_path_help_mentions_json(self, cli_runner: CliRunner) -> None:
-        """REQ_003.4.1: silmari_rlm_act/cli.py help must state 'requirement hierarchy JSON file'."""
+        """REQ_003.4.1: silmari_rlm_act/cli.py help must describe plan document types."""
         from silmari_rlm_act.cli import main
 
         result = cli_runner.invoke(main, ["run", "--help"])
 
         assert result.exit_code == 0
-        assert "requirement hierarchy json file" in result.output.lower()
+        # Now supports both Markdown and JSON
+        assert "plan document" in result.output.lower()
+        assert "markdown or json" in result.output.lower()
 
     def test_plan_path_help_not_conflated(self, cli_runner: CliRunner) -> None:
         """REQ_003.4.2: silmari_rlm_act/cli.py must NOT use 'TDD plan/hierarchy JSON' terminology."""

@@ -686,7 +686,7 @@ class RLMActPipeline:
             PhaseType.DECOMPOSITION: {"research_path": research_path} if research_path else {},
             PhaseType.TDD_PLANNING: {"plan_name": plan_name, "hierarchy_path": hierarchy_path} if hierarchy_path else {"plan_name": plan_name},
             PhaseType.MULTI_DOC: {"hierarchy_path": hierarchy_path} if hierarchy_path else {},
-            PhaseType.BEADS_SYNC: {"plan_name": plan_name},
+            PhaseType.BEADS_SYNC: {"plan_name": plan_name, "hierarchy_path": hierarchy_path} if is_markdown_plan else {"plan_name": plan_name},
             PhaseType.IMPLEMENTATION: {"phase_paths": [hierarchy_path]} if is_markdown_plan else {},
         }
 

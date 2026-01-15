@@ -3466,6 +3466,44 @@ class TestMarkdownPlanSupport:
         assert "phase_paths" in captured_kwargs
         assert str(temp_markdown_plan) in captured_kwargs["phase_paths"]
 
+    def test_markdown_plan_passes_hierarchy_path_to_beads_sync_phase(
+        self,
+        temp_project: Path,
+        mock_cwa: MagicMock,
+        mock_beads_controller: MagicMock,
+        temp_markdown_plan: Path,
+    ) -> None:
+        """Markdown plan hierarchy_path is passed to BEADS_SYNC phase for phase doc discovery."""
+        from silmari_rlm_act.pipeline import RLMActPipeline
+
+        pipeline = RLMActPipeline(
+            project_path=temp_project,
+            cwa=mock_cwa,
+            autonomy_mode=AutonomyMode.FULLY_AUTONOMOUS,
+            beads_controller=mock_beads_controller,
+        )
+
+        captured_kwargs: dict[str, Any] = {}
+
+        def mock_execute(phase_type: PhaseType, **kwargs: Any) -> PhaseResult:
+            if phase_type == PhaseType.BEADS_SYNC:
+                captured_kwargs.update(kwargs)
+            return PhaseResult(
+                phase_type=phase_type,
+                status=PhaseStatus.COMPLETE,
+                artifacts=[f"{phase_type.value}.md"],
+            )
+
+        with patch.object(pipeline, "_execute_phase", side_effect=mock_execute):
+            pipeline.run(
+                research_question="",
+                hierarchy_path=str(temp_markdown_plan),
+            )
+
+        # BEADS_SYNC should receive hierarchy_path to discover phase docs in same directory
+        assert "hierarchy_path" in captured_kwargs, "BEADS_SYNC must receive hierarchy_path for markdown plans"
+        assert captured_kwargs["hierarchy_path"] == str(temp_markdown_plan)
+
     def test_json_plan_still_works_normally(
         self,
         temp_project: Path,

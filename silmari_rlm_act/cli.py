@@ -200,7 +200,7 @@ def run(
         if plan_path:
             if plan_path.endswith((".md", ".markdown")):
                 click.echo(f"  Plan document (Markdown): {plan_path}")
-                click.echo("  (All phases will be skipped, starting implementation directly)")
+                click.echo("  (Skipping research/decomposition/planning, running BEADS_SYNC → IMPLEMENTATION)")
             else:
                 click.echo(f"  Requirement hierarchy JSON: {plan_path}")
                 click.echo("  (Research and decomposition phases will be skipped)")
