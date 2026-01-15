@@ -153,9 +153,9 @@ async def _process_assistant_message(self, message: AssistantMessage) -> None:
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] Output visible in real-time (flush=True)
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] Output visible in real-time (flush=True)
 
 ---
 
@@ -368,12 +368,12 @@ def execute(
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] Output streams in real-time
-- [ ] Loop continues after errors
-- [ ] Max iterations respected
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] Output streams in real-time
+- [x] Loop continues after errors
+- [x] Max iterations respected
 
 **Manual:**
-- [ ] Terminal shows real-time output during implementation
-- [ ] Loop behavior matches existing implementation.py
+- [x] Terminal shows real-time output during implementation
+- [x] Loop behavior matches existing implementation.py

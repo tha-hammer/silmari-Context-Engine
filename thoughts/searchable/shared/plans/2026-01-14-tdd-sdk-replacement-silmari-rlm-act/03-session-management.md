@@ -174,9 +174,9 @@ def execute(
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] session_id present in PhaseResult metadata
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] session_id present in PhaseResult metadata
 
 ---
 
@@ -334,14 +334,14 @@ class ImplementationPhaseSDK:
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] Session resumption works when provided
-- [ ] Works without session (fresh start)
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] Session resumption works when provided
+- [x] Works without session (fresh start)
 
 **Manual:**
-- [ ] Claude remembers research context when session resumed
-- [ ] Implementation can reference research findings
+- [x] Claude remembers research context when session resumed
+- [x] Implementation can reference research findings
 
 ---
 

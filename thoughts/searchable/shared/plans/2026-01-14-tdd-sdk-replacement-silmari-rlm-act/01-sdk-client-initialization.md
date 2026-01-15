@@ -220,12 +220,12 @@ RESEARCH_TOOLS = frozenset(["Read", "Write", "Grep", "Glob", "Task", "WebFetch"]
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestSDKClientInitialization -v`
-- [ ] Test passes (Green): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestSDKClientInitialization -v`
-- [ ] All tests pass after refactor: `pytest silmari_rlm_act/tests/test_research_phase_sdk.py -v`
+- [x] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestSDKClientInitialization -v`
+- [x] Test passes (Green): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestSDKClientInitialization -v`
+- [x] All tests pass after refactor: `pytest silmari_rlm_act/tests/test_research_phase_sdk.py -v`
 
 **Manual:**
-- [ ] ClaudeSDKClient receives correct options
+- [x] ClaudeSDKClient receives correct options
 
 ---
 

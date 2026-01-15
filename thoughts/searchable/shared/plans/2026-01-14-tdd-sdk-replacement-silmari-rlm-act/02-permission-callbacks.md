@@ -159,9 +159,9 @@ No refactoring needed - implementation is minimal.
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestAutoApproveReadOperations -v`
-- [ ] Test passes (Green): Same command
-- [ ] All tests pass after refactor
+- [x] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_research_phase_sdk.py::TestAutoApproveReadOperations -v`
+- [x] Test passes (Green): Same command
+- [x] All tests pass after refactor
 
 ---
 
@@ -271,9 +271,9 @@ async def _auto_approve_reads(
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] All tests pass after refactor
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] All tests pass after refactor
 
 ---
 
@@ -455,11 +455,11 @@ class ImplementationPhaseSDK:
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_implementation_phase_sdk.py::TestImplementationPermissions -v`
-- [ ] Test passes (Green)
-- [ ] All tests pass after refactor
+- [x] Test fails for right reason (Red): `pytest silmari_rlm_act/tests/test_implementation_phase_sdk.py::TestImplementationPermissions -v`
+- [x] Test passes (Green)
+- [x] All tests pass after refactor
 
 **Manual:**
-- [ ] System paths /etc, /sys, /proc, /dev blocked
-- [ ] Project directory writes allowed
-- [ ] Reads allowed even for system files
+- [x] System paths /etc, /sys, /proc, /dev blocked
+- [x] Project directory writes allowed
+- [x] Reads allowed even for system files

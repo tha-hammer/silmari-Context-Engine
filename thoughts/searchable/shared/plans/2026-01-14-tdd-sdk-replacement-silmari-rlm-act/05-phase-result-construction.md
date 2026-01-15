@@ -229,9 +229,9 @@ Already covered in previous behaviors - this is integration of all pieces.
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] PhaseResult structure matches existing implementation
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] PhaseResult structure matches existing implementation
 
 ---
 
@@ -366,8 +366,8 @@ def _run_tests(self) -> tuple[bool, str]:
 ### Success Criteria
 
 **Automated:**
-- [ ] Tests pass
-- [ ] Behavior identical to existing implementation.py
+- [x] Tests pass
+- [x] Behavior identical to existing implementation.py
 
 ---
 
@@ -492,11 +492,11 @@ class TestErrorHandling:
 ### Success Criteria
 
 **Automated:**
-- [ ] Test fails for right reason (Red)
-- [ ] Test passes (Green)
-- [ ] Error tolerance matches existing behavior
-- [ ] Max iterations handled correctly
+- [x] Test fails for right reason (Red)
+- [x] Test passes (Green)
+- [x] Error tolerance matches existing behavior
+- [x] Max iterations handled correctly
 
 **Manual:**
-- [ ] Loop continues after transient SDK errors
-- [ ] Errors cleared when tests eventually pass
+- [x] Loop continues after transient SDK errors
+- [x] Errors cleared when tests eventually pass
