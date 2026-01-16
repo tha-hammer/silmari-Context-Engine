@@ -329,7 +329,7 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
             parent_description = requirement.get("description", "Unknown requirement")
             sub_processes = requirement.get("sub_processes", [])[: config.max_sub_processes]
 
-            report(f"    [{req_idx + 1}/{stats.requirements_found}] Expanding: {parent_description[:60]}...")
+            report(f"    [{req_idx + 1}/{stats.requirements_found}] Expanding: {parent_description}")
 
             # Create parent node
             parent_node = RequirementNode(
