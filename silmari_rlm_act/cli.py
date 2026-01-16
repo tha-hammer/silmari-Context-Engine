@@ -1,17 +1,112 @@
-"""CLI entry point for silmari-rlm-act pipeline.
+"""CLI entry point for silmari-codewriter-rlm pipeline.
 
 This module provides the command-line interface for running the
 RLM-Act pipeline, including commands for starting, resuming, and
 checking status.
 """
 
+import re
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
 import click
 
 from silmari_rlm_act import __version__
+
+
+def _resolve_plan_path(plan_path: str) -> str:
+    """Resolve plan path, handling directories with fallback logic.
+
+    For directories, discovers entry file by:
+    1. Look for *-overview.md or *overview.md
+    2. Look for numbered files (00-*.md, 01-*.md, etc.)
+    3. Fall back to alphabetical with 20 second warning
+
+    Args:
+        plan_path: Path to file or directory
+
+    Returns:
+        Resolved path to entry file
+
+    Raises:
+        click.UsageError: If directory contains no .md or .json files
+    """
+    path = Path(plan_path).resolve()
+
+    # If it's a file, return as-is
+    if path.is_file():
+        return str(path)
+
+    # It's a directory - discover entry file
+    if not path.is_dir():
+        raise click.UsageError(f"Path does not exist: {plan_path}")
+
+    # Get all markdown files
+    md_files = sorted(path.glob("*.md"))
+
+    # Also check for JSON hierarchy
+    json_files = list(path.glob("*.json"))
+    hierarchy_json = [f for f in json_files if "hierarchy" in f.name.lower()]
+
+    if not md_files and not json_files:
+        raise click.UsageError(
+            f"Directory contains no plan files (.md or .json): {plan_path}"
+        )
+
+    # Strategy 1: Look for overview files
+    overview_patterns = ["*-overview.md", "*overview.md", "overview.md"]
+    for pattern in overview_patterns:
+        matches = list(path.glob(pattern))
+        if matches:
+            # Sort to get consistent result, prefer 00-overview over random-overview
+            matches.sort()
+            click.echo(f"Found overview file: {matches[0].name}")
+            return str(matches[0])
+
+    # Strategy 2: Look for numbered files (00-*.md, 01-*.md, etc.)
+    numbered_pattern = re.compile(r"^(\d{2})-.*\.md$")
+    numbered_files = [f for f in md_files if numbered_pattern.match(f.name)]
+    if numbered_files:
+        # Already sorted, first one is lowest number (usually 00 or 01)
+        click.echo(f"Found numbered plan files, starting with: {numbered_files[0].name}")
+        return str(numbered_files[0])
+
+    # Strategy 3: Check for requirements_hierarchy.json
+    if hierarchy_json:
+        click.echo(f"Found hierarchy file: {hierarchy_json[0].name}")
+        return str(hierarchy_json[0])
+
+    # Strategy 4: Alphabetical fallback with warning
+    if md_files:
+        click.echo()
+        click.echo("=" * 60)
+        click.echo("WARNING: No overview or numbered files found!")
+        click.echo(f"Will process {len(md_files)} files alphabetically.")
+        click.echo(f"First file: {md_files[0].name}")
+        click.echo("=" * 60)
+        click.echo()
+        click.echo("Proceeding in 20 seconds... (Ctrl+C to cancel)")
+
+        # Countdown with visual feedback
+        for remaining in range(20, 0, -1):
+            click.echo(f"  {remaining}...", nl=False)
+            time.sleep(1)
+            if remaining > 1:
+                click.echo("\r", nl=False)  # Carriage return to overwrite
+
+        click.echo()  # Final newline
+        click.echo("Proceeding with alphabetical order.")
+        return str(md_files[0])
+
+    # Should not reach here, but handle edge case
+    if json_files:
+        return str(json_files[0])
+
+    raise click.UsageError(f"Could not determine entry file in directory: {plan_path}")
+
+
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import AutonomyMode
 from silmari_rlm_act.pipeline import RLMActPipeline
@@ -19,9 +114,9 @@ from planning_pipeline.beads_controller import BeadsController
 
 
 @click.group()
-@click.version_option(version=__version__, prog_name="silmari-rlm-act")
+@click.version_option(version=__version__, prog_name="silmari-codewriter-rlm")
 def main() -> None:
-    """silmari-rlm-act: Autonomous TDD Pipeline.
+    """silmari-codewriter-rlm: Autonomous TDD Pipeline.
 
     Research, Learn, Model, Act - an autonomous pipeline for TDD-based
     software development.
@@ -78,9 +173,9 @@ def main() -> None:
 )
 @click.option(
     "--plan-path",
-    type=click.Path(exists=True, file_okay=True, dir_okay=False),
+    type=click.Path(exists=True, file_okay=True, dir_okay=True),
     default=None,
-    help="Path to existing plan document (Markdown or JSON). Skips to implementation phase for Markdown, skips research/decomposition for JSON.",
+    help="Path to plan document or directory containing plan files. For directories, discovers files by: 1) *-overview.md, 2) numbered files (00-*.md), 3) alphabetical (with 20s warning).",
 )
 @click.option(
     "--validate-full",
@@ -144,6 +239,10 @@ def run(
             "Semantic validation only applies to imported plan documents.",
             err=True,
         )
+
+    # Resolve plan_path if it's a directory
+    if plan_path:
+        plan_path = _resolve_plan_path(plan_path)
 
     # Log validation mode for audit
     if validate_full and plan_path:
