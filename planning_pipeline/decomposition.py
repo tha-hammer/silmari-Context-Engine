@@ -77,12 +77,14 @@ class DecompositionConfig:
         min_sub_processes: Minimum children to extract (default 2)
         include_acceptance_criteria: Include AC in children (default True)
         expand_dimensions: Expand implementation dimensions (default False)
+        expansion_timeout: Timeout in seconds for expanding each requirement (default 300)
     """
 
     max_sub_processes: int = 5
     min_sub_processes: int = 2
     include_acceptance_criteria: bool = True
     expand_dimensions: bool = False
+    expansion_timeout: int = 300  # 5 minutes per requirement expansion
 
 
 # Default analysis framework for BAML calls
@@ -393,7 +395,7 @@ Generate one implementation_detail for each sub-process. If no sub-processes pro
 
             expansion_result = run_claude_sync(
                 prompt=expansion_prompt,
-                timeout=90,
+                timeout=config.expansion_timeout,
                 stream=False,
             )
 

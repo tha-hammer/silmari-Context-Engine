@@ -161,6 +161,7 @@ class TestDecompositionConfig:
         assert config.min_sub_processes == 2
         assert config.include_acceptance_criteria is True
         assert config.expand_dimensions is False
+        assert config.expansion_timeout == 300  # 5 minutes
 
 
 class TestDecomposeRequirementsCliFallback:
