@@ -67,19 +67,42 @@ class BeadsSyncPhase:
     def _parse_phase_number(self, filename: str) -> Optional[int]:
         """Parse phase number from filename.
 
+        Supports multiple naming conventions:
+        - 01-login.md (prefix number)
+        - sprint_01_database.md (sprint format)
+        - phase_01_setup.md (phase format)
+        - step_01_init.md (step format)
+
         Args:
-            filename: Filename like "01-login.md" or "00-overview.md"
+            filename: Filename with embedded number
 
         Returns:
             Phase number (0 for overview), or None if invalid
         """
+        # Pattern 1: Number at start (01-login.md, 00-overview.md)
         match = re.match(r"^(\d+)-", filename)
         if match:
             return int(match.group(1))
+
+        # Pattern 2: sprint_XX_, phase_XX_, step_XX_ format
+        match = re.search(r"(?:sprint|phase|step)[_-](\d+)[_-]", filename, re.IGNORECASE)
+        if match:
+            return int(match.group(1))
+
+        # Pattern 3: Any embedded number after underscore/hyphen (_01_, -01-)
+        match = re.search(r"[_-](\d+)[_-]", filename)
+        if match:
+            return int(match.group(1))
+
         return None
 
     def _extract_phase_title(self, doc_path: str) -> str:
         """Extract phase title from document.
+
+        Handles multiple naming conventions:
+        - 01-login.md -> "Login"
+        - sprint_01_database_schema.md -> "Database Schema"
+        - phase_01_setup.md -> "Setup"
 
         Args:
             doc_path: Path to phase document
@@ -90,12 +113,15 @@ class BeadsSyncPhase:
         path = Path(doc_path)
         filename = path.name
 
-        # Remove .md extension and number prefix
-        name = re.sub(r"^\d+-", "", filename)
-        name = re.sub(r"\.md$", "", name)
+        # Remove .md extension
+        name = re.sub(r"\.md$", "", filename)
 
-        # Convert kebab-case to title case
-        title = name.replace("-", " ").title()
+        # Remove number prefix patterns
+        name = re.sub(r"^\d+-", "", name)  # 01-login -> login
+        name = re.sub(r"^(?:sprint|phase|step)[_-]\d+[_-]", "", name, flags=re.IGNORECASE)  # sprint_01_ -> ""
+
+        # Convert underscores and hyphens to spaces, then title case
+        title = name.replace("_", " ").replace("-", " ").title()
 
         return title
 
