@@ -109,6 +109,34 @@ def _default_progress(message: str) -> None:
     sys.stdout.flush()
 
 
+def load_partial_hierarchy(hierarchy_path: str) -> Optional[RequirementHierarchy]:
+    """Load a partial hierarchy from disk for resume.
+
+    Args:
+        hierarchy_path: Path to the hierarchy JSON file
+
+    Returns:
+        RequirementHierarchy if loaded successfully, None if file doesn't exist or is invalid
+
+    Example:
+        >>> partial = load_partial_hierarchy("/path/to/requirement_hierarchy.json")
+        >>> if partial:
+        ...     result = decompose_requirements(research, existing_hierarchy=partial)
+    """
+    from pathlib import Path
+
+    path = Path(hierarchy_path)
+    if not path.exists():
+        return None
+
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return RequirementHierarchy.from_dict(data)
+    except (json.JSONDecodeError, ValueError, KeyError):
+        return None
+
+
 @dataclass
 class DecompositionStats:
     """Statistics from decomposition for CLI summary.
@@ -137,6 +165,7 @@ def decompose_requirements(
     config: Optional[DecompositionConfig] = None,
     progress: Optional[ProgressCallback] = None,
     save_callback: Optional[SaveCallback] = None,
+    existing_hierarchy: Optional[RequirementHierarchy] = None,
 ) -> Union[RequirementHierarchy, DecompositionError]:
     """Decompose research content into requirement hierarchy using Claude agent SDK.
 
@@ -148,6 +177,10 @@ def decompose_requirements(
     Uses the Claude agent SDK (run_claude_sync) which provides proper
     authentication and rate limiting through the Claude CLI infrastructure.
 
+    Supports resuming from a partial hierarchy - if existing_hierarchy is provided,
+    requirements that already exist (by ID) will be skipped and the hierarchy
+    will continue from where it left off.
+
     Args:
         research_content: Research document text to decompose
         config: Optional decomposition configuration
@@ -155,6 +188,8 @@ def decompose_requirements(
         save_callback: Optional callback invoked after each requirement is added to
             the hierarchy. Use this for incremental saving to prevent data loss
             if the process crashes mid-decomposition.
+        existing_hierarchy: Optional partial hierarchy to resume from. If provided,
+            requirements with matching IDs will be skipped and their data preserved.
 
     Returns:
         RequirementHierarchy on success, DecompositionError on failure
@@ -163,6 +198,10 @@ def decompose_requirements(
         >>> result = decompose_requirements("# Research\\nImplement auth system")
         >>> if isinstance(result, RequirementHierarchy):
         ...     print(f"Found {len(result.requirements)} requirements")
+
+        # Resume from partial:
+        >>> partial = load_partial_hierarchy("/path/to/partial.json")
+        >>> result = decompose_requirements(research, existing_hierarchy=partial)
     """
     if config is None:
         config = DecompositionConfig()
@@ -313,12 +352,25 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
         report(f"  ✓ Extracted {stats.requirements_found} top-level requirements")
 
         # Step 2: Expand each requirement via LLM to get implementation details
-        hierarchy = RequirementHierarchy(
-            metadata={
-                "source": "agent_sdk_decomposition",
-                "research_length": len(research_content),
-            }
-        )
+        # If resuming from partial hierarchy, use it; otherwise create new
+        if existing_hierarchy is not None:
+            hierarchy = existing_hierarchy
+            # Build set of already-processed requirement IDs for fast lookup
+            existing_req_ids = {req.id for req in hierarchy.requirements}
+            # Count existing children for stats
+            for req in hierarchy.requirements:
+                stats.subprocesses_expanded += len(req.children)
+                for child in req.children:
+                    stats.subprocesses_expanded += len(child.children)
+            report(f"  ✓ Resuming from partial hierarchy with {len(existing_req_ids)} existing requirements")
+        else:
+            hierarchy = RequirementHierarchy(
+                metadata={
+                    "source": "agent_sdk_decomposition",
+                    "research_length": len(research_content),
+                }
+            )
+            existing_req_ids = set()
 
         report(f"  Expanding {stats.requirements_found} requirements via LLM...")
         expansion_start = time.time()
@@ -328,6 +380,11 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
             parent_id = f"REQ_{req_idx:03d}"
             parent_description = requirement.get("description", "Unknown requirement")
             sub_processes = requirement.get("sub_processes", [])[: config.max_sub_processes]
+
+            # Skip if this requirement was already processed in partial hierarchy
+            if parent_id in existing_req_ids:
+                report(f"    [{req_idx + 1}/{stats.requirements_found}] Skipping (already processed): {parent_description[:60]}...")
+                continue
 
             report(f"    [{req_idx + 1}/{stats.requirements_found}] Expanding: {parent_description}")
 

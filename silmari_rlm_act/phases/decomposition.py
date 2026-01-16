@@ -23,6 +23,7 @@ from planning_pipeline.decomposition import (
     DecompositionError,
     SaveCallback,
     decompose_requirements,
+    load_partial_hierarchy,
 )
 from planning_pipeline.models import RequirementHierarchy, RequirementNode
 
@@ -79,6 +80,54 @@ class DecompositionPhase:
         if not research_path.exists():
             raise FileNotFoundError(f"Research document not found: {research_path}")
         return research_path.read_text()
+
+    def _find_partial_hierarchy(
+        self,
+        research_path: Path,
+    ) -> tuple[Optional[RequirementHierarchy], Optional[Path]]:
+        """Find and load a partial hierarchy file for resume.
+
+        Searches for existing requirement_hierarchy.json files that match the
+        research path. Returns the most recent partial hierarchy if found.
+
+        Args:
+            research_path: Path to research document (used to match hierarchy)
+
+        Returns:
+            Tuple of (hierarchy, output_dir) if found, (None, None) if not found
+        """
+        # Look in the plans directory for matching hierarchy files
+        plans_dir = self.project_path / "thoughts" / "searchable" / "shared" / "plans"
+        if not plans_dir.exists():
+            return None, None
+
+        # Get the research file name for matching
+        research_name = research_path.stem.replace("research-", "").replace("_", "-")
+
+        # Find all hierarchy files, sorted by modification time (newest first)
+        hierarchy_files = sorted(
+            plans_dir.glob("**/requirement_hierarchy.json"),
+            key=lambda p: p.stat().st_mtime,
+            reverse=True,
+        )
+
+        for hierarchy_file in hierarchy_files:
+            # Check if this hierarchy matches our research by looking at metadata
+            partial = load_partial_hierarchy(str(hierarchy_file))
+            if partial is None:
+                continue
+
+            # Check if the hierarchy has source_research metadata matching our research
+            source_research = partial.metadata.get("source_research", "")
+            if source_research and research_name in source_research:
+                # Found a matching partial hierarchy
+                return partial, hierarchy_file.parent
+
+            # Also check if the directory name contains the research name
+            if research_name in hierarchy_file.parent.name:
+                return partial, hierarchy_file.parent
+
+        return None, None
 
     def _store_requirements_in_cwa(
         self, hierarchy: RequirementHierarchy
@@ -237,12 +286,14 @@ class DecompositionPhase:
         self,
         research_path: Path,
         additional_context: str = "",
+        resume: bool = True,
     ) -> PhaseResult:
         """Execute decomposition phase.
 
         Args:
             research_path: Path to research document
             additional_context: Optional additional context
+            resume: If True, attempt to resume from partial hierarchy (default True)
 
         Returns:
             PhaseResult with requirement hierarchy or errors
@@ -250,6 +301,16 @@ class DecompositionPhase:
         started_at = datetime.now()
         # Reset output directory cache for fresh execution
         self._output_dir = None
+
+        # Check for partial hierarchy to resume from
+        existing_hierarchy: Optional[RequirementHierarchy] = None
+        if resume:
+            existing_hierarchy, existing_dir = self._find_partial_hierarchy(research_path)
+            if existing_hierarchy is not None and existing_dir is not None:
+                # Use the existing output directory to continue saving to the same location
+                self._output_dir = existing_dir
+                existing_count = len(existing_hierarchy.requirements)
+                print(f"  ✓ Found partial hierarchy with {existing_count} requirements, resuming...")
 
         try:
             # Load research content
@@ -267,6 +328,7 @@ class DecompositionPhase:
                 research_content=research_content,
                 config=self.config,
                 save_callback=save_callback,
+                existing_hierarchy=existing_hierarchy,
             )
 
             completed_at = datetime.now()
@@ -311,6 +373,7 @@ class DecompositionPhase:
                     "requirements_count": parent_count,
                     "total_nodes": node_count,
                     "research_path": str(research_path),
+                    "resumed_from_partial": existing_hierarchy is not None,
                 },
             )
 
@@ -344,6 +407,7 @@ class DecompositionPhase:
         research_path: Path,
         auto_approve: bool = False,
         additional_context: str = "",
+        resume: bool = True,
     ) -> PhaseResult:
         """Execute decomposition phase with interactive checkpoint.
 
@@ -353,6 +417,7 @@ class DecompositionPhase:
             research_path: Path to research document
             auto_approve: If True, skip user prompts
             additional_context: Optional additional context
+            resume: If True, attempt to resume from partial hierarchy (default True)
 
         Returns:
             PhaseResult with requirement hierarchy and user action
@@ -363,6 +428,7 @@ class DecompositionPhase:
             result = self.execute(
                 research_path,
                 additional_context=current_context,
+                resume=resume,
             )
 
             # If failed or auto-approve, return immediately
