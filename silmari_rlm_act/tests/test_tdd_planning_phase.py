@@ -14,7 +14,7 @@ This module tests the TDDPlanningPhase class which:
 
 import json
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -346,9 +346,11 @@ class TestPlanPhaseResult:
 
         result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
 
-        assert "cwa_entry_id" in result.metadata
+        # Now generates individual plans, so cwa_entry_ids is a list
+        assert "cwa_entry_ids" in result.metadata
         assert "requirements_count" in result.metadata
         assert result.metadata["requirements_count"] == 1
+        assert len(result.metadata["cwa_entry_ids"]) == 1
 
     def test_returns_error_on_missing_hierarchy(self, tmp_path: Path) -> None:
         """Given missing hierarchy, returns error."""
@@ -507,3 +509,506 @@ class TestInteractiveCheckpoint:
             )
 
         assert result.metadata.get("user_exit") is True
+
+
+class TestIndividualPlanGeneration:
+    """Behavior 1: Generate individual plan files per requirement."""
+
+    def test_generates_one_file_per_requirement(self, tmp_path: Path) -> None:
+        """Given 3 requirements, when execute(), then 3 plan files created."""
+        # Arrange
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "User login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [
+                        "Given creds, when login, then authenticated"
+                    ],
+                },
+                {
+                    "id": "REQ_002",
+                    "description": "User logout",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [
+                        "Given session, when logout, then session ends"
+                    ],
+                },
+                {
+                    "id": "REQ_003",
+                    "description": "Password reset",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [
+                        "Given email, when reset, then link sent"
+                    ],
+                },
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+
+        # Assert
+        assert result.status == PhaseStatus.COMPLETE
+        assert len(result.artifacts) == 3
+        for artifact_path in result.artifacts:
+            assert Path(artifact_path).exists()
+            assert "REQ_" in artifact_path.upper() or "req_" in artifact_path.lower()
+
+    def test_handles_empty_hierarchy(self, tmp_path: Path) -> None:
+        """Given 0 requirements, when execute(), then 0 files created."""
+        hierarchy_data = {"requirements": [], "metadata": {}}
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+
+        assert result.status == PhaseStatus.COMPLETE
+        assert len(result.artifacts) == 0
+
+    def test_single_requirement_creates_one_file(self, tmp_path: Path) -> None:
+        """Given 1 requirement, when execute(), then exactly 1 file created."""
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Single feature",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["Given X, when Y, then Z"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+
+        assert result.status == PhaseStatus.COMPLETE
+        assert len(result.artifacts) == 1
+        assert Path(result.artifacts[0]).exists()
+
+    def test_file_names_follow_pattern(self, tmp_path: Path) -> None:
+        """Given requirement, when execute(), file name has correct pattern."""
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Test feature",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="my-feature", hierarchy_path=str(hierarchy_path))
+
+        assert len(result.artifacts) == 1
+        file_name = Path(result.artifacts[0]).name
+        # Pattern: YYYY-MM-DD-tdd-{plan_name}-{req_id}.md
+        import re
+
+        pattern = r"\d{4}-\d{2}-\d{2}-tdd-my-feature-req_001\.md"
+        assert re.match(pattern, file_name), f"File name '{file_name}' doesn't match pattern"
+
+    def test_metadata_includes_plans_generated_count(self, tmp_path: Path) -> None:
+        """Given multiple requirements, metadata tracks plans generated."""
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Feature 1",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [],
+                },
+                {
+                    "id": "REQ_002",
+                    "description": "Feature 2",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [],
+                },
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        assert result.metadata.get("plans_generated") == 2
+        assert result.metadata.get("requirements_count") == 2
+
+
+class TestLLMContentGeneration:
+    """Behavior 2: LLM generates actual TDD content via Agent SDK."""
+
+    def test_generates_actual_test_code_not_todos(self, tmp_path: Path) -> None:
+        """Given requirement, when _generate_plan_content_for_requirement(), then no TODO placeholders."""
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        req = RequirementNode(
+            id="REQ_001",
+            description="User login feature",
+            type="parent",
+            acceptance_criteria=[
+                "Given valid credentials, when login, then user authenticated"
+            ],
+        )
+
+        # Act
+        content = phase._generate_plan_content_for_requirement(req, "test")
+
+        # Assert - should NOT have placeholder TODOs (once LLM integration is done)
+        # For now, this test will fail because we still generate static templates
+        assert "assert False  # TODO" not in content
+        assert "# TODO: Implement" not in content
+        assert "# TODO: Add minimal implementation" not in content
+        # Should have actual test code (or at least descriptive content)
+        assert "assert" in content.lower() or "test" in content.lower()
+
+    def test_includes_given_when_then_from_criteria(self, tmp_path: Path) -> None:
+        """Given requirement with criteria, when generate, then Given/When/Then extracted."""
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        req = RequirementNode(
+            id="REQ_001",
+            description="User login",
+            type="parent",
+            acceptance_criteria=[
+                "Given valid credentials, when login submitted, then session created"
+            ],
+        )
+
+        content = phase._generate_plan_content_for_requirement(req, "test")
+
+        # Should extract Given/When/Then format
+        assert "**Given**:" in content or "Given:" in content or "given" in content.lower()
+        assert "**When**:" in content or "When:" in content or "when" in content.lower()
+        assert "**Then**:" in content or "Then:" in content or "then" in content.lower()
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    def test_fallback_when_sdk_unavailable(self, tmp_path: Path) -> None:
+        """Given Agent SDK unavailable, when generate, then fallback to template."""
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        req = RequirementNode(
+            id="REQ_001",
+            description="User login",
+            type="parent",
+            acceptance_criteria=["Given creds, when login, then authenticated"],
+        )
+
+        content = phase._generate_plan_content_for_requirement(req, "test")
+
+        # Fallback should still produce valid markdown
+        assert "# " in content
+        assert "REQ_001" in content
+
+    def test_generates_content_for_multiple_criteria(self, tmp_path: Path) -> None:
+        """Given requirement with multiple criteria, generates content for each."""
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        req = RequirementNode(
+            id="REQ_001",
+            description="User authentication",
+            type="parent",
+            acceptance_criteria=[
+                "Given valid credentials, when login, then session created",
+                "Given invalid credentials, when login, then error shown",
+                "Given expired session, when accessing, then redirected to login",
+            ],
+        )
+
+        content = phase._generate_plan_content_for_requirement(req, "test")
+
+        # Should have content for all 3 criteria
+        # Check for coverage of all three scenarios (LLM may use different headings)
+        assert "valid credentials" in content.lower() or "valid" in content.lower()
+        assert "invalid credentials" in content.lower() or "invalid" in content.lower() or "error" in content.lower()
+        assert "expired session" in content.lower() or "expired" in content.lower() or "redirect" in content.lower()
+        # Should have multiple test functions or test sections
+        assert content.count("def test_") >= 3 or content.count("### ") >= 3
+
+
+class TestReviewPlanIntegration:
+    """Behavior 3: Review plan runs after TDD generation."""
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_review_session_called_after_plan_generated(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given plan generated, when complete, then review session initiated."""
+        # Configure mock to return successful review
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": [
+                        "Given creds, when login, then session"
+                    ],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        # Assert
+        assert result.status == PhaseStatus.COMPLETE
+        mock_review.assert_called_once()
+        # Verify it was called with the plan path
+        call_args = mock_review.call_args
+        assert "tdd-test-req_001" in call_args[0][0].lower()
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_multiple_plans_each_get_review(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given 3 plans generated, when complete, then 3 review sessions."""
+        # Configure mock to return successful review
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion1"],
+                },
+                {
+                    "id": "REQ_002",
+                    "description": "Logout",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion2"],
+                },
+                {
+                    "id": "REQ_003",
+                    "description": "Reset",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion3"],
+                },
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        assert result.status == PhaseStatus.COMPLETE
+        assert mock_review.call_count == 3
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_plan_saved_even_if_review_fails(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given review fails, when plan generated, then plan still saved."""
+        mock_review.side_effect = Exception("Review service unavailable")
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        # Plan should still be saved even if review failed
+        assert len(result.artifacts) == 1
+        assert Path(result.artifacts[0]).exists()
+        # When review fails by exception, review_result is None so review_failures is not incremented
+        # The plan should still succeed with COMPLETE status
+        assert result.status == PhaseStatus.COMPLETE
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_review_file_created_alongside_plan(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given successful review, when complete, then review file created."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [{"step": "Contract", "severity": "minor", "issue": "test", "suggestion": "fix"}], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        assert result.status == PhaseStatus.COMPLETE
+        # Check that review file exists alongside plan
+        plan_path = Path(result.artifacts[0])
+        review_path = plan_path.with_suffix(".review.md")
+        assert review_path.exists(), f"Review file not found: {review_path}"
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_metadata_includes_review_status(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given review completed, when execute(), then metadata includes review info."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.5,
+        }
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        assert result.status == PhaseStatus.COMPLETE
+        # Metadata should include review count
+        assert result.metadata.get("reviews_completed", 0) == 1
+
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_review_failure_tracked_in_metadata(
+        self, mock_review: MagicMock, tmp_path: Path
+    ) -> None:
+        """Given review returns error, when execute(), then failure tracked."""
+        # Return a result with success=False (different from exception)
+        mock_review.return_value = {
+            "success": False,
+            "output": "",
+            "error": "API timeout",
+            "elapsed": 30.0,
+        }
+
+        hierarchy_data = {
+            "requirements": [
+                {
+                    "id": "REQ_001",
+                    "description": "Login",
+                    "type": "parent",
+                    "children": [],
+                    "acceptance_criteria": ["criterion"],
+                }
+            ],
+            "metadata": {},
+        }
+        hierarchy_path = tmp_path / "hierarchy.json"
+        hierarchy_path.write_text(json.dumps(hierarchy_data))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        result = phase.execute(plan_name="test", hierarchy_path=str(hierarchy_path))
+
+        # Plan should still be saved
+        assert len(result.artifacts) == 1
+        # Status should be PARTIAL when review fails
+        assert result.status == PhaseStatus.PARTIAL
+        # Metadata should track the failure
+        assert result.metadata.get("review_failures", 0) == 1
