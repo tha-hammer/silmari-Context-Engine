@@ -25,6 +25,7 @@ from silmari_rlm_act.checkpoints.interactive import (
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
 from silmari_rlm_act.phases.formatters import OutputFormatter
+from silmari_rlm_act.streaming import StreamingOutputService
 
 from planning_pipeline.models import (
     DesignContracts,
@@ -93,7 +94,7 @@ Return JSON with:
 async def _run_review_session_async(
     plan_path: str,
     project_path: Path,
-    formatter: Optional[OutputFormatter] = None,
+    streaming_service: Optional[StreamingOutputService] = None,
     quiet: bool = False,
 ) -> dict[str, Any]:
     """Async implementation of review session with streaming output.
@@ -101,7 +102,7 @@ async def _run_review_session_async(
     Args:
         plan_path: Absolute path to the generated TDD plan file
         project_path: Project root directory for SDK client
-        formatter: OutputFormatter for real-time output (optional)
+        streaming_service: StreamingOutputService for real-time output (optional)
         quiet: If True, suppress real-time output
 
     Returns:
@@ -140,14 +141,14 @@ async def _run_review_session_async(
                         text_chunks.append(block.text)
                         # Stream to terminal in real-time
                         if not quiet:
-                            if formatter:
-                                formatter.format_text(block.text)
+                            if streaming_service:
+                                streaming_service.format_text(block.text)
                             else:
                                 sys.stdout.write(block.text)
                                 sys.stdout.flush()
                     elif isinstance(block, ToolUseBlock):
-                        if not quiet and formatter:
-                            formatter.format_tool_use(block.name, block.input or {})
+                        if not quiet and streaming_service:
+                            streaming_service.format_tool_use(block.name, block.input or {})
 
     except Exception as e:
         error_msg = str(e)
@@ -171,8 +172,10 @@ async def _run_review_session_async(
 def run_review_session(
     plan_path: str,
     project_path: Optional[Path] = None,
-    formatter: Optional[OutputFormatter] = None,
+    streaming_service: Optional[StreamingOutputService] = None,
     quiet: bool = False,
+    # Deprecated parameter for backward compatibility
+    formatter: Optional[OutputFormatter] = None,
 ) -> dict[str, Any]:
     """Run review_plan skill on generated TDD plan in a fresh session.
 
@@ -189,8 +192,9 @@ def run_review_session(
     Args:
         plan_path: Absolute path to the generated TDD plan file
         project_path: Project root directory (defaults to cwd)
-        formatter: OutputFormatter for real-time output (optional)
+        streaming_service: StreamingOutputService for real-time output (optional)
         quiet: If True, suppress real-time output
+        formatter: Deprecated - use streaming_service instead
 
     Returns:
         Review results with:
@@ -202,15 +206,34 @@ def run_review_session(
     if project_path is None:
         project_path = Path.cwd()
 
+    # Handle deprecated formatter parameter
+    if formatter is not None and streaming_service is None:
+        import warnings
+        warnings.warn(
+            "formatter parameter is deprecated, use streaming_service instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        # Create a streaming service for backward compat
+        streaming_service = StreamingOutputService(
+            output_stream=formatter.output_stream,
+            quiet=quiet,
+        )
+
     return asyncio.run(_run_review_session_async(
         plan_path=plan_path,
         project_path=project_path,
-        formatter=formatter,
+        streaming_service=streaming_service,
         quiet=quiet,
     ))
 
 # TDD Generation prompt template
 TDD_GENERATION_PROMPT = """You are an expert TDD practitioner generating implementation-ready plans.
+
+**SIMPLICITY PRINCIPLE**: Start with the simplest approach. Only add complexity when you can quantify why it's necessary.
+- Prefer simple implementations over clever ones
+- Question requirements that specify advanced techniques - is the scale large enough?
+- The simplest code that passes the tests is the best code
 
 ## Requirement
 ID: {req_id}
@@ -241,6 +264,11 @@ Output ONLY markdown content, no additional commentary.
 
 # Enhanced TDD Generation prompt with design-by-contract support (REQ_002)
 TDD_GENERATION_PROMPT_V2 = """You are an expert TDD practitioner generating implementation-ready plans with design-by-contract patterns.
+
+**SIMPLICITY PRINCIPLE**: Start with the simplest approach. Only add complexity when you can quantify why it's necessary.
+- What's the simplest implementation that passes the tests?
+- Does the requirement complexity match the problem scale?
+- Avoid overengineering: if keyword matching works, don't use ML models
 
 ## Requirement
 ID: {req_id}
@@ -841,6 +869,7 @@ class TDDPlanningPhase:
         output_stream: Optional[TextIO] = None,
         show_tool_details: bool = True,
         quiet: bool = False,
+        streaming_service: Optional[StreamingOutputService] = None,
     ) -> None:
         """Initialize TDD planning phase.
 
@@ -850,11 +879,21 @@ class TDDPlanningPhase:
             output_stream: Stream for formatted output (default: stdout)
             show_tool_details: Whether to show tool input details
             quiet: If True, suppress real-time output (still captured in buffer)
+            streaming_service: Optional StreamingOutputService for output formatting.
+                              When provided, uses service methods instead of legacy formatter.
         """
         self.project_path = Path(project_path)
         self.cwa = cwa
         self._quiet = quiet
         self._output_buffer: list[str] = []
+
+        # Use provided streaming service or create default
+        self._streaming = streaming_service or StreamingOutputService(
+            output_stream=output_stream or sys.stdout,
+            quiet=quiet,
+        )
+
+        # Legacy formatter kept for backwards compatibility with old callers
         self._formatter = OutputFormatter(
             output_stream=output_stream or sys.stdout,
             show_tool_details=show_tool_details,
@@ -1189,7 +1228,7 @@ class TDDPlanningPhase:
             review_result = run_review_session(
                 str(plan_path),  # positional for test compatibility
                 project_path=self.project_path,
-                formatter=self._formatter,
+                streaming_service=self._streaming,
                 quiet=self._quiet,
             )
 
@@ -1300,7 +1339,7 @@ class TDDPlanningPhase:
 
         # Print header for this requirement's generation
         if not self._quiet:
-            self._formatter.format_header(f"Generating TDD: {req.id}")
+            self._streaming.format_header(f"Generating TDD: {req.id}")
 
         try:
             await client.connect()
@@ -1316,10 +1355,10 @@ class TDDPlanningPhase:
                             self._output_buffer.append(block.text)
                             # Stream to terminal in real-time
                             if not self._quiet:
-                                self._formatter.format_text(block.text)
+                                self._streaming.format_text(block.text)
                         elif isinstance(block, ToolUseBlock):
                             if not self._quiet:
-                                self._formatter.format_tool_use(
+                                self._streaming.format_tool_use(
                                     block.name, block.input or {}
                                 )
             
