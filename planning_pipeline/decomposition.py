@@ -30,6 +30,51 @@ except ImportError:
     baml_client = None
     BAML_AVAILABLE = False
 
+# Agent SDK + BAML integration for high-quality Opus decomposition (REQ_004.5)
+try:
+    from planning_pipeline.agent_sdk_integration import (
+        AgentSDKConfig,
+        AgentSDKError,
+        AgentSDKErrorCode,
+        AgentSDKResult,
+        BAMLRequest,
+        build_baml_request,
+        execute_with_agent_sdk,
+        parse_baml_response,
+        agent_sdk_decompose,
+        HAS_AGENT_SDK,
+    )
+    AGENT_SDK_INTEGRATION_AVAILABLE = True
+except ImportError:
+    AgentSDKConfig = None  # type: ignore
+    AgentSDKError = None  # type: ignore
+    AgentSDKErrorCode = None  # type: ignore
+    AgentSDKResult = None  # type: ignore
+    BAMLRequest = None  # type: ignore
+    build_baml_request = None  # type: ignore
+    execute_with_agent_sdk = None  # type: ignore
+    parse_baml_response = None  # type: ignore
+    agent_sdk_decompose = None  # type: ignore
+    HAS_AGENT_SDK = False
+    AGENT_SDK_INTEGRATION_AVAILABLE = False
+
+# Pre-classifier for requirement routing (REQ_001.2)
+try:
+    from planning_pipeline.pre_classifier import (
+        RequirementPreClassifier,
+        ClassificationResultV2,
+        RoutingDecision,
+        assess_complexity,
+        build_adaptive_prompt,
+        ComplexityLevel,
+    )
+    PRECLASSIFIER_AVAILABLE = True
+except ImportError:
+    PRECLASSIFIER_AVAILABLE = False
+    RequirementPreClassifier = None  # type: ignore
+    ClassificationResultV2 = None  # type: ignore
+    RoutingDecision = None  # type: ignore
+
 
 class DecompositionErrorCode(Enum):
     """Error codes for decomposition failures."""
@@ -78,6 +123,9 @@ class DecompositionConfig:
         include_acceptance_criteria: Include AC in children (default True)
         expand_dimensions: Expand implementation dimensions (default False)
         expansion_timeout: Timeout in seconds for expanding each requirement (default 300)
+        pre_classify: Enable pre-classification routing before Phase 1 extraction (default True)
+        use_agent_sdk: Enable Agent SDK + BAML modular API for high-quality Opus decomposition (REQ_004.5)
+        agent_sdk_tools: Tools to enable for Agent SDK calls (default: Read, Glob, Grep for codebase inspection)
     """
 
     max_sub_processes: int = 5
@@ -85,6 +133,9 @@ class DecompositionConfig:
     include_acceptance_criteria: bool = True
     expand_dimensions: bool = False
     expansion_timeout: int = 300  # 5 minutes per requirement expansion
+    pre_classify: bool = True  # REQ_001.2: Enable pre-classification by default
+    use_agent_sdk: bool = True  # REQ_004.5: Enable Agent SDK + BAML by default
+    agent_sdk_tools: list = field(default_factory=lambda: ["Read", "Glob", "Grep"])
 
 
 # Default analysis framework for BAML calls
@@ -149,15 +200,39 @@ class DecompositionStats:
     total_nodes: int = 0
     extraction_time_ms: int = 0
     expansion_time_ms: int = 0
+    # REQ_001.2: Pre-classification statistics
+    pre_classified_count: int = 0
+    skipped_expansion_count: int = 0
+    classification_time_ms: int = 0
+    # REQ_001.5: Category-specific expansion statistics
+    category_expansion_count: int = 0
+    category_expansion_time_ms: int = 0
+    # REQ_004.5: Agent SDK statistics
+    agent_sdk_calls: int = 0
+    agent_sdk_successes: int = 0
+    agent_sdk_fallbacks: int = 0
 
     def summary(self) -> str:
         """Return human-readable summary."""
         total_time = (self.extraction_time_ms + self.expansion_time_ms) / 1000
-        return (
+        base_summary = (
             f"  {self.requirements_found} requirements, "
             f"{self.subprocesses_expanded} subprocesses "
             f"({total_time:.1f}s)"
         )
+        # Add pre-classification stats if available
+        if self.pre_classified_count > 0:
+            direct_route_pct = (self.skipped_expansion_count / self.pre_classified_count * 100) if self.pre_classified_count > 0 else 0
+            base_summary += f"\n  Pre-classified: {self.pre_classified_count} ({direct_route_pct:.0f}% direct route)"
+        if self.category_expansion_count > 0:
+            base_summary += f"\n  Category-specific expansions: {self.category_expansion_count}"
+        # REQ_004.5: Add Agent SDK stats
+        if self.agent_sdk_calls > 0:
+            success_pct = (self.agent_sdk_successes / self.agent_sdk_calls * 100) if self.agent_sdk_calls > 0 else 0
+            base_summary += f"\n  Agent SDK: {self.agent_sdk_successes}/{self.agent_sdk_calls} ({success_pct:.0f}% success)"
+            if self.agent_sdk_fallbacks > 0:
+                base_summary += f", {self.agent_sdk_fallbacks} fallbacks"
+        return base_summary
 
 
 def decompose_requirements(
@@ -308,7 +383,7 @@ Return ONLY valid JSON with this exact structure (no markdown, no explanation):
     ]
 }}
 
-Extract 3-7 top-level requirements, each with 2-5 sub-processes.
+Extract ALL top-level requirements, each with 2-5 sub-processes.
 
 
 """
@@ -317,7 +392,7 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
         result = run_claude_sync(
             prompt=extraction_prompt,
             timeout=1300,
-            stream=False,
+            stream=True,
         )
 
         if not result["success"]:
@@ -350,6 +425,45 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
         stats.requirements_found = len(requirements_data)
 
         report(f"  ✓ Extracted {stats.requirements_found} top-level requirements")
+
+        # Step 1.5: Pre-classify requirements (REQ_001.2)
+        # Store classification results for use during expansion
+        classification_results: dict[str, ClassificationResultV2] = {}
+        pre_classifier = None
+
+        if config.pre_classify and PRECLASSIFIER_AVAILABLE and RequirementPreClassifier is not None:
+            try:
+                pre_classifier = RequirementPreClassifier()
+                classification_start = time.time()
+
+                # Classify all requirements
+                descriptions = [req.get("description", "") for req in requirements_data]
+                results = pre_classifier.classify_batch(descriptions)
+
+                # Store results keyed by index for lookup during expansion
+                direct_route_count = 0
+                for idx, result in enumerate(results):
+                    parent_id = f"REQ_{idx:03d}"
+                    classification_results[parent_id] = result
+                    stats.pre_classified_count += 1
+
+                    # Count high-confidence direct routes (REQ_001.1 behavior 8)
+                    if result.confidence >= 0.9:
+                        direct_route_count += 1
+                        stats.skipped_expansion_count += 1
+
+                stats.classification_time_ms = int((time.time() - classification_start) * 1000)
+                direct_route_pct = (direct_route_count / len(results) * 100) if results else 0
+                report(f"  ✓ Pre-classified {stats.pre_classified_count} requirements ({direct_route_pct:.0f}% direct route)")
+
+            except Exception as e:
+                # REQ_001.2 behavior 10: Graceful fallback if pre_classifier fails
+                import warnings
+                warnings.warn(f"Pre-classifier failed, falling back to full expansion: {e}")
+                classification_results = {}
+        elif config.pre_classify and not PRECLASSIFIER_AVAILABLE:
+            import warnings
+            warnings.warn("Pre-classifier module not available, falling back to full expansion")
 
         # Step 2: Expand each requirement via LLM to get implementation details
         # If resuming from partial hierarchy, use it; otherwise create new
@@ -388,18 +502,71 @@ Extract 3-7 top-level requirements, each with 2-5 sub-processes.
 
             report(f"    [{req_idx + 1}/{stats.requirements_found}] Expanding: {parent_description}")
 
-            # Create parent node
+            # Get classification result for this requirement (REQ_001.2)
+            classification = classification_results.get(parent_id)
+            category = classification.category if classification else None
+            routing = classification.routing_decision if classification else None
+
+            # Create parent node with category (REQ_001.2 behavior 5)
             parent_node = RequirementNode(
                 id=parent_id,
                 description=parent_description,
                 type="parent",
+                category=category,  # Store classification category
             )
+
+            # REQ_004.5: Use Agent SDK + BAML modular API when enabled
+            if config.use_agent_sdk and AGENT_SDK_INTEGRATION_AVAILABLE:
+                stats.agent_sdk_calls += 1
+                used_agent_sdk = _expand_requirement_with_agent_sdk(
+                    parent_id=parent_id,
+                    parent_description=parent_description,
+                    parent_node=parent_node,
+                    sub_processes=sub_processes,
+                    research_content=research_content,
+                    config=config,
+                    stats=stats,
+                    report=report,
+                )
+                if used_agent_sdk:
+                    stats.agent_sdk_successes += 1
+                else:
+                    stats.agent_sdk_fallbacks += 1
+
+                hierarchy.add_requirement(parent_node)
+
+                # Incremental save after each requirement is fully processed
+                if save_callback is not None:
+                    save_callback(hierarchy)
+
+                continue  # Skip the legacy expansion path
+
+            # Legacy expansion path (when Agent SDK is disabled or unavailable)
+            # Build implementation sections based on routing (REQ_001.2 behaviors 6-7)
+            # Backend-only requirements skip frontend, frontend-only skip backend
+            implementation_sections = []
+            if routing != RoutingDecision.FRONTEND_ONLY if RoutingDecision else True:
+                implementation_sections.append("    - backend: API endpoints, services, data processing, business logic")
+            if routing != RoutingDecision.BACKEND_ONLY if RoutingDecision else True:
+                implementation_sections.append("    - frontend: UI components, pages, forms, validation, user interactions")
+            implementation_sections.append("    - middleware: authentication, authorization, request/response processing")
+            implementation_sections.append("    - shared: data models, utilities, constants, interfaces")
+            implementation_section_text = "\n".join(implementation_sections)
+
+            # Build routing hint for prompt
+            routing_hint = ""
+            if routing == RoutingDecision.BACKEND_ONLY if RoutingDecision else False:
+                routing_hint = "\n**FOCUS: This is a BACKEND-ONLY requirement. Focus on API, database, and service components.**\n"
+            elif routing == RoutingDecision.FRONTEND_ONLY if RoutingDecision else False:
+                routing_hint = "\n**FOCUS: This is a FRONTEND-ONLY requirement. Focus on UI, forms, and user interaction components.**\n"
+            elif routing == RoutingDecision.MIDDLEWARE if RoutingDecision else False:
+                routing_hint = "\n**FOCUS: This is a MIDDLEWARE requirement. Focus on authentication, authorization, and validation.**\n"
 
             # Call LLM for each requirement to get implementation details
             expansion_prompt = f"""You are an expert software analyst. Expand each requirement into specific implementation requirements.
 The software developer needs to know what detailed requirements are needed to implement this requirement for this project. It helps to imagine you are the user of the system and you are trying to implement the requirement. Think about the user's problem and how to solve it.
 For each implementation requirement:
-
+{routing_hint}
 
 RESEARCH CONTEXT:
 {research_content}
@@ -420,10 +587,7 @@ SUB-PROCESSES TO EXPAND:
 8. Add any related or dependent concepts
 9. EACH AND EVERY STEP to implement the requirement must be included
 10. For each requirement, specify exactly what components are needed:
-    - frontend: UI components, pages, forms, validation, user interactions
-    - backend: API endpoints, services, data processing, business logic
-    - middleware: authentication, authorization, request/response processing
-    - shared: data models, utilities, constants, interfaces
+{implementation_section_text}
 Assume sub-processes exist even if not stated. Propose granular steps. Imagine you are the user of the system and you are trying to implement the requirement. Think about the user's problem and how to solve it.
 
 Return ONLY valid JSON in this exact format:
@@ -526,6 +690,10 @@ Generate one implementation_detail for each sub-process. If no sub-processes pro
             "total_nodes": stats.total_nodes,
             "extraction_time_ms": stats.extraction_time_ms,
             "expansion_time_ms": stats.expansion_time_ms,
+            # REQ_004.5: Agent SDK statistics
+            "agent_sdk_calls": stats.agent_sdk_calls,
+            "agent_sdk_successes": stats.agent_sdk_successes,
+            "agent_sdk_fallbacks": stats.agent_sdk_fallbacks,
         }
 
         return hierarchy
@@ -536,6 +704,335 @@ Generate one implementation_detail for each sub-process. If no sub-processes pro
             error=str(e),
             details={"exception_type": type(e).__name__},
         )
+
+
+def _expand_requirement_with_agent_sdk(
+    parent_id: str,
+    parent_description: str,
+    parent_node: RequirementNode,
+    sub_processes: list[str],
+    research_content: str,
+    config: DecompositionConfig,
+    stats: "DecompositionStats",
+    report: ProgressCallback,
+) -> bool:
+    """Expand requirement using Agent SDK + BAML modular API pattern (REQ_004.5).
+
+    Uses the three-step Agent SDK + BAML pattern:
+    1. b.request to build typed prompts with output format substitution
+    2. Agent SDK query() with claude-opus-4-5-20251101 and codebase tools
+    3. b.parse to validate and convert responses to typed Pydantic models
+
+    Falls back to Ollama via BAML if Agent SDK is unavailable or fails.
+
+    REQ_004.5 Behaviors:
+    1. Uses BAML b.request to build typed prompts (via build_baml_request)
+    2. Executes with Agent SDK for Opus quality (via execute_with_agent_sdk)
+    3. Parses responses with BAML b.parse (via parse_baml_response)
+    4. Tools enabled: Read, Glob, Grep for codebase inspection
+    5. Falls back to direct BAML (Ollama) on Agent SDK failure
+    6. Falls back to basic nodes if all LLM calls fail
+
+    Args:
+        parent_id: Parent requirement ID (e.g., "REQ_001")
+        parent_description: Description of the parent requirement
+        parent_node: Parent RequirementNode to add children to
+        sub_processes: List of sub-process descriptions to expand
+        research_content: Research context for BAML function
+        config: Decomposition configuration
+        stats: DecompositionStats to update
+        report: Progress callback
+
+    Returns:
+        True if Agent SDK succeeded, False if fell back to Ollama/basic nodes
+    """
+    if not AGENT_SDK_INTEGRATION_AVAILABLE or not build_baml_request:
+        # Agent SDK integration not available - fall back to Ollama
+        report(f"      ⚠ Agent SDK integration not available, using Ollama fallback...")
+        _process_with_ollama_fallback(
+            parent_id, parent_description, parent_node, sub_processes, research_content, stats
+        )
+        return False
+
+    used_agent_sdk = False
+
+    # Process each subprocess with Agent SDK
+    for sub_idx, sub_process in enumerate(sub_processes):
+        child_id = f"{parent_id}.{sub_idx + 1}"
+
+        try:
+            # Step 1: Build typed BAML request (REQ_004.1)
+            request = build_baml_request(
+                "ProcessGate1SubprocessDetailsPrompt",
+                sub_process=sub_process,
+                parent_description=parent_description,
+                scope_text=research_content[:8000],  # Limit context size
+                user_confirmation=True,
+            )
+
+            if isinstance(request, AgentSDKError):
+                # Request building failed - fall back to basic node
+                report(f"      ⚠ BAML request failed: {request.error}")
+                child_node = RequirementNode(
+                    id=child_id,
+                    description=sub_process,
+                    type="sub_process",
+                    parent_id=parent_id,
+                    function_id=_generate_function_id(sub_process, parent_id),
+                )
+                parent_node.children.append(child_node)
+                stats.subprocesses_expanded += 1
+                continue
+
+            # Step 2: Execute with Agent SDK (REQ_004.2)
+            sdk_config = AgentSDKConfig(
+                tools=config.agent_sdk_tools,
+                timeout=config.expansion_timeout,
+            )
+
+            result = execute_with_agent_sdk(request.prompt, sdk_config)
+
+            if not result.success:
+                # Agent SDK failed - try Ollama fallback
+                report(f"      ⚠ Agent SDK failed: {result.error}")
+                _process_single_subprocess_with_ollama(
+                    child_id, sub_process, parent_id, parent_description,
+                    parent_node, research_content, stats
+                )
+                continue
+
+            used_agent_sdk = True
+
+            # Step 3: Parse response with BAML (REQ_004.3)
+            parsed = parse_baml_response(
+                "ProcessGate1SubprocessDetailsPrompt",
+                result.output,
+            )
+
+            if isinstance(parsed, AgentSDKError):
+                # Parsing failed - create basic node
+                report(f"      ⚠ BAML parse failed: {parsed.error}")
+                child_node = RequirementNode(
+                    id=child_id,
+                    description=sub_process,
+                    type="sub_process",
+                    parent_id=parent_id,
+                    function_id=_generate_function_id(sub_process, parent_id),
+                )
+                parent_node.children.append(child_node)
+                stats.subprocesses_expanded += 1
+                continue
+
+            # Convert parsed response to child nodes
+            _create_children_from_parsed_response(
+                child_id, sub_process, parsed, parent_id,
+                parent_node, config, stats
+            )
+
+        except Exception as e:
+            # Unexpected error - create basic node
+            report(f"      ⚠ Agent SDK error: {e}")
+            child_node = RequirementNode(
+                id=child_id,
+                description=sub_process,
+                type="sub_process",
+                parent_id=parent_id,
+                function_id=_generate_function_id(sub_process, parent_id),
+            )
+            parent_node.children.append(child_node)
+            stats.subprocesses_expanded += 1
+
+    return used_agent_sdk
+
+
+def _process_single_subprocess_with_ollama(
+    child_id: str,
+    sub_process: str,
+    parent_id: str,
+    parent_description: str,
+    parent_node: RequirementNode,
+    research_content: str,
+    stats: "DecompositionStats",
+) -> None:
+    """Process a single subprocess using BAML/Ollama fallback.
+
+    Used when Agent SDK fails for a specific subprocess.
+
+    Args:
+        child_id: ID for the child node
+        sub_process: Subprocess description
+        parent_id: Parent requirement ID
+        parent_description: Parent requirement description
+        parent_node: Parent node to add children to
+        research_content: Research context
+        stats: Stats to update
+    """
+    if not BAML_AVAILABLE or baml_client is None:
+        # BAML not available - create basic node
+        child_node = RequirementNode(
+            id=child_id,
+            description=sub_process,
+            type="sub_process",
+            parent_id=parent_id,
+            function_id=_generate_function_id(sub_process, parent_id),
+        )
+        parent_node.children.append(child_node)
+        stats.subprocesses_expanded += 1
+        return
+
+    try:
+        # Call BAML function for subprocess
+        response = baml_client.ProcessGate1SubprocessDetailsPrompt(
+            sub_process=sub_process,
+            parent_description=parent_description,
+            scope_text=research_content[:8000],
+            user_confirmation=True,
+        )
+
+        if response and response.implementation_details:
+            for impl_idx, detail in enumerate(response.implementation_details):
+                if impl_idx == 0:
+                    detail_child_id = child_id
+                else:
+                    detail_child_id = f"{child_id}.{impl_idx}"
+
+                impl_components = ImplementationComponents(
+                    frontend=list(detail.implementation.frontend) if detail.implementation.frontend else [],
+                    backend=list(detail.implementation.backend) if detail.implementation.backend else [],
+                    middleware=list(detail.implementation.middleware) if detail.implementation.middleware else [],
+                    shared=list(detail.implementation.shared) if detail.implementation.shared else [],
+                )
+
+                child_node = RequirementNode(
+                    id=detail_child_id,
+                    description=detail.description,
+                    type="sub_process",
+                    parent_id=parent_id,
+                    function_id=detail.function_id or _generate_function_id(detail.description, parent_id),
+                    related_concepts=list(detail.related_concepts) if detail.related_concepts else [],
+                    acceptance_criteria=list(detail.acceptance_criteria) if detail.acceptance_criteria else [],
+                    implementation=impl_components,
+                )
+                parent_node.children.append(child_node)
+                stats.subprocesses_expanded += 1
+        else:
+            # No details - basic node
+            child_node = RequirementNode(
+                id=child_id,
+                description=sub_process,
+                type="sub_process",
+                parent_id=parent_id,
+                function_id=_generate_function_id(sub_process, parent_id),
+            )
+            parent_node.children.append(child_node)
+            stats.subprocesses_expanded += 1
+
+    except Exception:
+        # BAML call failed - basic node
+        child_node = RequirementNode(
+            id=child_id,
+            description=sub_process,
+            type="sub_process",
+            parent_id=parent_id,
+            function_id=_generate_function_id(sub_process, parent_id),
+        )
+        parent_node.children.append(child_node)
+        stats.subprocesses_expanded += 1
+
+
+def _create_children_from_parsed_response(
+    child_id: str,
+    sub_process: str,
+    parsed: Any,
+    parent_id: str,
+    parent_node: RequirementNode,
+    config: DecompositionConfig,
+    stats: "DecompositionStats",
+) -> None:
+    """Create child RequirementNodes from parsed BAML response.
+
+    Args:
+        child_id: Base child ID
+        sub_process: Original subprocess description
+        parsed: Parsed BAML response (may be typed object or dict)
+        parent_id: Parent requirement ID
+        parent_node: Parent node to add children to
+        config: Decomposition configuration
+        stats: Stats to update
+    """
+    # Handle both typed objects and dicts
+    impl_details = []
+    if hasattr(parsed, 'implementation_details'):
+        impl_details = parsed.implementation_details or []
+    elif isinstance(parsed, dict):
+        impl_details = parsed.get('implementation_details', [])
+
+    if not impl_details:
+        # No details - create basic node
+        child_node = RequirementNode(
+            id=child_id,
+            description=sub_process,
+            type="sub_process",
+            parent_id=parent_id,
+            function_id=_generate_function_id(sub_process, parent_id),
+        )
+        parent_node.children.append(child_node)
+        stats.subprocesses_expanded += 1
+        return
+
+    # Limit to max_sub_processes
+    impl_details = impl_details[:config.max_sub_processes]
+
+    for impl_idx, detail in enumerate(impl_details):
+        if impl_idx == 0:
+            detail_child_id = child_id
+        else:
+            detail_child_id = f"{child_id}.{impl_idx}"
+
+        # Handle both typed objects and dicts
+        if hasattr(detail, 'description'):
+            description = detail.description
+            function_id = getattr(detail, 'function_id', None)
+            related_concepts = list(getattr(detail, 'related_concepts', []) or [])
+            acceptance_criteria = list(getattr(detail, 'acceptance_criteria', []) or [])
+            impl_data = getattr(detail, 'implementation', None)
+        else:
+            description = detail.get('description', sub_process)
+            function_id = detail.get('function_id')
+            related_concepts = detail.get('related_concepts', [])
+            acceptance_criteria = detail.get('acceptance_criteria', [])
+            impl_data = detail.get('implementation', {})
+
+        # Build implementation components
+        impl_components = None
+        if impl_data:
+            if hasattr(impl_data, 'frontend'):
+                impl_components = ImplementationComponents(
+                    frontend=list(impl_data.frontend or []),
+                    backend=list(impl_data.backend or []),
+                    middleware=list(impl_data.middleware or []),
+                    shared=list(impl_data.shared or []),
+                )
+            elif isinstance(impl_data, dict):
+                impl_components = ImplementationComponents(
+                    frontend=impl_data.get('frontend', []),
+                    backend=impl_data.get('backend', []),
+                    middleware=impl_data.get('middleware', []),
+                    shared=impl_data.get('shared', []),
+                )
+
+        child_node = RequirementNode(
+            id=detail_child_id,
+            description=description,
+            type="sub_process",
+            parent_id=parent_id,
+            function_id=function_id or _generate_function_id(description, parent_id),
+            related_concepts=related_concepts,
+            acceptance_criteria=acceptance_criteria if config.include_acceptance_criteria else [],
+            implementation=impl_components,
+        )
+        parent_node.children.append(child_node)
+        stats.subprocesses_expanded += 1
 
 
 # Action verb mappings for semantic function_id generation

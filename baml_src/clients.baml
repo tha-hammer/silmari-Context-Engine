@@ -166,3 +166,38 @@ retry_policy Exponential {
     max_delay_ms 10000
   }
 }
+
+// =============================================================================
+// OPUS AGENT SDK INTEGRATION (REQ_004.4)
+// =============================================================================
+// OpusAgent client for Agent SDK + BAML modular API integration
+// Uses Claude Opus 4.5 for high-quality decomposition and validation
+
+client<llm> OpusAgent {
+  provider anthropic
+  retry_policy Exponential
+  options {
+    model "claude-opus-4-5-20251101"
+    api_key env.ANTHROPIC_API_KEY
+    max_tokens 8192
+    // Temperature configurable via env, default 0.3 for consistency
+    temperature 0.3
+  }
+}
+
+// Fallback configuration: OpusAgent -> CustomHaiku
+// For resilience when Opus unavailable or for cost optimization
+client<llm> OpusWithHaikuFallback {
+  provider fallback
+  options {
+    strategy [OpusAgent, CustomHaiku]
+  }
+}
+
+// OpusAgent with local Ollama fallback for offline scenarios
+client<llm> OpusWithOllamaFallback {
+  provider fallback
+  options {
+    strategy [OpusAgent, EnvironmentOllama]
+  }
+}

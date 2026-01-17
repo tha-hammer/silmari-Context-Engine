@@ -280,24 +280,27 @@ def patch_baml_client(mock_claude_sdk_response, mock_claude_expansion_response, 
             return mock_claude_sdk_response
         return mock_claude_expansion_response
 
-    with patch("planning_pipeline.decomposition.run_claude_sync") as mock_run:
-        mock_run.side_effect = side_effect
+    # Disable Agent SDK integration for legacy tests that use this fixture
+    # (they test the run_claude_sync path, not the Agent SDK path)
+    with patch("planning_pipeline.decomposition.AGENT_SDK_INTEGRATION_AVAILABLE", False):
+        with patch("planning_pipeline.decomposition.run_claude_sync") as mock_run:
+            mock_run.side_effect = side_effect
 
-        # Store the original return_value setter so tests can override
-        original_return_value = None
+            # Store the original return_value setter so tests can override
+            original_return_value = None
 
-        def set_return_value(value):
-            nonlocal original_return_value
-            original_return_value = value
-            override_return[0] = value
+            def set_return_value(value):
+                nonlocal original_return_value
+                original_return_value = value
+                override_return[0] = value
 
-        # Make return_value settable
-        type(mock_run).return_value = property(
-            lambda self: override_return[0],
-            lambda self, value: set_return_value(value)
-        )
+            # Make return_value settable
+            type(mock_run).return_value = property(
+                lambda self: override_return[0],
+                lambda self, value: set_return_value(value)
+            )
 
-        yield mock_run
+            yield mock_run
 
 
 @pytest.fixture
