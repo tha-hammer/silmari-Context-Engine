@@ -287,6 +287,8 @@ class DecompositionPhase:
         research_path: Path,
         additional_context: str = "",
         resume: bool = True,
+        existing_hierarchy: Optional[RequirementHierarchy] = None,
+        existing_hierarchy_path: Optional[Path] = None,
     ) -> PhaseResult:
         """Execute decomposition phase.
 
@@ -294,6 +296,8 @@ class DecompositionPhase:
             research_path: Path to research document
             additional_context: Optional additional context
             resume: If True, attempt to resume from partial hierarchy (default True)
+            existing_hierarchy: Optional hierarchy to resume from (takes precedence over auto-discovery)
+            existing_hierarchy_path: Optional path to existing hierarchy (used for output directory)
 
         Returns:
             PhaseResult with requirement hierarchy or errors
@@ -302,9 +306,15 @@ class DecompositionPhase:
         # Reset output directory cache for fresh execution
         self._output_dir = None
 
-        # Check for partial hierarchy to resume from
-        existing_hierarchy: Optional[RequirementHierarchy] = None
-        if resume:
+        # Use provided hierarchy if given, otherwise try auto-discovery
+        if existing_hierarchy is not None:
+            # Use provided hierarchy
+            if existing_hierarchy_path is not None:
+                self._output_dir = existing_hierarchy_path.parent
+            existing_count = len(existing_hierarchy.requirements)
+            print(f"  ✓ Using provided hierarchy with {existing_count} requirements (missing AC), re-expanding...")
+        elif resume:
+            # Auto-discover partial hierarchy
             existing_hierarchy, existing_dir = self._find_partial_hierarchy(research_path)
             if existing_hierarchy is not None and existing_dir is not None:
                 # Use the existing output directory to continue saving to the same location
@@ -408,6 +418,8 @@ class DecompositionPhase:
         auto_approve: bool = False,
         additional_context: str = "",
         resume: bool = True,
+        existing_hierarchy: Optional[RequirementHierarchy] = None,
+        existing_hierarchy_path: Optional[Path] = None,
     ) -> PhaseResult:
         """Execute decomposition phase with interactive checkpoint.
 
@@ -418,6 +430,8 @@ class DecompositionPhase:
             auto_approve: If True, skip user prompts
             additional_context: Optional additional context
             resume: If True, attempt to resume from partial hierarchy (default True)
+            existing_hierarchy: Optional hierarchy to resume from (takes precedence over auto-discovery)
+            existing_hierarchy_path: Optional path to existing hierarchy (used for output directory)
 
         Returns:
             PhaseResult with requirement hierarchy and user action
@@ -429,6 +443,8 @@ class DecompositionPhase:
                 research_path,
                 additional_context=current_context,
                 resume=resume,
+                existing_hierarchy=existing_hierarchy,
+                existing_hierarchy_path=existing_hierarchy_path,
             )
 
             # If failed or auto-approve, return immediately

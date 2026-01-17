@@ -178,9 +178,17 @@ class RLMActPipeline:
             else:
                 research_path = Path(kwargs.get("research_path", ""))
 
+            # Get existing hierarchy if provided (for re-expanding incomplete hierarchies)
+            existing_hierarchy = kwargs.get("existing_hierarchy")
+            existing_hierarchy_path = kwargs.get("existing_hierarchy_path")
+            if existing_hierarchy_path:
+                existing_hierarchy_path = Path(existing_hierarchy_path)
+
             return self._decomposition_phase.execute_with_checkpoint(
                 research_path=research_path,
                 auto_approve=auto_approve,
+                existing_hierarchy=existing_hierarchy,
+                existing_hierarchy_path=existing_hierarchy_path,
             )
 
         elif phase_type == PhaseType.TDD_PLANNING:
@@ -398,6 +406,25 @@ class RLMActPipeline:
             return None, f"Plan validation failed: File not found - {hierarchy_path}", {}
         except Exception as e:
             return None, f"Plan validation failed: {e}", {}
+
+    def _has_acceptance_criteria(self, hierarchy: RequirementHierarchy) -> bool:
+        """Check if hierarchy has acceptance criteria.
+
+        A hierarchy is considered complete if at least one requirement has
+        at least one child with non-empty acceptance_criteria. This mirrors
+        the _is_requirement_complete() check in planning_pipeline.decomposition.
+
+        Args:
+            hierarchy: The requirement hierarchy to check
+
+        Returns:
+            True if hierarchy has acceptance criteria, False otherwise
+        """
+        for req in hierarchy.requirements:
+            for child in req.children:
+                if child.acceptance_criteria:
+                    return True
+        return False
 
     def _perform_semantic_validation(
         self,
@@ -625,7 +652,10 @@ class RLMActPipeline:
                     if semantic_result:
                         validation_metadata["semantic_validation"] = semantic_result
 
-                # Create synthetic RESEARCH result
+                # Check if hierarchy has acceptance criteria (complete decomposition)
+                hierarchy_has_ac = self._has_acceptance_criteria(hierarchy)
+
+                # Create synthetic RESEARCH result (always skip when hierarchy provided)
                 synthetic_research = PhaseResult(
                     phase_type=PhaseType.RESEARCH,
                     status=PhaseStatus.COMPLETE,
@@ -645,27 +675,62 @@ class RLMActPipeline:
                     phase="research-skipped",
                 )
 
-                # Create synthetic DECOMPOSITION result
-                synthetic_decomp = PhaseResult(
-                    phase_type=PhaseType.DECOMPOSITION,
-                    status=PhaseStatus.COMPLETE,
-                    artifacts=[hierarchy_path],
-                    started_at=started_at,
-                    completed_at=datetime.now(),
-                    metadata={
-                        "skipped": True,
-                        "reason": "hierarchy_path provided",
-                        **validation_metadata,
-                    },
-                )
-                self.state.set_phase_result(PhaseType.DECOMPOSITION, synthetic_decomp)
-                all_artifacts.append(hierarchy_path)
+                if hierarchy_has_ac:
+                    # Complete hierarchy: skip decomposition too
+                    synthetic_decomp = PhaseResult(
+                        phase_type=PhaseType.DECOMPOSITION,
+                        status=PhaseStatus.COMPLETE,
+                        artifacts=[hierarchy_path],
+                        started_at=started_at,
+                        completed_at=datetime.now(),
+                        metadata={
+                            "skipped": True,
+                            "reason": "hierarchy_path provided",
+                            **validation_metadata,
+                        },
+                    )
+                    self.state.set_phase_result(PhaseType.DECOMPOSITION, synthetic_decomp)
+                    all_artifacts.append(hierarchy_path)
 
-                # Create checkpoint for skipped decomposition phase
-                self.checkpoint_manager.write_checkpoint(
-                    state=self.state,
-                    phase="decomposition-skipped",
-                )
+                    # Create checkpoint for skipped decomposition phase
+                    self.checkpoint_manager.write_checkpoint(
+                        state=self.state,
+                        phase="decomposition-skipped",
+                    )
+                else:
+                    # Incomplete hierarchy (missing acceptance criteria)
+                    # DON'T skip decomposition - run it with existing_hierarchy to fill gaps
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(
+                        f"Hierarchy at {hierarchy_path} lacks acceptance criteria - "
+                        f"running decomposition to complete it"
+                    )
+                    print(
+                        f"\n  ⚠ Hierarchy lacks acceptance criteria - "
+                        f"running decomposition to complete it"
+                    )
+                    # Store hierarchy for passing to decomposition phase
+                    # Will be added to phase_kwargs below
+                    kwargs["existing_hierarchy"] = hierarchy
+                    kwargs["existing_hierarchy_path"] = hierarchy_path
+
+                    # Try to get research_path from hierarchy metadata if not provided
+                    if not research_path and hierarchy.metadata.get("source_research"):
+                        source_research = hierarchy.metadata["source_research"]
+                        # source_research might be a path or just a name
+                        source_path = Path(source_research)
+                        if source_path.exists():
+                            research_path = str(source_path)
+                            kwargs["research_path"] = research_path
+                        else:
+                            # Try to find it in thoughts directory
+                            thoughts_dir = self.project_path / "thoughts" / "searchable"
+                            for research_file in thoughts_dir.glob("**/research*"):
+                                if source_research in str(research_file):
+                                    research_path = str(research_file)
+                                    kwargs["research_path"] = research_path
+                                    break
 
         # If only research_path is provided (no hierarchy_path), create synthetic research result
         elif research_path:

@@ -695,10 +695,60 @@ class TestResearchPathSkip:
 
 @pytest.fixture
 def temp_plan_doc(tmp_path: Path) -> Path:
-    """Create a temporary plan/hierarchy JSON document."""
+    """Create a temporary plan/hierarchy JSON document with acceptance criteria.
+
+    The hierarchy includes a child with acceptance criteria, making it "complete"
+    and eligible for skipping decomposition when provided via --hierarchy-path.
+    """
     import json
 
     doc = tmp_path / "hierarchy.json"
+    hierarchy = {
+        "requirements": [
+            {
+                "id": "REQ_001",
+                "description": "Test requirement",
+                "type": "parent",
+                "parent_id": None,
+                "children": [
+                    {
+                        "id": "REQ_001.1",
+                        "description": "Test child requirement",
+                        "type": "sub_process",
+                        "parent_id": "REQ_001",
+                        "children": [],
+                        "acceptance_criteria": ["System must pass test", "Data must be validated"],
+                        "implementation": None,
+                        "testable_properties": [],
+                        "function_id": "TestService.testFunction",
+                        "related_concepts": [],
+                        "category": "functional",
+                    }
+                ],
+                "acceptance_criteria": [],
+                "implementation": None,
+                "testable_properties": [],
+                "function_id": None,
+                "related_concepts": [],
+                "category": "functional",
+            }
+        ],
+        "metadata": {"source": "test"},
+    }
+    doc.write_text(json.dumps(hierarchy, indent=2))
+    return doc
+
+
+@pytest.fixture
+def temp_plan_doc_without_ac(tmp_path: Path) -> Path:
+    """Create a temporary plan/hierarchy JSON document WITHOUT acceptance criteria.
+
+    This represents an incomplete hierarchy that needs decomposition to be re-run
+    to fill in the missing acceptance criteria.
+    """
+    import json
+
+    doc = tmp_path / "hierarchy_incomplete.json"
     hierarchy = {
         "requirements": [
             {
@@ -1318,7 +1368,7 @@ class TestPlanDocumentValidation:
 
         from silmari_rlm_act.pipeline import RLMActPipeline
 
-        # Create hierarchy with multiple levels
+        # Create hierarchy with multiple levels (with AC to be considered complete)
         hierarchy = {
             "requirements": [
                 {
@@ -1339,11 +1389,11 @@ class TestPlanDocumentValidation:
                                     "type": "implementation",
                                     "parent_id": "REQ_001.1",
                                     "children": [],
-                                    "acceptance_criteria": [],
+                                    "acceptance_criteria": ["Implementation complete"],
                                     "category": "functional",
                                 }
                             ],
-                            "acceptance_criteria": [],
+                            "acceptance_criteria": ["Sub-process complete"],
                             "category": "functional",
                         }
                     ],
@@ -2492,7 +2542,7 @@ class TestPhaseResultReturnValues:
 
         from silmari_rlm_act.pipeline import RLMActPipeline
 
-        # Create hierarchy with 2 top-level requirements, each with children
+        # Create hierarchy with 2 top-level requirements, each with children (with AC)
         hierarchy = {
             "requirements": [
                 {
@@ -2507,7 +2557,7 @@ class TestPhaseResultReturnValues:
                             "type": "sub_process",
                             "parent_id": "REQ_001",
                             "children": [],
-                            "acceptance_criteria": [],
+                            "acceptance_criteria": ["Child 1 complete"],
                             "category": "functional",
                         }
                     ],
@@ -2526,7 +2576,7 @@ class TestPhaseResultReturnValues:
                             "type": "sub_process",
                             "parent_id": "REQ_002",
                             "children": [],
-                            "acceptance_criteria": [],
+                            "acceptance_criteria": ["Child 2 complete"],
                             "category": "functional",
                         }
                     ],
@@ -2612,7 +2662,7 @@ class TestPhaseResultReturnValues:
 
         from silmari_rlm_act.pipeline import RLMActPipeline
 
-        # Create hierarchy with 3 levels: 1 parent -> 1 sub_process -> 1 implementation
+        # Create hierarchy with 3 levels: 1 parent -> 1 sub_process -> 1 implementation (with AC)
         hierarchy = {
             "requirements": [
                 {
@@ -2633,11 +2683,11 @@ class TestPhaseResultReturnValues:
                                     "type": "implementation",
                                     "parent_id": "REQ_001.1",
                                     "children": [],
-                                    "acceptance_criteria": [],
+                                    "acceptance_criteria": ["Implementation complete"],
                                     "category": "functional",
                                 }
                             ],
-                            "acceptance_criteria": [],
+                            "acceptance_criteria": ["Sub-process complete"],
                             "category": "functional",
                         }
                     ],
@@ -2939,7 +2989,17 @@ class TestPhaseResultReturnValues:
                     "description": "Test requirement",
                     "type": "parent",
                     "parent_id": None,
-                    "children": [],
+                    "children": [
+                        {
+                            "id": "REQ_001.1",
+                            "description": "Child requirement",
+                            "type": "sub_process",
+                            "parent_id": "REQ_001",
+                            "children": [],
+                            "acceptance_criteria": ["Test passes"],
+                            "category": "functional",
+                        }
+                    ],
                     "acceptance_criteria": [],
                     "category": "functional",
                 }
@@ -2994,7 +3054,17 @@ class TestPhaseResultReturnValues:
                     "description": "Test requirement",
                     "type": "parent",
                     "parent_id": None,
-                    "children": [],
+                    "children": [
+                        {
+                            "id": "REQ_001.1",
+                            "description": "Child requirement",
+                            "type": "sub_process",
+                            "parent_id": "REQ_001",
+                            "children": [],
+                            "acceptance_criteria": ["AC exists"],
+                            "category": "functional",
+                        }
+                    ],
                     "acceptance_criteria": [],
                     "category": "functional",
                 }
@@ -3048,7 +3118,17 @@ class TestPhaseResultReturnValues:
                     "description": "Test requirement",
                     "type": "parent",
                     "parent_id": None,
-                    "children": [],
+                    "children": [
+                        {
+                            "id": "REQ_001.1",
+                            "description": "Child requirement",
+                            "type": "sub_process",
+                            "parent_id": "REQ_001",
+                            "children": [],
+                            "acceptance_criteria": ["AC exists"],
+                            "category": "functional",
+                        }
+                    ],
                     "acceptance_criteria": [],
                     "category": "functional",
                 }
@@ -3105,7 +3185,17 @@ class TestPhaseResultReturnValues:
                     "description": "Test requirement",
                     "type": "parent",
                     "parent_id": None,
-                    "children": [],
+                    "children": [
+                        {
+                            "id": "REQ_001.1",
+                            "description": "Child requirement",
+                            "type": "sub_process",
+                            "parent_id": "REQ_001",
+                            "children": [],
+                            "acceptance_criteria": ["AC exists"],
+                            "category": "functional",
+                        }
+                    ],
                     "acceptance_criteria": [],
                     "category": "functional",
                 }
