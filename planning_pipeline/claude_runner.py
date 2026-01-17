@@ -609,10 +609,51 @@ async def _run_claude_async(
     }
 
 
+# Module-level event loop for reuse across SDK calls
+# This prevents the "Event loop is closed" errors from subprocess cleanup
+_claude_event_loop: Optional[asyncio.AbstractEventLoop] = None
+_claude_loop_lock = None  # Will be initialized lazily
+
+
+def _get_claude_event_loop() -> asyncio.AbstractEventLoop:
+    """Get or create the shared event loop for Claude SDK calls.
+
+    Using a shared loop prevents subprocess cleanup errors that occur when
+    loops are created and destroyed repeatedly during garbage collection.
+
+    Returns:
+        The shared event loop for Claude SDK operations.
+    """
+    global _claude_event_loop, _claude_loop_lock
+    import threading
+
+    # Lazy initialize the lock
+    if _claude_loop_lock is None:
+        _claude_loop_lock = threading.Lock()
+
+    with _claude_loop_lock:
+        if _claude_event_loop is None or _claude_event_loop.is_closed():
+            _claude_event_loop = asyncio.new_event_loop()
+            # Set custom exception handler to suppress subprocess cleanup errors
+            def _exception_handler(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+                exception = context.get("exception")
+                # Suppress event loop closed errors during subprocess cleanup
+                if exception and "Event loop is closed" in str(exception):
+                    return
+                # Suppress cancel scope errors from anyio
+                if exception and "cancel scope" in str(exception):
+                    return
+                loop.default_exception_handler(context)
+
+            _claude_event_loop.set_exception_handler(_exception_handler)
+
+        return _claude_event_loop
+
+
 def run_claude_sync(
     prompt: str,
     tools: Optional[list[str]] = None,
-    timeout: int = 300,
+    timeout: int = 1200,
     stream: bool = True,
     output_format: OutputFormat = "text",
     cwd: Optional[Path] = None,
@@ -620,6 +661,10 @@ def run_claude_sync(
     """Run Claude Code via Agent SDK and return structured result.
 
     This is a synchronous wrapper around the async SDK.
+
+    Uses a shared event loop to avoid "Event loop is closed" errors that
+    occur when subprocess cleanup happens after the event loop has been
+    destroyed.
 
     Args:
         prompt: The prompt to send to Claude
@@ -638,7 +683,33 @@ def run_claude_sync(
         - elapsed: time in seconds
     """
     try:
-        return asyncio.run(_run_claude_async(prompt, tools, timeout, stream, output_format, cwd))
+        # Use shared event loop to prevent subprocess cleanup errors
+        loop = _get_claude_event_loop()
+        asyncio.set_event_loop(loop)
+        return loop.run_until_complete(_run_claude_async(prompt, tools, timeout, stream, output_format, cwd))
+    except RuntimeError as e:
+        # Handle case where loop was unexpectedly closed
+        if "Event loop is closed" in str(e) or "cannot schedule" in str(e):
+            # Reset the shared loop and retry once
+            global _claude_event_loop
+            _claude_event_loop = None
+            try:
+                loop = _get_claude_event_loop()
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(_run_claude_async(prompt, tools, timeout, stream, output_format, cwd))
+            except Exception as retry_error:
+                return {
+                    "success": False,
+                    "output": "",
+                    "error": f"SDK retry failed: {retry_error}",
+                    "elapsed": 0,
+                }
+        return {
+            "success": False,
+            "output": "",
+            "error": str(e),
+            "elapsed": 0,
+        }
     except Exception as e:
         return {
             "success": False,
@@ -650,7 +721,7 @@ def run_claude_sync(
 
 def run_claude_subprocess(
     prompt: str,
-    timeout: int = 300,
+    timeout: int = 1200,
     stream_json: bool = True,
     cwd: Optional[str] = None,
     _allow_retry: bool = True,
@@ -869,7 +940,7 @@ def invoke_claude(
     prompt: str,
     invocation_mode: Optional[InvocationMode] = None,
     tools: Optional[list[str]] = None,
-    timeout: int = 300,
+    timeout: int = 1200,
     stream: bool = True,
     output_format: OutputFormat = "text",
     permission_mode: PermissionMode = "bypassPermissions",

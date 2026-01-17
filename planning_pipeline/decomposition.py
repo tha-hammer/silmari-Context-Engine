@@ -132,7 +132,7 @@ class DecompositionConfig:
     min_sub_processes: int = 2
     include_acceptance_criteria: bool = True
     expand_dimensions: bool = False
-    expansion_timeout: int = 300  # 5 minutes per requirement expansion
+    expansion_timeout: int = 1200  # 5 minutes per requirement expansion
     pre_classify: bool = True  # REQ_001.2: Enable pre-classification by default
     use_agent_sdk: bool = True  # REQ_004.5: Enable Agent SDK + BAML by default
     agent_sdk_tools: list = field(default_factory=lambda: ["Read", "Glob", "Grep"])

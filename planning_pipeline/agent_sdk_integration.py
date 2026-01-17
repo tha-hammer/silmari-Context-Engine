@@ -149,7 +149,7 @@ class AgentSDKConfig:
     model: str = "claude-opus-4-5-20251101"
     tools: list[str] = field(default_factory=lambda: ["Read", "Glob", "Grep"])
     permission_mode: Literal["default", "acceptEdits", "plan", "bypassPermissions"] = "bypassPermissions"
-    timeout: int = 300
+    timeout: int = 1200
     max_turns: Optional[int] = None
     cwd: Optional[Path] = None
 
@@ -524,6 +524,7 @@ async def execute_with_agent_sdk_async(
     tool_results: list[dict[str, Any]] = []
     error_msg = ""
     tool_id_counter = 0
+    final_result: Optional[AgentSDKResult] = None
 
     # Build ClaudeAgentOptions
     options = ClaudeAgentOptions(
@@ -534,56 +535,63 @@ async def execute_with_agent_sdk_async(
     )
 
     try:
-        async for message in query(prompt=prompt, options=options):
-            # Check timeout
-            if time.time() - start_time > config.timeout:
-                error_msg = f"Timed out after {config.timeout}s"
-                break
+        # Use aclosing to ensure proper async generator cleanup
+        from contextlib import aclosing
+        async with aclosing(query(prompt=prompt, options=options)) as gen:
+            async for message in gen:
+                # Check timeout
+                if time.time() - start_time > config.timeout:
+                    error_msg = f"Timed out after {config.timeout}s"
+                    break  # Exit cleanly via aclosing
 
-            # Handle Assistant messages (text and tool calls)
-            if isinstance(message, AssistantMessage):
-                for block in message.content:
-                    if isinstance(block, TextBlock):
-                        text_chunks.append(block.text)
+                # Handle Assistant messages (text and tool calls)
+                if isinstance(message, AssistantMessage):
+                    for block in message.content:
+                        if isinstance(block, TextBlock):
+                            text_chunks.append(block.text)
 
-                    elif isinstance(block, ToolUseBlock):
-                        tool_id = getattr(block, 'id', None) or f"tool_{tool_id_counter}"
-                        tool_id_counter += 1
-                        tool_results.append({
-                            "tool_id": tool_id,
-                            "tool_name": block.name,
-                            "tool_input": block.input or {},
-                        })
+                        elif isinstance(block, ToolUseBlock):
+                            tool_id = getattr(block, 'id', None) or f"tool_{tool_id_counter}"
+                            tool_id_counter += 1
+                            tool_results.append({
+                                "tool_id": tool_id,
+                                "tool_name": block.name,
+                                "tool_input": block.input or {},
+                            })
 
-                    elif isinstance(block, ToolResultBlock):
-                        tool_use_id = getattr(block, 'tool_use_id', '') or ''
-                        content = getattr(block, 'content', '') or ''
-                        is_error = getattr(block, 'is_error', False)
+                        elif isinstance(block, ToolResultBlock):
+                            tool_use_id = getattr(block, 'tool_use_id', '') or ''
+                            content = getattr(block, 'content', '') or ''
+                            is_error = getattr(block, 'is_error', False)
 
-                        # Find matching tool call and add result
-                        for result in tool_results:
-                            if result.get("tool_id") == tool_use_id:
-                                result["result"] = content
-                                result["is_error"] = is_error
-                                break
+                            # Find matching tool call and add result
+                            for result in tool_results:
+                                if result.get("tool_id") == tool_use_id:
+                                    result["result"] = content
+                                    result["is_error"] = is_error
+                                    break
 
-            # Handle final result
-            elif isinstance(message, ResultMessage):
-                elapsed = time.time() - start_time
-                output = message.result if message.result else "".join(text_chunks)
+                # Handle final result - store and break instead of returning
+                elif isinstance(message, ResultMessage):
+                    elapsed = time.time() - start_time
+                    output = message.result if message.result else "".join(text_chunks)
 
-                return AgentSDKResult(
-                    success=not message.is_error,
-                    output=output,
-                    tool_results=tool_results,
-                    elapsed=elapsed,
-                    error=message.result if message.is_error else "",
-                )
+                    final_result = AgentSDKResult(
+                        success=not message.is_error,
+                        output=output,
+                        tool_results=tool_results,
+                        elapsed=elapsed,
+                        error=message.result if message.is_error else "",
+                    )
+                    break  # Exit cleanly - aclosing will handle cleanup
 
     except Exception as e:
         error_msg = f"{type(e).__name__}: {e}"
 
-    # Return result (either timeout or error case)
+    # Return final result if we got one, otherwise return timeout/error result
+    if final_result is not None:
+        return final_result
+
     elapsed = time.time() - start_time
     return AgentSDKResult(
         success=False if error_msg else True,
@@ -594,11 +602,94 @@ async def execute_with_agent_sdk_async(
     )
 
 
+def _sdk_exception_handler(loop: asyncio.AbstractEventLoop, context: dict) -> None:
+    """Custom exception handler to suppress SDK cleanup errors.
+
+    The claude_agent_sdk uses anyio TaskGroups that can raise cleanup errors
+    when asyncio.run() closes the event loop. These are non-fatal and don't
+    affect the actual SDK results.
+    """
+    exception = context.get("exception")
+    message = context.get("message", "")
+
+    # Suppress cancel scope errors from anyio - these are cleanup issues
+    if exception and "cancel scope" in str(exception):
+        return  # Silently ignore
+
+    # Suppress GeneratorExit-related cleanup errors
+    if "async_generator_athrow" in message or "GeneratorExit" in str(exception):
+        return  # Silently ignore
+
+    # Suppress event loop closed errors during subprocess cleanup
+    if exception and "Event loop is closed" in str(exception):
+        return  # Silently ignore
+
+    # For other exceptions, use the default handler
+    loop.default_exception_handler(context)
+
+
+# Module-level event loop for reuse across SDK calls
+# This prevents the "Event loop is closed" errors from subprocess cleanup
+_sdk_event_loop: Optional[asyncio.AbstractEventLoop] = None
+_sdk_loop_lock = None  # Will be initialized lazily to avoid threading issues
+
+
+def _get_sdk_event_loop() -> asyncio.AbstractEventLoop:
+    """Get or create the shared event loop for SDK calls.
+
+    Using a shared loop prevents subprocess cleanup errors that occur when
+    loops are created and destroyed repeatedly.
+
+    Returns:
+        The shared event loop for SDK operations.
+    """
+    global _sdk_event_loop, _sdk_loop_lock
+    import threading
+
+    # Lazy initialize the lock
+    if _sdk_loop_lock is None:
+        _sdk_loop_lock = threading.Lock()
+
+    with _sdk_loop_lock:
+        if _sdk_event_loop is None or _sdk_event_loop.is_closed():
+            _sdk_event_loop = asyncio.new_event_loop()
+            _sdk_event_loop.set_exception_handler(_sdk_exception_handler)
+
+        return _sdk_event_loop
+
+
+def _cleanup_sdk_event_loop() -> None:
+    """Clean up the shared event loop (call at process exit if needed)."""
+    global _sdk_event_loop
+    if _sdk_event_loop is not None and not _sdk_event_loop.is_closed():
+        try:
+            # Cancel pending tasks
+            pending = asyncio.all_tasks(_sdk_event_loop)
+            for task in pending:
+                task.cancel()
+            if pending:
+                _sdk_event_loop.run_until_complete(
+                    asyncio.wait(pending, timeout=2.0)
+                )
+            _sdk_event_loop.close()
+        except Exception:
+            pass
+        finally:
+            _sdk_event_loop = None
+
+
 def execute_with_agent_sdk(
     prompt: str,
     config: Optional[AgentSDKConfig] = None,
 ) -> AgentSDKResult:
     """Synchronous wrapper for execute_with_agent_sdk_async.
+
+    Uses a shared event loop to avoid issues with asyncio.run()
+    creating/destroying loops repeatedly, which causes "Event loop is closed"
+    errors in subprocess cleanup from the claude_agent_sdk.
+
+    The shared loop is kept alive across multiple calls, so subprocess
+    cleanup can complete properly without encountering a closed loop.
 
     Args:
         prompt: The prompt text to send
@@ -608,7 +699,39 @@ def execute_with_agent_sdk(
         AgentSDKResult with success status, output, and tool results
     """
     try:
-        return asyncio.run(execute_with_agent_sdk_async(prompt, config))
+        # Use shared event loop to prevent subprocess cleanup errors
+        loop = _get_sdk_event_loop()
+        asyncio.set_event_loop(loop)
+
+        # Run the async function on the shared loop
+        # Don't close the loop - keep it alive for subprocess cleanup
+        return loop.run_until_complete(execute_with_agent_sdk_async(prompt, config))
+
+    except RuntimeError as e:
+        # Handle case where loop was unexpectedly closed
+        if "Event loop is closed" in str(e) or "cannot schedule" in str(e):
+            # Reset the shared loop and retry once
+            global _sdk_event_loop
+            _sdk_event_loop = None
+            try:
+                loop = _get_sdk_event_loop()
+                asyncio.set_event_loop(loop)
+                return loop.run_until_complete(execute_with_agent_sdk_async(prompt, config))
+            except Exception as retry_error:
+                return AgentSDKResult(
+                    success=False,
+                    output="",
+                    error=f"SDK retry failed: {retry_error}",
+                )
+
+        # Suppress cancel scope errors during cleanup - these are non-fatal
+        if "cancel scope" in str(e):
+            return AgentSDKResult(
+                success=False,
+                output="",
+                error=f"SDK cleanup error (non-fatal): {e}",
+            )
+        raise
     except Exception as e:
         return AgentSDKResult(
             success=False,
