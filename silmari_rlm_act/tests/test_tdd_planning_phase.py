@@ -271,8 +271,16 @@ class TestStorePlanInCWA:
 class TestPlanPhaseResult:
     """Behavior 7-8: Return PhaseResult."""
 
-    def test_returns_success_result(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_returns_success_result(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given successful planning, returns PhaseResult."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -280,7 +288,7 @@ class TestPlanPhaseResult:
                     "description": "Test requirement",
                     "type": "parent",
                     "children": [],
-                    "acceptance_criteria": [],
+                    "acceptance_criteria": ["Given valid input, when processed, then success returned"],
                 }
             ],
             "metadata": {},
@@ -298,8 +306,16 @@ class TestPlanPhaseResult:
         assert result.status == PhaseStatus.COMPLETE
         assert len(result.artifacts) > 0
 
-    def test_includes_plan_path_in_artifacts(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_includes_plan_path_in_artifacts(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given successful planning, includes plan path."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -307,7 +323,7 @@ class TestPlanPhaseResult:
                     "description": "Test requirement",
                     "type": "parent",
                     "children": [],
-                    "acceptance_criteria": [],
+                    "acceptance_criteria": ["Given valid input, when processed, then success returned"],
                 }
             ],
             "metadata": {},
@@ -324,8 +340,16 @@ class TestPlanPhaseResult:
         assert "test-plan" in result.artifacts[0]
         assert ".md" in result.artifacts[0]
 
-    def test_includes_metadata(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_includes_metadata(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given successful planning, includes metadata."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -333,7 +357,7 @@ class TestPlanPhaseResult:
                     "description": "Test requirement",
                     "type": "parent",
                     "children": [],
-                    "acceptance_criteria": [],
+                    "acceptance_criteria": ["Given valid input, when processed, then success returned"],
                 }
             ],
             "metadata": {},
@@ -514,9 +538,17 @@ class TestInteractiveCheckpoint:
 class TestIndividualPlanGeneration:
     """Behavior 1: Generate individual plan files per requirement."""
 
-    def test_generates_one_file_per_requirement(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_generates_one_file_per_requirement(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given 3 requirements, when execute(), then 3 plan files created."""
         # Arrange
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -579,8 +611,16 @@ class TestIndividualPlanGeneration:
         assert result.status == PhaseStatus.COMPLETE
         assert len(result.artifacts) == 0
 
-    def test_single_requirement_creates_one_file(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_single_requirement_creates_one_file(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given 1 requirement, when execute(), then exactly 1 file created."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -605,8 +645,16 @@ class TestIndividualPlanGeneration:
         assert len(result.artifacts) == 1
         assert Path(result.artifacts[0]).exists()
 
-    def test_file_names_follow_pattern(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_file_names_follow_pattern(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given requirement, when execute(), file name has correct pattern."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -635,8 +683,16 @@ class TestIndividualPlanGeneration:
         pattern = r"\d{4}-\d{2}-\d{2}-tdd-my-feature-req_001\.md"
         assert re.match(pattern, file_name), f"File name '{file_name}' doesn't match pattern"
 
-    def test_metadata_includes_plans_generated_count(self, tmp_path: Path) -> None:
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
+    @patch("silmari_rlm_act.phases.tdd_planning.run_review_session")
+    def test_metadata_includes_plans_generated_count(self, mock_review: MagicMock, tmp_path: Path) -> None:
         """Given multiple requirements, metadata tracks plans generated."""
+        mock_review.return_value = {
+            "success": True,
+            "output": '{"findings": [], "overall_quality": "good", "amendments": []}',
+            "error": "",
+            "elapsed": 1.0,
+        }
         hierarchy_data = {
             "requirements": [
                 {
@@ -644,14 +700,14 @@ class TestIndividualPlanGeneration:
                     "description": "Feature 1",
                     "type": "parent",
                     "children": [],
-                    "acceptance_criteria": [],
+                    "acceptance_criteria": ["Given input, when processed, then output"],
                 },
                 {
                     "id": "REQ_002",
                     "description": "Feature 2",
                     "type": "parent",
                     "children": [],
-                    "acceptance_criteria": [],
+                    "acceptance_criteria": ["Given data, when validated, then stored"],
                 },
             ],
             "metadata": {},
@@ -671,6 +727,7 @@ class TestIndividualPlanGeneration:
 class TestLLMContentGeneration:
     """Behavior 2: LLM generates actual TDD content via Agent SDK."""
 
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
     def test_generates_actual_test_code_not_todos(self, tmp_path: Path) -> None:
         """Given requirement, when _generate_plan_content_for_requirement(), then no TODO placeholders."""
         cwa = CWAIntegration()
@@ -696,6 +753,7 @@ class TestLLMContentGeneration:
         # Should have actual test code (or at least descriptive content)
         assert "assert" in content.lower() or "test" in content.lower()
 
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
     def test_includes_given_when_then_from_criteria(self, tmp_path: Path) -> None:
         """Given requirement with criteria, when generate, then Given/When/Then extracted."""
         cwa = CWAIntegration()
@@ -736,6 +794,7 @@ class TestLLMContentGeneration:
         assert "# " in content
         assert "REQ_001" in content
 
+    @patch("silmari_rlm_act.phases.tdd_planning.HAS_CLAUDE_SDK", False)
     def test_generates_content_for_multiple_criteria(self, tmp_path: Path) -> None:
         """Given requirement with multiple criteria, generates content for each."""
         cwa = CWAIntegration()

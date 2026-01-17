@@ -21,6 +21,7 @@ from silmari_rlm_act.models import (
 from silmari_rlm_act.phases.beads_sync import BeadsSyncPhase
 from silmari_rlm_act.phases.decomposition import DecompositionPhase
 from silmari_rlm_act.phases.implementation import ImplementationPhase
+from silmari_rlm_act.phases.implementation_sdk import ImplementationPhaseSDK
 from silmari_rlm_act.phases.multi_doc import MultiDocPhase
 from silmari_rlm_act.phases.research import ResearchPhase
 from silmari_rlm_act.phases.tdd_planning import TDDPlanningPhase
@@ -87,6 +88,7 @@ class RLMActPipeline:
         cwa: CWAIntegration,
         autonomy_mode: AutonomyMode = AutonomyMode.CHECKPOINT,
         beads_controller: Optional[BeadsControllerProtocol] = None,
+        use_sdk: bool = True,
     ) -> None:
         """Initialize the RLM-Act pipeline.
 
@@ -95,11 +97,14 @@ class RLMActPipeline:
             cwa: Context Window Array integration instance
             autonomy_mode: How the pipeline handles pauses
             beads_controller: Optional beads controller for tracking
+            use_sdk: If True, use SDK-based implementation phase (default).
+                     If False, use CLI subprocess-based implementation.
         """
         self.project_path = Path(project_path).resolve()
         self.cwa = cwa
         self.beads_controller = beads_controller
         self.checkpoint_manager = CheckpointManager(self.project_path)
+        self.use_sdk = use_sdk
 
         # Initialize pipeline state
         self.state = PipelineState(
@@ -121,7 +126,12 @@ class RLMActPipeline:
                 self.project_path, self.cwa, beads_controller
             )
 
-        self._implementation_phase = ImplementationPhase(self.project_path, self.cwa)
+        # Implementation phase: SDK-based (default) or CLI subprocess-based
+        self._implementation_phase: ImplementationPhase | ImplementationPhaseSDK
+        if use_sdk:
+            self._implementation_phase = ImplementationPhaseSDK(self.project_path, self.cwa)
+        else:
+            self._implementation_phase = ImplementationPhase(self.project_path, self.cwa)
 
     @property
     def phase_order(self) -> list[PhaseType]:

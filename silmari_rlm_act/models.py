@@ -98,12 +98,14 @@ class PhaseStatus(Enum):
     - PENDING: Not yet started
     - IN_PROGRESS: Currently executing
     - COMPLETE: Successfully finished
+    - PARTIAL: Completed with some errors (partial success)
     - FAILED: Encountered errors
     """
 
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETE = "complete"
+    PARTIAL = "partial"
     FAILED = "failed"
 
     @classmethod

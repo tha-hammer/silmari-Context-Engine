@@ -86,7 +86,7 @@ def interactive_checkpoint_research(research_result: dict[str, Any]) -> dict[str
     # No open questions or no answers provided - show action menu
     action = _prompt_research_action()
 
-    result = {
+    result: dict[str, Any] = {
         "action": action,
         "continue": action == "continue",
         "answers": [],

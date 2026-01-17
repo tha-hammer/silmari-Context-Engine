@@ -499,7 +499,8 @@ async def _run_claude_async(
     use_stream_json = output_format == "stream-json" and stream
 
     # Set max output tokens to allow longer responses (prevents truncation)
-    os.environ.setdefault("CLAUDE_CODE_MAX_OUTPUT_TOKENS", "128000")
+    os.environ.setdefault("CLAUDE_CODE_MAX_OUTPUT_TOKENS", "64000")
+    os.environ.setdefault("CLAUDE_CODE_FILE_READ_MAX_OUTPUT_TOKENS", "36000")
     project_path = cwd if cwd else Path.cwd()
 
     options = ClaudeAgentOptions(
