@@ -34,6 +34,8 @@ class EntryType(Enum):
     SEARCH_RESULT = "search_result"
     SUMMARY = "summary"
     CONTEXT_REQUEST = "context_request"
+    # Chain Map entry type for function chain map integration
+    CHAIN_MAP = "chain_map"
 
     @classmethod
     def from_string(cls, value: str) -> "EntryType":
