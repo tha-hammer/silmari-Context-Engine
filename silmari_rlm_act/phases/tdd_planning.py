@@ -9,6 +9,7 @@ import json
 import re
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from silmari_rlm_act.checkpoints.interactive import (
     collect_multiline_input,
@@ -18,6 +19,17 @@ from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
 
 from planning_pipeline.models import RequirementHierarchy, RequirementNode
+from planning_pipeline.claude_runner import run_claude_sync
+
+
+# Section headers for requirement context building
+SECTION_HEADERS = {
+    "description": "## Description",
+    "criteria": "## Acceptance Criteria",
+    "implementation": "## Implementation Components",
+    "children": "## Sub-Requirements",
+    "research": "## Research Document",
+}
 
 
 class TDDPlanningPhase:
@@ -77,6 +89,217 @@ class TDDPlanningPhase:
             data = json.load(f)
 
         return RequirementHierarchy.from_dict(data)
+
+    def _build_requirement_context(
+        self,
+        requirement: RequirementNode,
+        research_doc_path: Optional[str] = None,
+    ) -> str:
+        """Build formatted context string for a requirement.
+
+        Args:
+            requirement: Requirement node to build context for
+            research_doc_path: Optional path to research document
+
+        Returns:
+            Formatted markdown string with requirement details
+        """
+        lines: list[str] = [
+            f"# Requirement: {requirement.id}",
+            "",
+            SECTION_HEADERS["description"],
+            requirement.description,
+            "",
+        ]
+
+        # Add function_id if present
+        if requirement.function_id:
+            lines.extend([
+                f"**Function ID**: `{requirement.function_id}`",
+                "",
+            ])
+
+        # Add related concepts if present
+        if requirement.related_concepts:
+            lines.extend([
+                "**Related Concepts**: " + ", ".join(requirement.related_concepts),
+                "",
+            ])
+
+        # Add acceptance criteria
+        if requirement.acceptance_criteria:
+            lines.extend([SECTION_HEADERS["criteria"], ""])
+            for i, criterion in enumerate(requirement.acceptance_criteria, 1):
+                lines.append(f"{i}. {criterion}")
+            lines.append("")
+
+        # Add implementation components
+        if requirement.implementation:
+            lines.extend([SECTION_HEADERS["implementation"], ""])
+            impl = requirement.implementation
+            if impl.frontend:
+                lines.append(f"**Frontend**: {', '.join(impl.frontend)}")
+            if impl.backend:
+                lines.append(f"**Backend**: {', '.join(impl.backend)}")
+            if impl.middleware:
+                lines.append(f"**Middleware**: {', '.join(impl.middleware)}")
+            if impl.shared:
+                lines.append(f"**Shared**: {', '.join(impl.shared)}")
+            lines.append("")
+
+        # Add children recursively
+        if requirement.children:
+            lines.extend([SECTION_HEADERS["children"], ""])
+            for child in requirement.children:
+                lines.append(f"### {child.id}: {child.description}")
+                if child.acceptance_criteria:
+                    lines.append("**Acceptance Criteria**:")
+                    for criterion in child.acceptance_criteria:
+                        lines.append(f"- {criterion}")
+                lines.append("")
+
+        # Add research doc reference
+        if research_doc_path:
+            lines.extend([
+                SECTION_HEADERS["research"],
+                f"See: `{research_doc_path}`",
+                "",
+            ])
+
+        return "\n".join(lines)
+
+    def _load_instruction_template(self, template_name: str) -> Optional[str]:
+        """Load instruction template from .claude/commands/.
+
+        Args:
+            template_name: Name of template (without .md extension)
+
+        Returns:
+            Template content as string, or None if template not found
+
+        Note:
+            Logs warning if template file is missing - caller should handle None return
+        """
+        template_path = self.project_path / ".claude" / "commands" / f"{template_name}.md"
+        if not template_path.exists():
+            print(f"⚠️  Warning: Template not found: {template_path}")
+            print(f"    Expected location: .claude/commands/{template_name}.md")
+            return None
+        return template_path.read_text(encoding="utf-8")
+
+    def _generate_plan_path(self, requirement: RequirementNode) -> Path:
+        """Generate file path for plan document.
+
+        Args:
+            requirement: Requirement to generate path for
+
+        Returns:
+            Path object for the plan file
+        """
+        date_str = datetime.now().strftime("%Y-%m-%d")
+        req_slug = requirement.id.lower().replace("_", "-")
+        desc_slug = requirement.description[:30].lower()
+        desc_slug = "".join(c if c.isalnum() or c == " " else "" for c in desc_slug)
+        desc_slug = "-".join(desc_slug.split())
+
+        plan_dir = self.project_path / "thoughts" / "searchable" / "plans"
+        plan_dir.mkdir(parents=True, exist_ok=True)
+
+        return plan_dir / f"{date_str}-tdd-{req_slug}-{desc_slug}.md"
+
+    def _review_plan(self, plan_path: Path) -> Optional[Path]:
+        """Review TDD plan using Claude.
+
+        Args:
+            plan_path: Path to plan file to review
+
+        Returns:
+            Path to review file, or None on error
+        """
+        if not plan_path.exists():
+            print(f"Error: Plan file not found: {plan_path}")
+            return None
+
+        # Load review instruction template
+        instruction = self._load_instruction_template("review_plan")
+        if not instruction:
+            return None
+
+        # Read plan content
+        plan_content = plan_path.read_text(encoding="utf-8")
+
+        # Build prompt
+        prompt = (
+            f"Using the instruction template below, review the TDD implementation plan.\n\n"
+            f"# Instruction Template\n{instruction}\n\n---\n\n"
+            f"# Plan to Review\n**File**: `{plan_path}`\n\n{plan_content}\n\n"
+            f"Please provide a comprehensive review following the template structure."
+        )
+
+        # Invoke Claude
+        result = run_claude_sync(
+            prompt=prompt,
+            timeout=self.DEFAULT_TIMEOUT,  # 10 minutes for review
+            stream=True,
+            cwd=self.project_path,
+        )
+
+        if not result["success"]:
+            print(f"Error reviewing plan: {result['error']}")
+            return None
+
+        # Generate review file path (same name with -REVIEW suffix)
+        review_path = plan_path.parent / plan_path.name.replace(".md", "-REVIEW.md")
+
+        # Save review content
+        review_path.write_text(result["output"], encoding="utf-8")
+
+        return review_path
+
+    def _generate_initial_plan(
+        self,
+        requirement: RequirementNode,
+        research_doc_path: Optional[str] = None,
+    ) -> Optional[Path]:
+        """Generate initial TDD plan using Claude.
+
+        Args:
+            requirement: Requirement to plan for
+            research_doc_path: Optional research document path
+
+        Returns:
+            Path to generated plan file, or None on error
+        """
+        # Build context and load template
+        req_context = self._build_requirement_context(requirement, research_doc_path)
+        instruction = self._load_instruction_template("create_tdd_plan")
+        if not instruction:
+            return None
+
+        # Build and execute prompt
+        prompt = (
+            f"Using the instruction template below, create a TDD implementation plan.\n\n"
+            f"# Instruction Template\n{instruction}\n\n---\n\n"
+            f"# Requirement to Plan\n{req_context}\n\n"
+            f"Please create a detailed TDD plan following the template structure."
+        )
+
+        result = run_claude_sync(
+            prompt=prompt,
+            timeout=1200,
+            stream=True,
+            cwd=self.project_path,
+        )
+
+        if not result["success"]:
+            print(f"Error generating plan for {requirement.id}: {result['error']}")
+            return None
+
+        # Save plan
+        plan_path = self._generate_plan_path(requirement)
+        plan_path.write_text(result["output"], encoding="utf-8")
+
+        return plan_path
 
     def _generate_plan_document(
         self,
