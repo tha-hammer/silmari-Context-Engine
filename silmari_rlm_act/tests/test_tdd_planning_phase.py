@@ -18,7 +18,6 @@ from unittest.mock import patch
 
 import pytest
 
-from context_window_array import EntryType
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
 from silmari_rlm_act.phases.tdd_planning import TDDPlanningPhase
@@ -97,177 +96,6 @@ class TestLoadHierarchy:
             phase._load_hierarchy(str(bad_file))
 
 
-class TestGeneratePlanDocument:
-    """Behavior 2-4: Generate TDD Plan Document."""
-
-    def test_generates_markdown(self, tmp_path: Path) -> None:
-        """Given hierarchy, generates markdown document."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(
-                id="REQ_001",
-                description="User login feature",
-                type="parent",
-                acceptance_criteria=["Given valid creds, when login, then authenticated"],
-            )
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "login-feature")
-
-        assert "# " in plan  # Has headers
-        assert "REQ_001" in plan
-        assert "login" in plan.lower()
-
-    def test_includes_red_green_refactor(self, tmp_path: Path) -> None:
-        """Given behavior, includes TDD cycle."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(
-                id="REQ_001",
-                description="Login feature",
-                type="parent",
-                acceptance_criteria=["Given valid creds, when login, then authenticated"],
-            )
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "login")
-
-        # Check for TDD cycle markers (emoji or text)
-        has_red = "Red" in plan or "🔴" in plan
-        has_green = "Green" in plan or "🟢" in plan
-        has_refactor = "Refactor" in plan or "🔵" in plan
-
-        assert has_red, "Plan should include Red phase"
-        assert has_green, "Plan should include Green phase"
-        assert has_refactor, "Plan should include Refactor phase"
-
-    def test_includes_test_specification(self, tmp_path: Path) -> None:
-        """Given behavior, includes Given/When/Then."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(
-                id="REQ_001",
-                description="Login feature",
-                type="parent",
-                acceptance_criteria=[
-                    "Given valid credentials, when login submitted, then user authenticated"
-                ],
-            )
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "login")
-
-        assert "Given" in plan
-        # Check for "When" or "when" (may be in lowercase in parsed form)
-        assert "When" in plan or "when" in plan
-        # Check for "Then" or "then"
-        assert "Then" in plan or "then" in plan
-
-    def test_includes_code_blocks(self, tmp_path: Path) -> None:
-        """Given plan, includes code snippets."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(
-                id="REQ_001",
-                description="Login feature",
-                type="parent",
-                acceptance_criteria=["Given valid creds, when login, then authenticated"],
-            )
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "login")
-
-        assert "```" in plan  # Has code blocks
-
-    def test_handles_empty_acceptance_criteria(self, tmp_path: Path) -> None:
-        """Given requirement without criteria, generates placeholder."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(
-                id="REQ_001",
-                description="Some feature",
-                type="parent",
-                acceptance_criteria=[],
-            )
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "feature")
-
-        # Should still generate valid markdown
-        assert "REQ_001" in plan
-        assert "# " in plan
-
-    def test_includes_summary_table(self, tmp_path: Path) -> None:
-        """Given multiple requirements, includes summary table."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        hierarchy = RequirementHierarchy()
-        hierarchy.add_requirement(
-            RequirementNode(id="REQ_001", description="Feature 1", type="parent")
-        )
-        hierarchy.add_requirement(
-            RequirementNode(id="REQ_002", description="Feature 2", type="parent")
-        )
-
-        plan = phase._generate_plan_document(hierarchy, "multi")
-
-        # Check for table markers
-        assert "|" in plan
-        assert "REQ_001" in plan
-        assert "REQ_002" in plan
-
-
-class TestStorePlanInCWA:
-    """Behavior 5-6: Store Plan in CWA."""
-
-    def test_creates_file_entry(self, tmp_path: Path) -> None:
-        """Given plan, creates FILE entry."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        plan_content = "# TDD Plan\n\n## Overview\n\nThis is a test plan."
-        plan_path = tmp_path / "plan.md"
-        plan_path.write_text(plan_content)
-
-        entry_id = phase._store_plan_in_cwa(str(plan_path), plan_content)
-
-        entry = cwa.get_entry(entry_id)
-        assert entry is not None
-        assert entry.entry_type == EntryType.FILE
-
-    def test_stores_content_and_summary(self, tmp_path: Path) -> None:
-        """Given plan, stores full content and summary."""
-        cwa = CWAIntegration()
-        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
-
-        plan_content = "# My TDD Plan\n\n## Overview\n\nDetailed content here."
-        plan_path = tmp_path / "plan.md"
-        plan_path.write_text(plan_content)
-
-        entry_id = phase._store_plan_in_cwa(str(plan_path), plan_content)
-
-        entry = cwa.get_entry(entry_id)
-        assert entry is not None
-        assert entry.content == plan_content
-        assert "TDD Plan" in entry.summary or "My TDD Plan" in entry.summary
-
-
 class TestPlanPhaseResult:
     """Behavior 7-8: Return PhaseResult."""
 
@@ -291,7 +119,12 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path):
+            result = phase.execute(hierarchy_path=str(hierarchy_path))
 
         assert isinstance(result, PhaseResult)
         assert result.phase_type == PhaseType.TDD_PLANNING
@@ -318,10 +151,15 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+        # Create mock plan file with expected name
+        plan_path = tmp_path / "tdd-test-plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path):
+            result = phase.execute(hierarchy_path=str(hierarchy_path))
 
         assert len(result.artifacts) == 1
-        assert "test-plan" in result.artifacts[0]
+        assert "tdd" in result.artifacts[0]
         assert ".md" in result.artifacts[0]
 
     def test_includes_metadata(self, tmp_path: Path) -> None:
@@ -344,9 +182,14 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(plan_name="test-plan", hierarchy_path=str(hierarchy_path))
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
 
-        assert "cwa_entry_id" in result.metadata
+        with patch.object(phase, '_process_requirement', return_value=plan_path):
+            result = phase.execute(hierarchy_path=str(hierarchy_path))
+
+        assert "cwa_entry_ids" in result.metadata
         assert "requirements_count" in result.metadata
         assert result.metadata["requirements_count"] == 1
 
@@ -355,7 +198,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(plan_name="test-plan", hierarchy_path="nonexistent.json")
+        result = phase.execute(hierarchy_path="nonexistent.json")
 
         assert result.status == PhaseStatus.FAILED
         assert len(result.errors) > 0
@@ -369,7 +212,7 @@ class TestPlanPhaseResult:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        result = phase.execute(plan_name="test-plan", hierarchy_path=str(bad_file))
+        result = phase.execute(hierarchy_path=str(bad_file))
 
         assert result.status == PhaseStatus.FAILED
         assert len(result.errors) > 0
@@ -472,13 +315,17 @@ class TestInteractiveCheckpoint:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch(
-            "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
-        ) as mock_prompt:
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path), \
+             patch(
+                 "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
+             ) as mock_prompt:
             mock_prompt.return_value = "continue"
 
             phase.execute_with_checkpoint(
-                plan_name="test-plan",
                 hierarchy_path=str(hierarchy_path),
                 auto_approve=False,
             )
@@ -505,11 +352,15 @@ class TestInteractiveCheckpoint:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch(
-            "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
-        ) as mock_prompt:
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path), \
+             patch(
+                 "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
+             ) as mock_prompt:
             phase.execute_with_checkpoint(
-                plan_name="test-plan",
                 hierarchy_path=str(hierarchy_path),
                 auto_approve=True,
             )
@@ -536,13 +387,17 @@ class TestInteractiveCheckpoint:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch(
-            "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
-        ) as mock_prompt:
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path), \
+             patch(
+                 "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
+             ) as mock_prompt:
             mock_prompt.return_value = "continue"
 
             result = phase.execute_with_checkpoint(
-                plan_name="test-plan",
                 hierarchy_path=str(hierarchy_path),
                 auto_approve=False,
             )
@@ -569,13 +424,17 @@ class TestInteractiveCheckpoint:
         cwa = CWAIntegration()
         phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
 
-        with patch(
-            "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
-        ) as mock_prompt:
+        # Create mock plan file
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Test Plan")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path), \
+             patch(
+                 "silmari_rlm_act.phases.tdd_planning.prompt_tdd_planning_action"
+             ) as mock_prompt:
             mock_prompt.return_value = "exit"
 
             result = phase.execute_with_checkpoint(
-                plan_name="test-plan",
                 hierarchy_path=str(hierarchy_path),
                 auto_approve=False,
             )
@@ -1192,3 +1051,123 @@ class TestProcessRequirement:
         # Assert
         assert result == plan_path  # Returns unenhanced plan
         assert plan_path.read_text() == "Original plan"  # Unchanged
+
+
+class TestExecuteMainLoop:
+    """Behavior 7: Process All Requirements (Main Loop)."""
+
+    def test_execute_multiple_requirements(self, tmp_path: Path) -> None:
+        """Test: Process multiple requirements, collect all plan paths."""
+        # Arrange
+        req1 = RequirementNode(id="REQ_001", description="First", type="parent")
+        req2 = RequirementNode(id="REQ_002", description="Second", type="parent")
+        req3 = RequirementNode(id="REQ_003", description="Third", type="parent")
+
+        hierarchy = RequirementHierarchy(requirements=[req1, req2, req3])
+        hierarchy_file = tmp_path / "hierarchy.json"
+        hierarchy_file.write_text(json.dumps(hierarchy.to_dict()))
+
+        research_doc = tmp_path / "research.md"
+        research_doc.write_text("# Research")
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Mock _process_requirement to return paths
+        plan_paths = [
+            tmp_path / "plan1.md",
+            tmp_path / "plan2.md",
+            tmp_path / "plan3.md"
+        ]
+        for p in plan_paths:
+            p.write_text("Plan")
+
+        with patch.object(phase, '_process_requirement', side_effect=plan_paths):
+            # Act
+            result = phase.execute(
+                hierarchy_path=str(hierarchy_file),
+                research_doc_path=str(research_doc)
+            )
+
+        # Assert
+        assert result.status == PhaseStatus.COMPLETE
+        assert len(result.artifacts) == 3
+        assert all(str(p) in result.artifacts for p in plan_paths)
+        assert result.metadata["requirements_count"] == 3
+        assert result.metadata["successful_plans"] == 3
+
+    def test_execute_partial_failure(self, tmp_path: Path) -> None:
+        """Test: Some requirements fail, continue with others."""
+        # Arrange
+        req1 = RequirementNode(id="REQ_001", description="First", type="parent")
+        req2 = RequirementNode(id="REQ_002", description="Second", type="parent")
+        req3 = RequirementNode(id="REQ_003", description="Third", type="parent")
+
+        hierarchy = RequirementHierarchy(requirements=[req1, req2, req3])
+        hierarchy_file = tmp_path / "hierarchy.json"
+        hierarchy_file.write_text(json.dumps(hierarchy.to_dict()))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Mock: req1 succeeds, req2 fails, req3 succeeds
+        plan1 = tmp_path / "plan1.md"
+        plan1.write_text("Plan 1")
+        plan3 = tmp_path / "plan3.md"
+        plan3.write_text("Plan 3")
+
+        with patch.object(phase, '_process_requirement', side_effect=[plan1, None, plan3]):
+            # Act
+            result = phase.execute(hierarchy_path=str(hierarchy_file))
+
+        # Assert
+        assert result.status == PhaseStatus.COMPLETE  # Partial success still complete
+        assert len(result.artifacts) == 2  # Only successful plans
+        assert result.metadata["requirements_count"] == 3
+        assert result.metadata["successful_plans"] == 2
+        assert result.metadata["failed_plans"] == 1
+
+    def test_execute_empty_hierarchy(self, tmp_path: Path) -> None:
+        """Test: Empty hierarchy returns success with no artifacts."""
+        # Arrange
+        hierarchy = RequirementHierarchy(requirements=[])
+        hierarchy_file = tmp_path / "hierarchy.json"
+        hierarchy_file.write_text(json.dumps(hierarchy.to_dict()))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        result = phase.execute(hierarchy_path=str(hierarchy_file))
+
+        # Assert
+        assert result.status == PhaseStatus.COMPLETE
+        assert len(result.artifacts) == 0
+        assert result.metadata["requirements_count"] == 0
+
+    def test_execute_stores_plans_in_cwa(self, tmp_path: Path) -> None:
+        """Test: Each successful plan stored in CWA."""
+        # Arrange
+        req1 = RequirementNode(id="REQ_001", description="Test", type="parent")
+        hierarchy = RequirementHierarchy(requirements=[req1])
+        hierarchy_file = tmp_path / "hierarchy.json"
+        hierarchy_file.write_text(json.dumps(hierarchy.to_dict()))
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Plan Content")
+
+        with patch.object(phase, '_process_requirement', return_value=plan_path), \
+             patch.object(cwa, 'store_plan', return_value="cwa_entry_123") as mock_store:
+
+            # Act
+            result = phase.execute(hierarchy_path=str(hierarchy_file))
+
+        # Assert
+        assert mock_store.called
+        call_args = mock_store.call_args[1]  # kwargs
+        assert call_args["path"] == str(plan_path)
+        assert "# Plan Content" in call_args["content"]
+        assert "cwa_entry_ids" in result.metadata

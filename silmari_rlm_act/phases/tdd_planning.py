@@ -6,7 +6,6 @@ Red-Green-Refactor cycles.
 """
 
 import json
-import re
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -399,287 +398,94 @@ class TDDPlanningPhase:
 
         return plan_path
 
-    def _generate_plan_document(
-        self,
-        hierarchy: RequirementHierarchy,
-        plan_name: str,
-    ) -> str:
-        """Generate TDD plan document from hierarchy.
-
-        Args:
-            hierarchy: Requirement hierarchy
-            plan_name: Name for the plan
-
-        Returns:
-            Markdown document string
-        """
-        lines = [
-            f"# {plan_name} TDD Implementation Plan",
-            "",
-            "## Overview",
-            "",
-            f"This plan covers {len(hierarchy.requirements)} top-level requirements.",
-            "",
-        ]
-
-        # Add summary table
-        lines.extend(self._generate_summary_table(hierarchy))
-        lines.append("")
-
-        # Add each requirement section
-        for req in hierarchy.requirements:
-            lines.extend(self._generate_requirement_section(req))
-            lines.append("")
-
-        # Add success criteria
-        lines.extend(self._generate_success_criteria(hierarchy))
-
-        return "\n".join(lines)
-
-    def _generate_summary_table(self, hierarchy: RequirementHierarchy) -> list[str]:
-        """Generate summary table of requirements.
-
-        Args:
-            hierarchy: Requirement hierarchy
-
-        Returns:
-            List of markdown lines for the table
-        """
-        lines = [
-            "## Requirements Summary",
-            "",
-            "| ID | Description | Criteria | Status |",
-            "|-----|-------------|----------|--------|",
-        ]
-
-        for req in hierarchy.requirements:
-            criteria_count = len(req.acceptance_criteria)
-            desc = req.description[:40] + "..." if len(req.description) > 40 else req.description
-            lines.append(f"| {req.id} | {desc} | {criteria_count} | Pending |")
-
-        return lines
-
-    def _generate_requirement_section(self, req: RequirementNode) -> list[str]:
-        """Generate TDD section for a requirement.
-
-        Args:
-            req: Requirement node
-
-        Returns:
-            List of markdown lines for the section
-        """
-        lines = [
-            f"## {req.id}: {req.description[:60]}",
-            "",
-            req.description,
-            "",
-        ]
-
-        if not req.acceptance_criteria:
-            lines.extend([
-                "### Testable Behaviors",
-                "",
-                "_No acceptance criteria defined. Add criteria during implementation._",
-                "",
-            ])
-            return lines
-
-        for i, criterion in enumerate(req.acceptance_criteria, 1):
-            lines.extend(self._generate_behavior_tdd(req.id, i, criterion))
-
-        return lines
-
-    def _generate_behavior_tdd(
-        self,
-        req_id: str,
-        behavior_num: int,
-        criterion: str,
-    ) -> list[str]:
-        """Generate Red-Green-Refactor section for a behavior.
-
-        Args:
-            req_id: Requirement ID
-            behavior_num: Behavior number (1-indexed)
-            criterion: Acceptance criterion text
-
-        Returns:
-            List of markdown lines for the TDD cycle
-        """
-        # Parse Given/When/Then from criterion
-        given, when, then = self._parse_behavior(criterion)
-
-        # Generate safe identifier from req_id
-        safe_id = req_id.lower().replace("-", "_").replace(".", "_")
-
-        return [
-            f"### Behavior {behavior_num}",
-            "",
-            "#### Test Specification",
-            f"**Given**: {given}",
-            f"**When**: {when}",
-            f"**Then**: {then}",
-            "",
-            "#### 🔴 Red: Write Failing Test",
-            "",
-            f"**File**: `tests/test_{safe_id}.py`",
-            "```python",
-            f"def test_{safe_id}_behavior_{behavior_num}():",
-            f'    """Test: {criterion[:60]}..."""',
-            "    # Arrange",
-            f"    # {given}",
-            "",
-            "    # Act",
-            f"    # {when}",
-            "",
-            "    # Assert",
-            f"    # {then}",
-            "    assert False  # TODO: Implement",
-            "```",
-            "",
-            "#### 🟢 Green: Minimal Implementation",
-            "",
-            "```python",
-            "# TODO: Add minimal implementation to pass test",
-            "```",
-            "",
-            "#### 🔵 Refactor: Improve Code",
-            "",
-            "```python",
-            "# TODO: Refactor while keeping tests green",
-            "```",
-            "",
-            "#### Success Criteria",
-            "- [ ] Test fails for right reason (Red)",
-            "- [ ] Test passes with minimal code (Green)",
-            "- [ ] Code refactored, tests still pass (Refactor)",
-            "",
-        ]
-
-    def _parse_behavior(self, criterion: str) -> tuple[str, str, str]:
-        """Parse Given/When/Then from criterion string.
-
-        Args:
-            criterion: Acceptance criterion text
-
-        Returns:
-            Tuple of (given, when, then) strings
-        """
-        # Try to extract Given/When/Then
-        given_match = re.search(r"[Gg]iven\s+(.+?)(?:,|\s+[Ww]hen)", criterion)
-        when_match = re.search(r"[Ww]hen\s+(.+?)(?:,|\s+[Tt]hen)", criterion)
-        then_match = re.search(r"[Tt]hen\s+(.+?)(?:$|\.)", criterion)
-
-        given = given_match.group(1).strip() if given_match else "initial state"
-        when = when_match.group(1).strip() if when_match else "action performed"
-        then = then_match.group(1).strip() if then_match else "expected result"
-
-        return given, when, then
-
-    def _generate_success_criteria(self, hierarchy: RequirementHierarchy) -> list[str]:
-        """Generate overall success criteria.
-
-        Args:
-            hierarchy: Requirement hierarchy
-
-        Returns:
-            List of markdown lines for success criteria
-        """
-        return [
-            "## Overall Success Criteria",
-            "",
-            "### Automated",
-            "- [ ] All tests pass: `pytest tests/ -v`",
-            "- [ ] Type checking: `mypy .`",
-            "- [ ] Lint: `ruff check .`",
-            "",
-            "### Manual",
-            "- [ ] All behaviors implemented",
-            "- [ ] Code reviewed",
-            "- [ ] Documentation updated",
-        ]
-
-    def _save_plan(self, content: str, plan_name: str) -> Path:
-        """Save plan document to file.
-
-        Args:
-            content: Plan content
-            plan_name: Plan name
-
-        Returns:
-            Path to saved plan file
-        """
-        date_str = datetime.now().strftime("%Y-%m-%d")
-        plan_dir = self.project_path / "thoughts" / "searchable" / "shared" / "plans"
-        plan_dir.mkdir(parents=True, exist_ok=True)
-
-        plan_path = plan_dir / f"{date_str}-tdd-{plan_name}.md"
-        plan_path.write_text(content, encoding="utf-8")
-        return plan_path
-
-    def _store_plan_in_cwa(self, plan_path: str, content: str) -> str:
-        """Store plan in CWA as FILE entry.
-
-        Args:
-            plan_path: Path to plan file
-            content: Plan content
-
-        Returns:
-            Entry ID
-        """
-        # Generate summary from first few lines
-        lines = content.split("\n")[:10]
-        summary = " ".join(line.strip("#").strip() for line in lines if line.strip())[:200]
-
-        return self.cwa.store_plan(
-            path=plan_path,
-            content=content,
-            summary=summary,
-        )
-
     def execute(
         self,
-        plan_name: str,
         hierarchy_path: str,
+        research_doc_path: Optional[str] = None,
     ) -> PhaseResult:
-        """Execute TDD planning phase.
+        """Execute TDD planning phase with LLM-driven multi-session approach.
+
+        For each top-level requirement in hierarchy:
+        1. Generate initial plan using Claude + create_tdd_plan.md
+        2. Review plan using Claude + review_plan.md
+        3. Enhance plan using Claude + review feedback
 
         Args:
-            plan_name: Name for the plan
-            hierarchy_path: Path to hierarchy JSON file on disk
+            hierarchy_path: Path to requirement hierarchy JSON file
+            research_doc_path: Optional path to research document
 
         Returns:
-            PhaseResult with plan artifacts
+            PhaseResult with plan artifacts and metadata
         """
         started_at = datetime.now()
+        plan_paths: list[Path] = []
+        cwa_entry_ids: list[str] = []
+        failed_requirements: list[str] = []
 
         try:
-            # Load hierarchy from file on disk
+            # Load hierarchy
             hierarchy = self._load_hierarchy(hierarchy_path)
 
-            # Generate plan document
-            plan_content = self._generate_plan_document(hierarchy, plan_name)
+            print(f"\n{'='*70}")
+            print(f"TDD Planning Phase: Processing {len(hierarchy.requirements)} requirements")
+            print(f"{'='*70}")
 
-            # Save plan
-            plan_path = self._save_plan(plan_content, plan_name)
+            # Process each top-level requirement
+            for i, requirement in enumerate(hierarchy.requirements, 1):
+                print(f"\n\n[Requirement {i}/{len(hierarchy.requirements)}]")
 
-            # Store in CWA
-            entry_id = self._store_plan_in_cwa(str(plan_path), plan_content)
+                # Process through 3-session loop
+                plan_path = self._process_requirement(requirement, research_doc_path)
 
+                if plan_path:
+                    plan_paths.append(plan_path)
+
+                    # Store in CWA
+                    plan_content = plan_path.read_text(encoding="utf-8")
+                    summary = f"TDD plan for {requirement.id}: {requirement.description[:100]}"
+                    entry_id = self.cwa.store_plan(
+                        path=str(plan_path),
+                        content=plan_content,
+                        summary=summary,
+                    )
+                    cwa_entry_ids.append(entry_id)
+                    print(f"✓ Plan stored in CWA: {entry_id}")
+                else:
+                    failed_requirements.append(requirement.id)
+                    print(f"❌ Failed to create plan for {requirement.id}")
+
+            # Calculate results
             completed_at = datetime.now()
             duration = (completed_at - started_at).total_seconds()
+
+            successful_count = len(plan_paths)
+            failed_count = len(failed_requirements)
+
+            print(f"\n{'='*70}")
+            print(f"TDD Planning Complete:")
+            print(f"  ✓ Successful: {successful_count}/{len(hierarchy.requirements)}")
+            if failed_count > 0:
+                print(f"  ❌ Failed: {failed_count}")
+                print(f"     {', '.join(failed_requirements)}")
+            print(f"  Duration: {duration:.1f}s")
+            print(f"{'='*70}\n")
 
             return PhaseResult(
                 phase_type=PhaseType.TDD_PLANNING,
                 status=PhaseStatus.COMPLETE,
-                artifacts=[str(plan_path)],
+                artifacts=[str(p) for p in plan_paths],
                 started_at=started_at,
                 completed_at=completed_at,
                 duration_seconds=duration,
                 metadata={
-                    "cwa_entry_id": entry_id,
-                    "requirements_count": len(hierarchy.requirements),
-                    "plan_path": str(plan_path),
                     "hierarchy_path": hierarchy_path,
+                    "research_doc_path": research_doc_path,
+                    "requirements_count": len(hierarchy.requirements),
+                    "successful_plans": successful_count,
+                    "failed_plans": failed_count,
+                    "failed_requirements": failed_requirements,
+                    "cwa_entry_ids": cwa_entry_ids,
+                    "intermediate_files_policy": "preserved_on_failure",
                 },
             )
 
@@ -701,7 +507,7 @@ class TDDPlanningPhase:
             return PhaseResult(
                 phase_type=PhaseType.TDD_PLANNING,
                 status=PhaseStatus.FAILED,
-                errors=[f"Invalid JSON: {e}"],
+                errors=[f"Invalid hierarchy JSON: {e}"],
                 started_at=started_at,
                 completed_at=completed_at,
                 duration_seconds=duration,
@@ -722,8 +528,8 @@ class TDDPlanningPhase:
 
     def execute_with_checkpoint(
         self,
-        plan_name: str,
         hierarchy_path: str,
+        research_doc_path: Optional[str] = None,
         auto_approve: bool = False,
     ) -> PhaseResult:
         """Execute TDD planning phase with interactive checkpoint.
@@ -731,16 +537,16 @@ class TDDPlanningPhase:
         After planning completes, prompts user for action unless auto_approve is True.
 
         Args:
-            plan_name: Name for the plan
             hierarchy_path: Path to hierarchy JSON file on disk
+            research_doc_path: Optional path to research document
             auto_approve: If True, skip user prompts
 
         Returns:
             PhaseResult with plan artifacts and user action
         """
         result = self.execute(
-            plan_name=plan_name,
             hierarchy_path=hierarchy_path,
+            research_doc_path=research_doc_path,
         )
 
         # If failed or auto-approve, return immediately
