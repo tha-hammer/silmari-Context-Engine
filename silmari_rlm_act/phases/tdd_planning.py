@@ -11,16 +11,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from planning_pipeline.claude_runner import run_claude_sync
+from planning_pipeline.models import RequirementHierarchy, RequirementNode
 from silmari_rlm_act.checkpoints.interactive import (
     collect_multiline_input,
     prompt_tdd_planning_action,
 )
 from silmari_rlm_act.context.cwa_integration import CWAIntegration
 from silmari_rlm_act.models import PhaseResult, PhaseStatus, PhaseType
-
-from planning_pipeline.models import RequirementHierarchy, RequirementNode
-from planning_pipeline.claude_runner import run_claude_sync
-
 
 # Section headers for requirement context building
 SECTION_HEADERS = {
@@ -255,6 +253,106 @@ class TDDPlanningPhase:
         review_path.write_text(result["output"], encoding="utf-8")
 
         return review_path
+
+    def _enhance_plan(self, plan_path: Path, review_path: Path) -> bool:
+        """Enhance TDD plan using review feedback.
+
+        Args:
+            plan_path: Path to original plan file (will be updated)
+            review_path: Path to review file
+
+        Returns:
+            True if enhancement succeeded, False otherwise
+        """
+        if not plan_path.exists() or not review_path.exists():
+            print("Error: Plan or review file not found")
+            return False
+
+        # Load instruction template (reuse create_tdd_plan.md)
+        instruction = self._load_instruction_template("create_tdd_plan")
+        if not instruction:
+            return False
+
+        # Read plan and review content
+        plan_content = plan_path.read_text(encoding="utf-8")
+        review_content = review_path.read_text(encoding="utf-8")
+
+        # Build enhancement prompt
+        prompt = (
+            f"You are NOT creating a new plan. You are ENHANCING an existing TDD plan.\n\n"
+            f"Using the instruction template and review feedback below, enhance the existing plan.\n\n"
+            f"# Instruction Template\n{instruction}\n\n---\n\n"
+            f"# Existing Plan\n**File**: `{plan_path}`\n\n{plan_content}\n\n---\n\n"
+            f"# Review Feedback\n**File**: `{review_path}`\n\n{review_content}\n\n---\n\n"
+            f"Please enhance the plan by addressing the review feedback. "
+            f"Output the complete enhanced plan (not just changes)."
+        )
+
+        # Invoke Claude
+        result = run_claude_sync(
+            prompt=prompt,
+            timeout=1200,  # 20 minutes for enhancement
+            stream=True,
+            cwd=self.project_path,
+        )
+
+        if not result["success"]:
+            print(f"Error enhancing plan: {result['error']}")
+            return False
+
+        # Update original plan file
+        plan_path.write_text(result["output"], encoding="utf-8")
+
+        return True
+
+    def _process_requirement(
+        self,
+        requirement: RequirementNode,
+        research_doc_path: Optional[str] = None,
+    ) -> Optional[Path]:
+        """Process requirement through 3-session TDD planning loop.
+
+        Sessions:
+        1. Generate initial plan
+        2. Review plan
+        3. Enhance plan using review
+
+        Args:
+            requirement: Requirement to process
+            research_doc_path: Optional research document path
+
+        Returns:
+            Path to final plan file, or None if session 1 failed
+        """
+        print(f"\n{'='*60}")
+        print(f"Processing requirement: {requirement.id}")
+        print(f"{'='*60}")
+
+        # Session 1: Generate initial plan
+        print(f"\n[Session 1/3] Generating initial plan...")
+        plan_path = self._generate_initial_plan(requirement, research_doc_path)
+        if not plan_path:
+            print(f"❌ Session 1 failed for {requirement.id}")
+            return None
+        print(f"✓ Initial plan created: {plan_path}")
+
+        # Session 2: Review plan
+        print(f"\n[Session 2/3] Reviewing plan...")
+        review_path = self._review_plan(plan_path)
+        if not review_path:
+            print(f"⚠️  Session 2 failed, keeping unreviewed plan")
+            return plan_path
+        print(f"✓ Review created: {review_path}")
+
+        # Session 3: Enhance plan
+        print(f"\n[Session 3/3] Enhancing plan with review feedback...")
+        success = self._enhance_plan(plan_path, review_path)
+        if not success:
+            print(f"⚠️  Session 3 failed, keeping unenhanced plan")
+            return plan_path
+        print(f"✓ Plan enhanced: {plan_path}")
+
+        return plan_path
 
     def _generate_initial_plan(
         self,

@@ -934,3 +934,261 @@ Some test specification
 
         # Assert
         assert review_path is None
+
+
+class TestEnhancePlan:
+    """Behavior 5: Enhance Plan Using Review Feedback."""
+
+    def test_enhance_plan_success(self, tmp_path: Path) -> None:
+        """Test: Enhance plan using review feedback."""
+        # Arrange
+        original_plan = "# TDD Plan\n## Behavior 1\nOriginal content"
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text(original_plan)
+
+        review_content = "# Review\nSuggestion: Add more test cases"
+        review_path = tmp_path / "plan-REVIEW.md"
+        review_path.write_text(review_content)
+
+        enhanced_plan = "# TDD Plan\n## Behavior 1\nEnhanced with more test cases"
+        mock_result = {
+            "success": True,
+            "output": enhanced_plan,
+            "error": "",
+            "elapsed": 15.0
+        }
+
+        # Create template file
+        template_dir = tmp_path / ".claude" / "commands"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        (template_dir / "create_tdd_plan.md").write_text("# TDD Plan Template")
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        with patch('silmari_rlm_act.phases.tdd_planning.run_claude_sync', return_value=mock_result):
+            success = phase._enhance_plan(plan_path, review_path)
+
+        # Assert
+        assert success is True
+        updated_content = plan_path.read_text()
+        assert updated_content == enhanced_plan
+        assert "Enhanced" in updated_content
+
+    def test_enhance_plan_missing_files(self, tmp_path: Path) -> None:
+        """Test: Handle missing plan or review files."""
+        # Arrange
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        success = phase._enhance_plan(Path("nonexistent.md"), Path("also-nonexistent.md"))
+
+        # Assert
+        assert success is False
+
+    def test_enhance_plan_claude_error(self, tmp_path: Path) -> None:
+        """Test: Handle Claude error, keep original plan."""
+        # Arrange
+        original_plan = "# TDD Plan\nOriginal"
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text(original_plan)
+
+        review_path = tmp_path / "review.md"
+        review_path.write_text("# Review")
+
+        # Create template file
+        template_dir = tmp_path / ".claude" / "commands"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        (template_dir / "create_tdd_plan.md").write_text("# TDD Plan Template")
+
+        mock_result = {
+            "success": False,
+            "output": "",
+            "error": "Claude timeout",
+            "elapsed": 1.0
+        }
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Act
+        with patch('silmari_rlm_act.phases.tdd_planning.run_claude_sync', return_value=mock_result):
+            success = phase._enhance_plan(plan_path, review_path)
+
+        # Assert
+        assert success is False
+        # Original plan should be unchanged
+        assert plan_path.read_text() == original_plan
+
+    def test_enhance_plan_prompt_structure(self, tmp_path: Path) -> None:
+        """Test: Verify enhancement prompt mentions it's an enhancement, not new plan."""
+        # Arrange
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("# Plan")
+
+        review_path = tmp_path / "review.md"
+        review_path.write_text("# Review")
+
+        # Create template
+        template_dir = tmp_path / ".claude" / "commands"
+        template_dir.mkdir(parents=True, exist_ok=True)
+        template_path = template_dir / "create_tdd_plan.md"
+        template_path.write_text("# TDD Plan Template")
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        mock_result = {"success": True, "output": "Enhanced", "error": "", "elapsed": 5.0}
+
+        # Act
+        with patch('silmari_rlm_act.phases.tdd_planning.run_claude_sync', return_value=mock_result) as mock_claude:
+            phase._enhance_plan(plan_path, review_path)
+
+        # Assert
+        call_args = mock_claude.call_args
+        if "prompt" in call_args.kwargs:
+            prompt = call_args.kwargs["prompt"]
+        else:
+            prompt = call_args[0][0]
+
+        # Verify enhancement-specific language in prompt
+        assert "enhancing" in prompt.lower() or "enhance" in prompt.lower()
+        assert "not creating a new plan" in prompt.lower() or "existing plan" in prompt.lower()
+        assert str(plan_path) in prompt
+        assert str(review_path) in prompt
+
+
+class TestProcessRequirement:
+    """Behavior 6: Process Single Requirement (3-Session Loop)."""
+
+    def test_process_requirement_full_success(self, tmp_path: Path) -> None:
+        """Test: Process requirement through all 3 sessions successfully."""
+        # Arrange
+        from planning_pipeline.models import RequirementNode
+
+        requirement = RequirementNode(
+            id="REQ_001",
+            description="Test requirement",
+            type="parent",
+            acceptance_criteria=["Criterion 1"]
+        )
+
+        research_doc = tmp_path / "research.md"
+        research_doc.write_text("# Research")
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Mock all three Claude calls
+        with patch.object(phase, '_generate_initial_plan') as mock_gen, \
+             patch.object(phase, '_review_plan') as mock_rev, \
+             patch.object(phase, '_enhance_plan') as mock_enh:
+
+            plan_path = tmp_path / "plan.md"
+            plan_path.write_text("Plan")
+            review_path = tmp_path / "review.md"
+            review_path.write_text("Review")
+
+            mock_gen.return_value = plan_path
+            mock_rev.return_value = review_path
+            mock_enh.return_value = True
+
+            # Act
+            result_path = phase._process_requirement(requirement, str(research_doc))
+
+        # Assert
+        assert result_path == plan_path
+        assert mock_gen.called
+        assert mock_rev.called
+        assert mock_enh.called
+
+    def test_process_requirement_session1_fails(self, tmp_path: Path) -> None:
+        """Test: If session 1 fails, skip sessions 2 & 3."""
+        # Arrange
+        from planning_pipeline.models import RequirementNode
+
+        requirement = RequirementNode(
+            id="REQ_002",
+            description="Test",
+            type="parent"
+        )
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        # Mock session 1 failure
+        with patch.object(phase, '_generate_initial_plan', return_value=None) as mock_gen, \
+             patch.object(phase, '_review_plan') as mock_rev, \
+             patch.object(phase, '_enhance_plan') as mock_enh:
+
+            # Act
+            result = phase._process_requirement(requirement, None)
+
+        # Assert
+        assert result is None
+        assert mock_gen.called
+        assert not mock_rev.called  # Should skip
+        assert not mock_enh.called  # Should skip
+
+    def test_process_requirement_session2_fails(self, tmp_path: Path) -> None:
+        """Test: If session 2 fails, skip session 3, return session 1 plan."""
+        # Arrange
+        from planning_pipeline.models import RequirementNode
+
+        requirement = RequirementNode(
+            id="REQ_003",
+            description="Test",
+            type="parent"
+        )
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("Plan")
+
+        # Mock session 1 success, session 2 failure
+        with patch.object(phase, '_generate_initial_plan', return_value=plan_path), \
+             patch.object(phase, '_review_plan', return_value=None) as mock_rev, \
+             patch.object(phase, '_enhance_plan') as mock_enh:
+
+            # Act
+            result = phase._process_requirement(requirement, None)
+
+        # Assert
+        assert result == plan_path  # Returns session 1 plan
+        assert mock_rev.called
+        assert not mock_enh.called  # Should skip
+
+    def test_process_requirement_session3_fails(self, tmp_path: Path) -> None:
+        """Test: If session 3 fails, return session 1 plan with warning."""
+        # Arrange
+        from planning_pipeline.models import RequirementNode
+
+        requirement = RequirementNode(
+            id="REQ_004",
+            description="Test",
+            type="parent"
+        )
+
+        cwa = CWAIntegration()
+        phase = TDDPlanningPhase(project_path=tmp_path, cwa=cwa)
+
+        plan_path = tmp_path / "plan.md"
+        plan_path.write_text("Original plan")
+        review_path = tmp_path / "review.md"
+        review_path.write_text("Review")
+
+        # Mock sessions 1 & 2 success, session 3 failure
+        with patch.object(phase, '_generate_initial_plan', return_value=plan_path), \
+             patch.object(phase, '_review_plan', return_value=review_path), \
+             patch.object(phase, '_enhance_plan', return_value=False):
+
+            # Act
+            result = phase._process_requirement(requirement, None)
+
+        # Assert
+        assert result == plan_path  # Returns unenhanced plan
+        assert plan_path.read_text() == "Original plan"  # Unchanged
